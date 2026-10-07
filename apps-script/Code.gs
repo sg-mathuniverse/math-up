@@ -18,8 +18,47 @@ const HEADERS = {
   Substitutions: ['id', 'date', 'startTime', 'endTime', 'className', 'topic', 'room', 'absentTeacherEmail', 'substituteTeacherEmail', 'reason', 'status', 'createdBy', 'createdAt', 'updatedAt']
 };
 
-function doGet() {
+function doGet(e) {
+  if (e && e.parameter && e.parameter.api === '1') return handleApi_(e);
   return HtmlService.createTemplateFromFile('Index').evaluate().setTitle('Math Up — Teacher Workspace').addMetaTag('viewport', 'width=device-width, initial-scale=1');
+}
+
+function doPost(e) {
+  if (e && e.parameter && e.parameter.api === '1') return handleApi_(e);
+  return ContentService.createTextOutput(JSON.stringify({ok:false,error:'API tidak valid.'})).setMimeType(ContentService.MimeType.JSON);
+}
+
+function handleApi_(e) {
+  const action = String((e.parameter && e.parameter.action) || '');
+  const callback = String((e.parameter && e.parameter.callback) || '');
+  let args = [];
+  try {
+    const raw = e.parameter && e.parameter.payload;
+    args = raw ? JSON.parse(raw) : [];
+  } catch (err) {
+    return apiResponse_({ok:false,error:'Payload tidak valid.'}, callback);
+  }
+  const allowed = {
+    getBootstrap:'getBootstrap', getCurrentUser:'getCurrentUser',
+    getSubstitutionRequests:'getSubstitutionRequests', getDriveMaterials:'getDriveMaterials',
+    getEffectiveSchedule:'getEffectiveSchedule', saveTodo:'saveTodo', toggleTodo:'toggleTodo',
+    saveTeacher:'saveTeacher', saveSchedule:'saveSchedule', saveEvent:'saveEvent',
+    findSubstituteCandidates:'findSubstituteCandidates', saveSubstitution:'saveSubstitution',
+    respondSubstitution:'respondSubstitution'
+  };
+  try {
+    if (!allowed[action] || typeof this[allowed[action]] !== 'function') throw new Error('API action tidak diizinkan.');
+    const result = this[allowed[action]].apply(null, Array.isArray(args) ? args : [args]);
+    return apiResponse_(result, callback);
+  } catch (err) {
+    return apiResponse_({ok:false,error:err && err.message ? err.message : String(err)}, callback);
+  }
+}
+
+function apiResponse_(payload, callback) {
+  const body = JSON.stringify(payload && payload.ok === false ? payload : {ok:true,data:payload});
+  if (callback) return ContentService.createTextOutput(callback + '(' + body + ')').setMimeType(ContentService.MimeType.JAVASCRIPT);
+  return ContentService.createTextOutput(body).setMimeType(ContentService.MimeType.JSON);
 }
 
 function include(filename) {
