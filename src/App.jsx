@@ -24,7 +24,7 @@ function App(){
   const [menuOpen,setMenuOpen]=useState(false);
   const [showTodo,setShowTodo]=useState(false);
   const [query,setQuery]=useState("");
-  const [user,setUser]=useState(null);\n  const [loading,setLoading]=useState(true);\n  const [apiError,setApiError]=useState("");\n\n  useEffect(()=>{\n    api.getBootstrap().then(d=>{\n      setTodos(d?.todos||[]);\n      setUser(d?.user||null);\n    }).catch(e=>setApiError(e.message||String(e))).finally(()=>setLoading(false));\n  },[]);
+  const [user,setUser]=useState(null);\n  const [dashboard,setDashboard]=useState({schedule:[],events:[]});\n  const [loading,setLoading]=useState(true);\n  const [apiError,setApiError]=useState("");\n\n  useEffect(()=>{\n    api.getBootstrap().then(d=>{\n      setTodos(d?.todos||[]);\n      setUser(d?.user||null);\n      setDashboard({schedule:d?.schedule||[],events:d?.events||[]});\n    }).catch(e=>setApiError(e.message||String(e))).finally(()=>setLoading(false));\n  },[]);
 
   const filteredTodos=useMemo(()=>todos.filter(t=>t.title.toLowerCase().includes(query.toLowerCase())),[todos,query]);
 
@@ -59,7 +59,7 @@ function App(){
         </div>
       </header>
 
-      {active==="Dashboard" ? <Dashboard todos={filteredTodos} toggleTodo={toggleTodo} onAdd={()=>setShowTodo(true)} /> :
+      {active==="Dashboard" ? <Dashboard todos={filteredTodos} toggleTodo={toggleTodo} onAdd={()=>setShowTodo(true)} schedule={dashboard.schedule} events={dashboard.events} user={user} /> :
        active==="Jadwal Mengajar" ? <SchedulePage user={user} /> : active==="Guru Pengganti" ? <SubstitutePage user={user} /> :
        active==="Kalender Akademik" ? <CalendarPage /> :
        active==="Drive Materi" ? <DrivePage /> :
@@ -75,33 +75,7 @@ function App(){
 
 function Nav({icon,label,active,onClick}){return <button className={active?"nav active":"nav"} onClick={onClick}>{icon}<span>{label}</span>{label==="To-Do"&&<em>3</em>}</button>}
 
-function Dashboard({todos,toggleTodo,onAdd}){
- return <div className="content">
-  <section className="hero">
-    <div><div className="eyebrow"><Sparkles size={14}/> Selamat datang kembali</div><h1>Selamat pagi, Guru! 👋</h1><p>Berikut ringkasan aktivitas matematika Anda hari ini.</p></div>
-    <button className="primary" onClick={onAdd}><CirclePlus size={18}/> Tambah tugas</button>
-  </section>
-  <div className="stats">
-    <Stat icon={<BookOpen/>} label="Jam mengajar hari ini" value="3" note="7:00 — 12:20"/>
-    <Stat icon={<ListTodo/>} label="Tugas aktif" value={todos.filter(t=>!t.done).length} note="Perlu diselesaikan"/>
-    <Stat icon={<CalendarDays/>} label="Agenda minggu ini" value="5" note="2 agenda sekolah"/>
-  </div>
-  <div className="grid">
-    <section className="card schedule-card">
-      <div className="card-head"><div><h2>Jadwal mengajar hari ini</h2><p>Rabu, 7 Oktober 2026</p></div><button className="text-btn">Lihat semua</button></div>
-      <div className="schedule-list">{schedule.map((s,i)=><div className={i===0?"schedule-row current":"schedule-row"} key={s.time}><div className="time"><b>{s.time}</b><span>{s.end}</span></div><div className="line"><i></i></div><div className="lesson"><div><b>{s.className}</b><span>{s.topic}</span></div><small>{s.room}</small></div>{i===0&&<span className="now">Sekarang</span>}</div>)}</div>
-    </section>
-    <section className="card todo-card">
-      <div className="card-head"><div><h2>To-Do terdekat</h2><p>Urut berdasarkan deadline & prioritas</p></div><button className="icon-btn"><MoreHorizontal size={18}/></button></div>
-      <div className="todo-list">{todos.slice(0,4).map(t=><TodoRow key={t.id} t={t} toggle={()=>toggleTodo(t.id)}/>)}</div>
-      <button className="full-btn" onClick={onAdd}>+ Tambah tugas baru</button>
-    </section>
-  </div>
-  <section className="card calendar-card"><div className="card-head"><div><h2>Agenda akademik</h2><p>Oktober 2026</p></div><button className="text-btn">Buka kalender</button></div><div className="events"><Event day="08" title="Rapat Tim Matematika" meta="13:00 · Ruang Guru"/><Event day="10" title="Batas pengumpulan kisi-kisi STS" meta="Semua guru matematika"/><Event day="12" title="STS Matematika" meta="Kelas VII–IX"/></div></section>
- </div>
-}
-
-function Stat({icon,label,value,note}){return <div className="stat"><div className="stat-icon">{icon}</div><div><span>{label}</span><strong>{value}</strong><small>{note}</small></div></div>}
+function Dashboard({todos,toggleTodo,onAdd,schedule,events,user}){\n const activeSchedule=(schedule||[]).slice().sort((a,b)=>String(a.startTime).localeCompare(String(b.startTime)));\n const activeEvents=(events||[]).slice().sort((a,b)=>String(a.eventDate).localeCompare(String(b.eventDate))).slice(0,3);\n return <div className="content"><section className="hero"><div><div className="eyebrow"><Sparkles size={14}/> Selamat datang kembali</div><h1>Halo, {user?.name||"Guru"}! 👋</h1><p>Berikut ringkasan aktivitas matematika Anda hari ini.</p></div><button className="primary" onClick={onAdd}><CirclePlus size={18}/> Tambah tugas</button></section><div className="stats"><Stat icon={<BookOpen/>} label="Jam mengajar hari ini" value={activeSchedule.length} note={activeSchedule.length?activeSchedule[0].startTime+" — "+activeSchedule[activeSchedule.length-1].endTime:"Tidak ada jadwal"}/><Stat icon={<ListTodo/>} label="Tugas aktif" value={todos.filter(t=>!t.done).length} note="Perlu diselesaikan"/><Stat icon={<CalendarDays/>} label="Agenda tersedia" value={events.length} note="Dari kalender sekolah"/></div><div className="grid"><section className="card schedule-card"><div className="card-head"><div><h2>Jadwal mengajar hari ini</h2><p>Data dari Google Sheets</p></div></div><div className="schedule-list">{activeSchedule.length?activeSchedule.map((s,i)=><div className="schedule-row" key={s.id||s.startTime}><div className="time"><b>{s.startTime}</b><span>{s.endTime}</span></div><div className="line"><i></i></div><div className="lesson"><div><b>{s.className}</b><span>{s.topic||"Tanpa topik"}</span></div><small>{s.room||"-"}</small></div></div>):<p style={{padding:20}}>Belum ada jadwal untuk hari ini.</p>}</div></section><section className="card todo-card"><div className="card-head"><div><h2>To-Do terdekat</h2><p>Urut berdasarkan deadline & prioritas</p></div></div><div className="todo-list">{todos.slice(0,4).map(t=><TodoRow key={t.id} t={t} toggle={()=>toggleTodo(t.id)}/>)}</div><button className="full-btn" onClick={onAdd}>+ Tambah tugas baru</button></section></div><section className="card calendar-card"><div className="card-head"><div><h2>Agenda akademik</h2><p>Data dari Google Sheets</p></div></div><div className="events">{activeEvents.length?activeEvents.map(x=><Event key={x.id} day={String(x.eventDate||"").slice(8,10)||"—"} title={x.title} meta={(x.eventDate||"")+" · "+(x.startTime||"")}/>):<p>Belum ada agenda.</p>}</div></section></div>\n}\n\nfunction Stat({icon,label,value,note}){return <div className="stat"><div className="stat-icon">{icon}</div><div><span>{label}</span><strong>{value}</strong><small>{note}</small></div></div>}
 function TodoRow({t,toggle}){return <div className={t.done?"todo-row done":"todo-row"}><button className="check" onClick={toggle}>{t.done&&<CheckCircle2 size={20}/>}</button><div className="todo-copy"><b>{t.title}</b><span>{t.desc}</span><small><Clock3 size={13}/>{t.due}</small></div><span className={"priority "+t.priority.toLowerCase()}>{t.priority}</span></div>}
 function Event({day,title,meta}){return <div className="event"><div className="date-box"><b>{day}</b><span>OKT</span></div><div><b>{title}</b><span>{meta}</span></div></div>}
 function TodoPage({todos,toggleTodo,onAdd}){return <div className="content"><section className="page-title"><div><div className="eyebrow">Produktivitas</div><h1>To-Do</h1><p>Kelola pekerjaan mengajar tanpa kehilangan deadline.</p></div><button className="primary" onClick={onAdd}><CirclePlus size={18}/> Tambah tugas</button></section><section className="card"><div className="todo-list large">{todos.map(t=><TodoRow key={t.id} t={t} toggle={()=>toggleTodo(t.id)}/>)}</div></section></div>}
