@@ -28,6 +28,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Build
+        env:
+          VITE_APPS_SCRIPT_URL: https://script.google.com/a/macros/genius.sch.id/s/AKfycbwrsYVZ0jSJWCztOKSYDeljsosABihhapv6T95ymmX-fXqq09DVsm-otgg8ilrtpmWGGQ/exec
         run: npm run build
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
