@@ -120,13 +120,27 @@ function toggleTodo(id, done) {
 
 function saveTeacher(teacher) {
   const user = requireUser_();
-  if (String(teacher.email || '').trim().toLowerCase() !== user.email) throw new Error('Guru hanya dapat memperbarui profilnya sendiri.');
+  const email = String(teacher.email || '').trim().toLowerCase();
+  if (email !== user.email) throw new Error('Guru hanya dapat memperbarui profilnya sendiri.');
   setupSheets();
-  return upsertRow_(SHEET_NAMES.TEACHERS, {
-    id: teacher.id || Utilities.getUuid(), email: user.email, name: String(teacher.name || '').trim(),
-    subject: String(teacher.subject || 'Matematika'), status: teacher.status || 'Aktif',
-    createdAt: teacher.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString()
-  });
+
+  const existing = readRows_(SHEET_NAMES.TEACHERS).find(r => String(r.email || '').trim().toLowerCase() === user.email);
+  const now = new Date().toISOString();
+  const data = {
+    id: existing?.id || teacher.id || Utilities.getUuid(),
+    email: user.email,
+    name: String(teacher.name || '').trim(),
+    subject: String(teacher.subject || 'Matematika').trim(),
+    status: teacher.status || 'Aktif',
+    createdAt: existing?.createdAt || teacher.createdAt || now,
+    updatedAt: now
+  };
+
+  if (existing) {
+    const row = findRow_(SHEET_NAMES.TEACHERS, existing.id);
+    return updateRow_(SHEET_NAMES.TEACHERS, row.rowNumber, data);
+  }
+  return upsertRow_(SHEET_NAMES.TEACHERS, data);
 }
 
 function saveSchedule(item) {
