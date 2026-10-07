@@ -4,7 +4,8 @@ const SHEET_NAMES = {
   SCHEDULE: 'Schedule',
   TODO: 'Todo',
   EVENTS: 'Events',
-  CALENDAR: 'AcademicCalendar'
+  CALENDAR: 'AcademicCalendar',
+  SUBSTITUTIONS: 'Substitutions'
 };
 
 const HEADERS = {
@@ -13,15 +14,12 @@ const HEADERS = {
   Schedule: ['id', 'teacherEmail', 'day', 'startTime', 'endTime', 'className', 'topic', 'room', 'createdAt', 'updatedAt'],
   Todo: ['id', 'teacherEmail', 'title', 'description', 'dueAt', 'priority', 'done', 'createdAt', 'updatedAt'],
   Events: ['id', 'title', 'description', 'eventDate', 'startTime', 'endTime', 'type', 'createdBy', 'createdAt', 'updatedAt'],
-  AcademicCalendar: ['id', 'date', 'title', 'type', 'description', 'isNationalHoliday', 'createdAt', 'updatedAt']
+  AcademicCalendar: ['id', 'date', 'title', 'type', 'description', 'isNationalHoliday', 'createdAt', 'updatedAt'],
+  Substitutions: ['id', 'date', 'startTime', 'endTime', 'className', 'topic', 'room', 'absentTeacherEmail', 'substituteTeacherEmail', 'reason', 'status', 'createdBy', 'createdAt', 'updatedAt']
 };
 
 function doGet() {
-  return HtmlService
-    .createTemplateFromFile('Index')
-    .evaluate()
-    .setTitle('Math Up — Teacher Workspace')
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+  return HtmlService.createTemplateFromFile('Index').evaluate().setTitle('Math Up — Teacher Workspace').addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
 
 function include(filename) {
@@ -46,14 +44,17 @@ function getBootstrap() {
   const user = requireUser_();
   setupSheets();
   upsertUser_(user);
+  const allSchedule = readRows_(SHEET_NAMES.SCHEDULE);
   return {
     ok: true,
     user,
     todos: readRows_(SHEET_NAMES.TODO).filter(r => r.teacherEmail === user.email),
-    schedule: readRows_(SHEET_NAMES.SCHEDULE).filter(r => r.teacherEmail === user.email),
+    schedule: allSchedule.filter(r => r.teacherEmail === user.email),
+    allSchedule,
     events: readRows_(SHEET_NAMES.EVENTS),
     teachers: readRows_(SHEET_NAMES.TEACHERS),
-    academicCalendar: readRows_(SHEET_NAMES.CALENDAR)
+    academicCalendar: readRows_(SHEET_NAMES.CALENDAR),
+    substitutions: readRows_(SHEET_NAMES.SUBSTITUTIONS)
   };
 }
 
@@ -61,15 +62,9 @@ function saveTodo(todo) {
   const user = requireUser_();
   setupSheets();
   return upsertRow_(SHEET_NAMES.TODO, {
-    id: todo.id || Utilities.getUuid(),
-    teacherEmail: user.email,
-    title: String(todo.title || '').trim(),
-    description: String(todo.description || ''),
-    dueAt: String(todo.dueAt || ''),
-    priority: todo.priority || 'Sedang',
-    done: Boolean(todo.done),
-    createdAt: todo.createdAt || new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    id: todo.id || Utilities.getUuid(), teacherEmail: user.email, title: String(todo.title || '').trim(),
+    description: String(todo.description || ''), dueAt: String(todo.dueAt || ''), priority: todo.priority || 'Sedang',
+    done: Boolean(todo.done), createdAt: todo.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString()
   });
 }
 
@@ -77,46 +72,28 @@ function toggleTodo(id, done) {
   const user = requireUser_();
   const row = findRow_(SHEET_NAMES.TODO, id);
   if (!row || row.data.teacherEmail !== user.email) throw new Error('Tugas tidak ditemukan.');
-  return updateRow_(SHEET_NAMES.TODO, row.rowNumber, {
-    ...row.data,
-    done: Boolean(done),
-    updatedAt: new Date().toISOString()
-  });
+  return updateRow_(SHEET_NAMES.TODO, row.rowNumber, {...row.data, done: Boolean(done), updatedAt: new Date().toISOString()});
 }
 
 function saveTeacher(teacher) {
   const user = requireUser_();
-  if (String(teacher.email || '').trim().toLowerCase() !== user.email) {
-    throw new Error('Guru hanya dapat memperbarui profilnya sendiri.');
-  }
+  if (String(teacher.email || '').trim().toLowerCase() !== user.email) throw new Error('Guru hanya dapat memperbarui profilnya sendiri.');
   setupSheets();
   return upsertRow_(SHEET_NAMES.TEACHERS, {
-    id: teacher.id || Utilities.getUuid(),
-    email: String(teacher.email || '').trim().toLowerCase(),
-    name: String(teacher.name || '').trim(),
-    subject: String(teacher.subject || 'Matematika'),
-    status: teacher.status || 'Aktif',
-    createdAt: teacher.createdAt || new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    id: teacher.id || Utilities.getUuid(), email: user.email, name: String(teacher.name || '').trim(),
+    subject: String(teacher.subject || 'Matematika'), status: teacher.status || 'Aktif',
+    createdAt: teacher.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString()
   });
 }
 
 function saveSchedule(item) {
   const user = requireUser_();
   setupSheets();
-  if (item.teacherEmail && String(item.teacherEmail).toLowerCase() !== user.email) {
-    throw new Error('Jadwal harus dimiliki oleh akun yang sedang aktif.');
-  }
+  if (item.teacherEmail && String(item.teacherEmail).toLowerCase() !== user.email) throw new Error('Jadwal harus dimiliki oleh akun yang sedang aktif.');
   return upsertRow_(SHEET_NAMES.SCHEDULE, {
-    id: item.id || Utilities.getUuid(),
-    teacherEmail: user.email,
-    day: String(item.day || ''),
-    startTime: String(item.startTime || ''),
-    endTime: String(item.endTime || ''),
-    className: String(item.className || ''),
-    topic: String(item.topic || ''),
-    room: String(item.room || ''),
-    createdAt: item.createdAt || new Date().toISOString(),
+    id: item.id || Utilities.getUuid(), teacherEmail: user.email, day: String(item.day || ''),
+    startTime: String(item.startTime || ''), endTime: String(item.endTime || ''), className: String(item.className || ''),
+    topic: String(item.topic || ''), room: String(item.room || ''), createdAt: item.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString()
   });
 }
@@ -125,16 +102,78 @@ function saveEvent(event) {
   const user = requireUser_();
   setupSheets();
   return upsertRow_(SHEET_NAMES.EVENTS, {
-    id: event.id || Utilities.getUuid(),
-    title: String(event.title || '').trim(),
-    description: String(event.description || ''),
-    eventDate: String(event.eventDate || ''),
-    startTime: String(event.startTime || ''),
-    endTime: String(event.endTime || ''),
-    type: event.type || 'Sekolah',
-    createdBy: user.email,
-    createdAt: event.createdAt || new Date().toISOString(),
+    id: event.id || Utilities.getUuid(), title: String(event.title || '').trim(), description: String(event.description || ''),
+    eventDate: String(event.eventDate || ''), startTime: String(event.startTime || ''), endTime: String(event.endTime || ''),
+    type: event.type || 'Sekolah', createdBy: user.email, createdAt: event.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString()
+  });
+}
+
+function findSubstituteCandidates(request) {
+  const user = requireUser_();
+  setupSheets();
+  const date = String(request.date || '').trim();
+  const startTime = String(request.startTime || '').trim();
+  const endTime = String(request.endTime || '').trim();
+  if (!date || !startTime || !endTime) throw new Error('Tanggal, jam mulai, dan jam selesai wajib diisi.');
+  if (timeToMinutes_(startTime) >= timeToMinutes_(endTime)) throw new Error('Jam selesai harus setelah jam mulai.');
+
+  const absentEmail = String(request.absentTeacherEmail || user.email).trim().toLowerCase();
+  if (absentEmail !== user.email) throw new Error('Guru hanya dapat mencari pengganti untuk jadwalnya sendiri.');
+
+  const day = String(request.day || dayNameId_(date));
+  const schedules = readRows_(SHEET_NAMES.SCHEDULE);
+  const events = readRows_(SHEET_NAMES.EVENTS);
+  const teachers = readRows_(SHEET_NAMES.TEACHERS).filter(t => String(t.status || 'Aktif').toLowerCase() !== 'nonaktif');
+
+  return teachers.filter(t => String(t.email).toLowerCase() !== absentEmail).map(t => {
+    const teacherEmail = String(t.email).toLowerCase();
+    const conflicts = schedules.filter(s =>
+      String(s.teacherEmail).toLowerCase() === teacherEmail &&
+      String(s.day).toLowerCase() === day.toLowerCase() &&
+      overlaps_(s.startTime, s.endTime, startTime, endTime)
+    );
+    const dayLoad = schedules.filter(s =>
+      String(s.teacherEmail).toLowerCase() === teacherEmail &&
+      String(s.day).toLowerCase() === day.toLowerCase()
+    ).length;
+    const agendaConflicts = events.filter(e =>
+      String(e.eventDate) === date &&
+      String(e.startTime || '') &&
+      overlaps_(e.startTime, e.endTime || e.startTime, startTime, endTime)
+    );
+    return {
+      email: teacherEmail, name: t.name || teacherEmail.split('@')[0], subject: t.subject || 'Matematika',
+      status: conflicts.length ? 'Tidak tersedia' : (agendaConflicts.length ? 'Perlu dicek' : 'Tersedia'),
+      conflicts, agendaConflicts, dailyLoad
+    };
+  }).sort((a, b) => {
+    const rank = { 'Tersedia': 0, 'Perlu dicek': 1, 'Tidak tersedia': 2 };
+    return rank[a.status] - rank[b.status] || a.dailyLoad - b.dailyLoad || a.name.localeCompare(b.name);
+  });
+}
+
+function saveSubstitution(item) {
+  const user = requireUser_();
+  setupSheets();
+  const absentEmail = String(item.absentTeacherEmail || user.email).trim().toLowerCase();
+  const substituteEmail = String(item.substituteTeacherEmail || '').trim().toLowerCase();
+  if (absentEmail !== user.email) throw new Error('Pengajuan hanya dapat dibuat oleh guru yang izin.');
+  if (!substituteEmail || substituteEmail === absentEmail) throw new Error('Guru pengganti tidak valid.');
+
+  const candidates = findSubstituteCandidates({
+    date: item.date, startTime: item.startTime, endTime: item.endTime, absentTeacherEmail: absentEmail
+  });
+  const candidate = candidates.find(c => c.email === substituteEmail);
+  if (!candidate) throw new Error('Guru pengganti tidak ditemukan.');
+  if (candidate.status === 'Tidak tersedia') throw new Error('Guru tersebut memiliki jadwal bentrok.');
+
+  return upsertRow_(SHEET_NAMES.SUBSTITUTIONS, {
+    id: item.id || Utilities.getUuid(), date: String(item.date || ''), startTime: String(item.startTime || ''),
+    endTime: String(item.endTime || ''), className: String(item.className || ''), topic: String(item.topic || ''),
+    room: String(item.room || ''), absentTeacherEmail: absentEmail, substituteTeacherEmail: substituteEmail,
+    reason: String(item.reason || ''), status: item.status || 'Diajukan', createdBy: user.email,
+    createdAt: item.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString()
   });
 }
 
@@ -152,23 +191,13 @@ function upsertUser_(user) {
   const existing = readRows_(SHEET_NAMES.USERS).find(r => r.email === user.email);
   const now = new Date().toISOString();
   upsertRow_(SHEET_NAMES.USERS, {
-    id: existing ? existing.id : Utilities.getUuid(),
-    email: user.email,
-    name: user.name,
-    photoUrl: '',
-    role: existing ? existing.role : 'Guru',
-    createdAt: existing ? existing.createdAt : now,
-    updatedAt: now
+    id: existing ? existing.id : Utilities.getUuid(), email: user.email, name: user.name, photoUrl: '',
+    role: existing ? existing.role : 'Guru', createdAt: existing ? existing.createdAt : now, updatedAt: now
   });
   if (!readRows_(SHEET_NAMES.TEACHERS).some(r => r.email === user.email)) {
     upsertRow_(SHEET_NAMES.TEACHERS, {
-      id: Utilities.getUuid(),
-      email: user.email,
-      name: user.name,
-      subject: 'Matematika',
-      status: 'Aktif',
-      createdAt: now,
-      updatedAt: now
+      id: Utilities.getUuid(), email: user.email, name: user.name, subject: 'Matematika', status: 'Aktif',
+      createdAt: now, updatedAt: now
     });
   }
 }
@@ -185,17 +214,31 @@ function setSpreadsheetId(id) {
   return { ok: true };
 }
 
+function dayNameId_(dateString) {
+  const parts = String(dateString).split('-').map(Number);
+  if (parts.length !== 3 || parts.some(Number.isNaN)) throw new Error('Format tanggal tidak valid.');
+  const d = new Date(parts[0], parts[1] - 1, parts[2]);
+  return ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'][d.getDay()];
+}
+
+function timeToMinutes_(value) {
+  const m = String(value || '').match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return NaN;
+  return Number(m[1]) * 60 + Number(m[2]);
+}
+
+function overlaps_(startA, endA, startB, endB) {
+  const a1 = timeToMinutes_(startA), a2 = timeToMinutes_(endA);
+  const b1 = timeToMinutes_(startB), b2 = timeToMinutes_(endB);
+  return [a1, a2, b1, b2].every(Number.isFinite) && a1 < b2 && a2 > b1;
+}
+
 function readRows_(sheetName) {
   const sheet = getSpreadsheet_().getSheetByName(sheetName);
   if (!sheet || sheet.getLastRow() < 2) return [];
   const values = sheet.getRange(1, 1, sheet.getLastRow(), sheet.getLastColumn()).getValues();
   const headers = values.shift();
-  return values.filter(row => row.some(cell => cell !== '')).map(row =>
-    headers.reduce((obj, key, i) => {
-      obj[key] = row[i];
-      return obj;
-    }, {})
-  );
+  return values.filter(row => row.some(cell => cell !== '')).map(row => headers.reduce((obj, key, i) => { obj[key] = row[i]; return obj; }, {}));
 }
 
 function findRow_(sheetName, id) {
@@ -206,13 +249,7 @@ function findRow_(sheetName, id) {
   const idIndex = headers.indexOf('id');
   for (let i = 0; i < values.length; i++) {
     if (String(values[i][idIndex]) === String(id)) {
-      return {
-        rowNumber: i + 2,
-        data: headers.reduce((obj, key, j) => {
-          obj[key] = values[i][j];
-          return obj;
-        }, {})
-      };
+      return {rowNumber: i + 2, data: headers.reduce((obj, key, j) => { obj[key] = values[i][j]; return obj; }, {})};
     }
   }
   return null;
@@ -224,14 +261,14 @@ function upsertRow_(sheetName, data) {
   const sheet = getSpreadsheet_().getSheetByName(sheetName);
   const headers = HEADERS[sheetName];
   sheet.appendRow(headers.map(key => data[key] ?? ''));
-  return { ok: true, data };
+  return {ok: true, data};
 }
 
 function updateRow_(sheetName, rowNumber, data) {
   const sheet = getSpreadsheet_().getSheetByName(sheetName);
   const headers = HEADERS[sheetName];
   sheet.getRange(rowNumber, 1, 1, headers.length).setValues([headers.map(key => data[key] ?? '')]);
-  return { ok: true, data };
+  return {ok: true, data};
 }
 
 function json_(payload) {
