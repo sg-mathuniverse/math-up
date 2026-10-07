@@ -104,7 +104,7 @@ function LoadingScreen(){
 }
 
 function LoginScreen({error}){
-  const loginUrl=(import.meta.env.VITE_APPS_SCRIPT_URL||"").replace(/\\/$/,"");
+  const loginUrl=(import.meta.env.VITE_APPS_SCRIPT_URL||"").replace(/\/$/,"");
   return <div className="auth-screen"><div className="auth-card">
     <div className="brand-mark">∑</div>
     <div className="eyebrow">Teacher Workspace</div>
