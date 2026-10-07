@@ -19,23 +19,35 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: 22
+          cache: npm
+
       - name: Install dependencies
         run: npm install
-      - name: Build
+
+      - name: Build Math Up
         env:
           VITE_APPS_SCRIPT_URL: https://script.google.com/a/macros/genius.sch.id/s/AKfycbwrsYVZ0jSJWCztOKSYDeljsosABihhapv6T95ymmX-fXqq09DVsm-otgg8ilrtpmWGGQ/exec
         run: npm run build
+
+      - name: Verify Vite output
+        run: |
+          test -f dist/index.html
+          grep -q '/math-up/assets/' dist/index.html
+          ! grep -q './src/main.jsx' dist/index.html
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4
         with:
-          path: dist
+          path: ./dist
 
   deploy:
     environment:
