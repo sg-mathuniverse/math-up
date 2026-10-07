@@ -88,7 +88,7 @@ function App(){
        active==="Jadwal Mengajar" ? <SchedulePage user={user} /> : active==="Guru Pengganti" ? <SubstitutePage user={user} /> :
        active==="Kalender Akademik" ? <CalendarPage /> :
        active==="Drive Materi" ? <DrivePage /> :
-       active==="Guru Matematika" ? <TeachersPage /> :
+       active==="Guru Matematika" ? <TeachersPage user={user} /> :
        active==="Pengaturan" ? <SettingsPage /> :
        active==="To-Do" ? <TodoPage todos={filteredTodos} toggleTodo={toggleTodo} onAdd={()=>setShowTodo(true)} /> :
        <Placeholder title={active} />}
@@ -142,7 +142,69 @@ function Stat({icon,label,value,note}){return <div className="stat"><div classNa
 function TodoRow({t,toggle}){return <div className={t.done?"todo-row done":"todo-row"}><button className="check" onClick={toggle}>{t.done&&<CheckCircle2 size={20}/>}</button><div className="todo-copy"><b>{t.title}</b><span>{t.desc}</span><small><Clock3 size={13}/>{t.due}</small></div><span className={"priority "+t.priority.toLowerCase()}>{t.priority}</span></div>}
 function Event({day,title,meta}){return <div className="event"><div className="date-box"><b>{day}</b><span>OKT</span></div><div><b>{title}</b><span>{meta}</span></div></div>}
 function TodoPage({todos,toggleTodo,onAdd}){return <div className="content"><section className="page-title"><div><div className="eyebrow">Produktivitas</div><h1>To-Do</h1><p>Kelola pekerjaan mengajar tanpa kehilangan deadline.</p></div><button className="primary" onClick={onAdd}><CirclePlus size={18}/> Tambah tugas</button></section><section className="card"><div className="todo-list large">{todos.map(t=><TodoRow key={t.id} t={t} toggle={()=>toggleTodo(t.id)}/>)}</div></section></div>}
-function TeachersPage(){const [teachers,setTeachers]=useState([]);const [schedule,setSchedule]=useState([]);useEffect(()=>{api.getBootstrap().then(d=>{setTeachers(d?.teachers||[]);setSchedule(d?.allSchedule||[])}).catch(()=>{})},[]);return <div className="content"><section className="page-title"><div><div className="eyebrow">Kolaborasi</div><h1>Guru Matematika</h1><p>Daftar guru dan ringkasan jadwal mengajar bersama.</p></div></section><section className="card"><div className="card-head"><div><h2>Daftar guru</h2><p>{teachers.length} guru terdaftar</p></div></div>{teachers.length?teachers.map(t=><div className="todo-row" key={t.id||t.email}><div className="avatar small">{String(t.name||"G").slice(0,1).toUpperCase()}</div><div className="todo-copy"><b>{t.name||t.email}</b><span>{t.email}</span><small>{schedule.filter(s=>String(s.teacherEmail).toLowerCase()===String(t.email).toLowerCase()).length} jadwal</small></div><span className="priority sedang">{t.status||"Aktif"}</span></div>):<p>Belum ada data guru.</p>}</section></div>}
+function TeachersPage({user}){ 
+  const [teachers,setTeachers]=useState([]);
+  const [schedule,setSchedule]=useState([]);
+  const [form,setForm]=useState({name:user?.name||"",subject:"Matematika",status:"Aktif"});
+  const [saving,setSaving]=useState(false);
+  const [message,setMessage]=useState("");
+  const [error,setError]=useState("");
+
+  const load=()=>{
+    api.getBootstrap().then(d=>{
+      setTeachers(d?.teachers||[]);
+      setSchedule(d?.allSchedule||[]);
+      const mine=(d?.teachers||[]).find(t=>String(t.email||"").toLowerCase()===String(user?.email||"").toLowerCase());
+      if(mine) setForm({name:mine.name||user?.name||"",subject:mine.subject||"Matematika",status:mine.status||"Aktif"});
+    }).catch(e=>setError(e.message||String(e)));
+  };
+  useEffect(()=>{load()},[]);
+
+  const save=async()=>{
+    if(!form.name.trim()){setError("Nama guru wajib diisi.");return;}
+    setSaving(true);setError("");setMessage("");
+    try{
+      await api.saveTeacher({name:form.name.trim(),subject:form.subject,status:form.status});
+      setMessage("Profil guru berhasil disimpan. Anda sekarang dapat menjadi kandidat guru pengganti.");
+      load();
+    }catch(e){setError(e.message||String(e));}
+    finally{setSaving(false);}
+  };
+
+  const mine=teachers.find(t=>String(t.email||"").toLowerCase()===String(user?.email||"").toLowerCase());
+
+  return <div className="content">
+    <section className="page-title">
+      <div><div className="eyebrow">Kolaborasi</div><h1>Guru Matematika</h1><p>Daftarkan profil guru agar dapat muncul sebagai kandidat Guru Pengganti.</p></div>
+    </section>
+
+    {error&&<div className="card" style={{marginBottom:16}}>{error}</div>}
+    {message&&<div className="card" style={{marginBottom:16}}>{message}</div>}
+
+    <section className="card">
+      <div className="card-head"><div><h2>Profil saya</h2><p>Email diambil otomatis dari akun Google yang sedang digunakan.</p></div></div>
+      <label>Nama guru<input value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Nama lengkap"/></label>
+      <label>Email akun Google<input value={user?.email||""} disabled/></label>
+      <div className="two">
+        <label>Mata pelajaran<input value={form.subject} onChange={e=>setForm({...form,subject:e.target.value})}/></label>
+        <label>Status<select value={form.status} onChange={e=>setForm({...form,status:e.target.value})}><option>Aktif</option><option>Tidak aktif</option></select></label>
+      </div>
+      <button className="primary" onClick={save} disabled={saving}>{saving?"Menyimpan...":mine?"Simpan perubahan":"Daftarkan saya sebagai guru"}</button>
+    </section>
+
+    <section className="card">
+      <div className="card-head"><div><h2>Daftar guru</h2><p>{teachers.length} guru terdaftar · digunakan untuk pencarian guru pengganti</p></div></div>
+      {teachers.length?teachers.map(t=>{
+        const count=schedule.filter(s=>String(s.teacherEmail||"").toLowerCase()===String(t.email||"").toLowerCase()).length;
+        return <div className="todo-row" key={t.id||t.email}>
+          <div className="avatar small">{initials(t.name||t.email)}</div>
+          <div className="todo-copy"><b>{t.name||t.email}</b><span>{t.email}</span><small>{count} jadwal tersimpan</small></div>
+          <span className="priority sedang">{t.status||"Aktif"}</span>
+        </div>;
+      }):<p>Belum ada guru yang terdaftar. Simpan profil Anda untuk memulai.</p>}
+    </section>
+  </div>;
+}
 
 function CalendarPage(){const [events,setEvents]=useState([]);const [cal,setCal]=useState([]);useEffect(()=>{api.getBootstrap().then(d=>{setEvents(d?.events||[]);setCal(d?.academicCalendar||[])}).catch(()=>{})},[]);return <div className="content"><section className="page-title"><div><div className="eyebrow">Akademik</div><h1>Kalender Akademik</h1><p>Agenda sekolah dan kalender akademik terhubung ke Google Sheets.</p></div></section><section className="card"><div className="card-head"><div><h2>Agenda sekolah</h2><p>{events.length} agenda</p></div></div>{events.length?events.map(x=><div className="event" key={x.id}><div className="date-box"><b>{String(x.eventDate||"").slice(8,10)||"—"}</b><span>OKT</span></div><div><b>{x.title}</b><span>{x.eventDate} · {formatTime(x.startTime)}{x.endTime?"–"+formatTime(x.endTime):""}</span></div></div>):<p>Belum ada agenda.</p>}</section><section className="card"><div className="card-head"><div><h2>Hari penting</h2><p>{cal.length} data kalender</p></div></div>{cal.length?cal.map(x=><div className="event" key={x.id}><div className="date-box"><b>{String(x.date||"").slice(8,10)||"—"}</b><span>OKT</span></div><div><b>{x.title}</b><span>{x.date} · {x.isNationalHoliday?"Libur nasional":"Kalender akademik"}</span></div></div>):<p>Belum ada data kalender akademik.</p>}</section></div>}
 
