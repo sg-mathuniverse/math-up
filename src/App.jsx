@@ -84,7 +84,9 @@ function App(){
   </div>
 }
 
-function initials(value){return String(value||"?").split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join("").toUpperCase()||"?";}\n\nfunction Nav({icon,label,active,onClick}){return <button className={active?"nav active":"nav"} onClick={onClick}>{icon}<span>{label}</span>{label==="To-Do"&&<em>3</em>}</button>}
+function initials(value){return String(value||"?").split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join("").toUpperCase()||"?";}
+
+function Nav({icon,label,active,onClick}){return <button className={active?"nav active":"nav"} onClick={onClick}>{icon}<span>{label}</span>{label==="To-Do"&&<em>3</em>}</button>}
 
 function Dashboard({todos,toggleTodo,onAdd,schedule,events,user}){
  const activeSchedule=(schedule||[]).slice().sort((a,b)=>String(a.startTime).localeCompare(String(b.startTime)));
