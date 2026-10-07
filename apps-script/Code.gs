@@ -44,12 +44,12 @@ function getBootstrap() {
   const user = requireUser_();
   setupSheets();
   upsertUser_(user);
-  const allSchedule = readRows_(SHEET_NAMES.SCHEDULE);
+  const allSchedule = readRows_(SHEET_NAMES.SCHEDULE); const approvedSubs = readRows_(SHEET_NAMES.SUBSTITUTIONS).filter(r => String(r.status || '') === 'Disetujui'); const effectiveSchedule = buildEffectiveSchedule_(allSchedule: effectiveSchedule, approvedSubs);
   return {
     ok: true,
     user,
     todos: readRows_(SHEET_NAMES.TODO).filter(r => r.teacherEmail === user.email),
-    schedule: allSchedule.filter(r => r.teacherEmail === user.email),
+    schedule: effectiveSchedule.filter(r => String(r.teacherEmail).toLowerCase() === user.email),
     allSchedule,
     events: readRows_(SHEET_NAMES.EVENTS),
     teachers: readRows_(SHEET_NAMES.TEACHERS),
@@ -178,6 +178,56 @@ function saveSubstitution(item) {
 }
 
 
+
+
+function buildEffectiveSchedule_(schedules, substitutions) {
+  const base = schedules.map(s => ({...s, scheduleType: 'Reguler', originalTeacherEmail: s.teacherEmail}));
+  substitutions.forEach(sub => {
+    const absent = String(sub.absentTeacherEmail || '').toLowerCase();
+    const substitute = String(sub.substituteTeacherEmail || '').toLowerCase();
+    const day = dayNameId_(String(sub.date || ''));
+    const matching = schedules.filter(s =>
+      String(s.teacherEmail).toLowerCase() === absent &&
+      String(s.day).toLowerCase() === day.toLowerCase() &&
+      String(s.startTime) === String(sub.startTime) &&
+      String(s.endTime) === String(sub.endTime) &&
+      (!sub.className || String(s.className) === String(sub.className))
+    );
+    if (matching.length) {
+      matching.forEach(s => {
+        base.push({
+          ...s,
+          id: s.id + '-sub-' + sub.id,
+          teacherEmail: substitute,
+          originalTeacherEmail: absent,
+          scheduleType: 'Pengganti',
+          substitutionId: sub.id,
+          substitutionDate: sub.date,
+          substitutionStatus: sub.status,
+          substituteFor: absent
+        });
+      });
+    } else {
+      base.push({
+        id: 'sub-' + sub.id,
+        teacherEmail: substitute,
+        originalTeacherEmail: absent,
+        day,
+        startTime: sub.startTime,
+        endTime: sub.endTime,
+        className: sub.className,
+        topic: sub.topic,
+        room: sub.room,
+        scheduleType: 'Pengganti',
+        substitutionId: sub.id,
+        substitutionDate: sub.date,
+        substitutionStatus: sub.status,
+        substituteFor: absent
+      });
+    }
+  });
+  return base;
+}
 
 function getSubstitutionRequests() {
   const user = requireUser_();
