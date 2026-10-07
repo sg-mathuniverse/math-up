@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { api } from "./api";
 import {
   Bell, CalendarDays, CheckCircle2, ChevronDown, CirclePlus, Clock3,
   FileText, LayoutDashboard, ListTodo, Menu, MoreHorizontal, Search,
@@ -23,7 +24,7 @@ function App(){
   const [menuOpen,setMenuOpen]=useState(false);
   const [showTodo,setShowTodo]=useState(false);
   const [query,setQuery]=useState("");
-  const [user,setUser]=useState(null);
+  const [user,setUser]=useState(null);\n  const [loading,setLoading]=useState(true);\n  const [apiError,setApiError]=useState("");\n\n  useEffect(()=>{\n    api.getBootstrap().then(d=>{\n      setTodos(d?.todos||[]);\n      setUser(d?.user||null);\n    }).catch(e=>setApiError(e.message||String(e))).finally(()=>setLoading(false));\n  },[]);
 
   const filteredTodos=useMemo(()=>todos.filter(t=>t.title.toLowerCase().includes(query.toLowerCase())),[todos,query]);
 
