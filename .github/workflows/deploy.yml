@@ -32,8 +32,10 @@ jobs:
         env:
           VITE_APPS_SCRIPT_URL: https://script.google.com/a/macros/genius.sch.id/s/AKfycbwrsYVZ0jSJWCztOKSYDeljsosABihhapv6T95ymmX-fXqq09DVsm-otgg8ilrtpmWGGQ/exec
         run: npm run build
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
           path: dist
 
