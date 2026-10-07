@@ -118,7 +118,17 @@ function LoginScreen({error}){
   </div></div>;
 }
 
-function initials(value){return String(value||"?").split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join("").toUpperCase()||"?";}\n\nfunction formatTime(value){\n  if(value==null||value==="") return "-";\n  const s=String(value);\n  const iso=s.match(/T(\\d{2}):(\\d{2})/);\n  if(iso) return `${iso[1]}:${iso[2]}`;\n  const time=s.match(/(\\d{1,2}):(\\d{2})/);\n  if(time) return `${time[1].padStart(2,"0")}:${time[2]}`;\n  return s;\n}
+function initials(value){return String(value||"?").split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join("").toUpperCase()||"?";}
+
+function formatTime(value){
+  if(value==null||value==="") return "-";
+  const s=String(value);
+  const iso=s.match(/T(\d{2}):(\d{2})/);
+  if(iso) return `${iso[1]}:${iso[2]}`;
+  const time=s.match(/(\d{1,2}):(\d{2})/);
+  if(time) return `${time[1].padStart(2,"0")}:${time[2]}`;
+  return s;
+}
 
 function Nav({icon,label,active,onClick}){return <button className={active?"nav active":"nav"} onClick={onClick}>{icon}<span>{label}</span>{label==="To-Do"&&<em>3</em>}</button>}
 
