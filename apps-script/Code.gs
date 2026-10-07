@@ -54,7 +54,7 @@ function getBootstrap() {
     events: readRows_(SHEET_NAMES.EVENTS),
     teachers: readRows_(SHEET_NAMES.TEACHERS),
     academicCalendar: readRows_(SHEET_NAMES.CALENDAR),
-    substitutions: readRows_(SHEET_NAMES.SUBSTITUTIONS)
+    substitutions: readRows_(SHEET_NAMES.SUBSTITUTIONS).filter(r => String(r.status || 'Diajukan') !== 'Ditolak')
   };
 }
 
@@ -174,6 +174,36 @@ function saveSubstitution(item) {
     room: String(item.room || ''), absentTeacherEmail: absentEmail, substituteTeacherEmail: substituteEmail,
     reason: String(item.reason || ''), status: item.status || 'Diajukan', createdBy: user.email,
     createdAt: item.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString()
+  });
+}
+
+
+
+function getSubstitutionRequests() {
+  const user = requireUser_();
+  setupSheets();
+  return readRows_(SHEET_NAMES.SUBSTITUTIONS).filter(r =>
+    String(r.substituteTeacherEmail || '').toLowerCase() === user.email &&
+    String(r.status || 'Diajukan') === 'Diajukan'
+  );
+}
+
+function respondSubstitution(id, response) {
+  const user = requireUser_();
+  setupSheets();
+  const row = findRow_(SHEET_NAMES.SUBSTITUTIONS, id);
+  if (!row) throw new Error('Permintaan pergantian tidak ditemukan.');
+  const substituteEmail = String(row.data.substituteTeacherEmail || '').toLowerCase();
+  if (substituteEmail !== user.email) throw new Error('Hanya guru yang ditunjuk yang dapat merespons permintaan ini.');
+
+  const action = String(response || '').toLowerCase();
+  if (action !== 'terima' && action !== 'tolak') throw new Error('Respons tidak valid.');
+  const status = action === 'terima' ? 'Disetujui' : 'Ditolak';
+
+  return updateRow_(SHEET_NAMES.SUBSTITUTIONS, row.rowNumber, {
+    ...row.data,
+    status,
+    updatedAt: new Date().toISOString()
   });
 }
 
