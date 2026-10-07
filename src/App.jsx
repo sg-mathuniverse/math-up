@@ -164,7 +164,7 @@ function TeachersPage({user}){
     if(!form.name.trim()){setError("Nama guru wajib diisi.");return;}
     setSaving(true);setError("");setMessage("");
     try{
-      await api.saveTeacher({name:form.name.trim(),subject:form.subject,status:form.status});
+      await api.saveTeacher({email:user?.email,name:form.name.trim(),subject:form.subject,status:form.status});
       setMessage("Profil guru berhasil disimpan. Anda sekarang dapat menjadi kandidat guru pengganti.");
       load();
     }catch(e){setError(e.message||String(e));}
