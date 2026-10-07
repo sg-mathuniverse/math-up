@@ -276,6 +276,28 @@ function upsertUser_(user) {
   }
 }
 
+function setDriveFolderId(id) {
+  if (!id) throw new Error('Drive Folder ID wajib diisi.');
+  DriveApp.getFolderById(String(id).trim());
+  PropertiesService.getScriptProperties().setProperty('DRIVE_FOLDER_ID', String(id).trim());
+  return { ok: true };
+}
+
+function getDriveMaterials() {
+  requireUser_();
+  const id = PropertiesService.getScriptProperties().getProperty('DRIVE_FOLDER_ID');
+  if (!id) return { configured: false, folderName: '', folderUrl: '', files: [] };
+  const folder = DriveApp.getFolderById(id);
+  const files = [];
+  const it = folder.getFiles();
+  while (it.hasNext()) {
+    const f = it.next();
+    files.push({id:f.getId(),name:f.getName(),mimeType:f.getMimeType(),size:f.getSize(),updatedAt:f.getLastUpdated().toISOString(),url:f.getUrl()});
+  }
+  files.sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+  return {configured:true,folderName:folder.getName(),folderUrl:folder.getUrl(),files};
+}
+
 function getSpreadsheet_() {
   const id = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID');
   if (!id) throw new Error('SPREADSHEET_ID belum diatur. Jalankan setSpreadsheetId("ID_SHEET").');
