@@ -330,7 +330,11 @@ function respondSubstitution(id, response) {
 }
 
 function getCurrentUser() {
-  return requireUser_();
+  const user = requireUser_();
+  setupSheets();
+  const teacher = readRows_(SHEET_NAMES.TEACHERS).find(r => String(r.email || '').toLowerCase() === user.email);
+  if (teacher && String(teacher.name || '').trim()) user.name = String(teacher.name).trim();
+  return user;
 }
 
 function requireUser_() {
