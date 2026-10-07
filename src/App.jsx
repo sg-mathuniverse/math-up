@@ -55,7 +55,7 @@ function App(){
       </nav>
       <div className="sidebar-bottom">
         <Nav icon={<Settings size={19}/>} label="Pengaturan" active={active==="Pengaturan"} onClick={()=>setActive("Pengaturan")}/>
-        <div className="profile-mini"><div className="avatar">GM</div><div><b>Guru Matematika</b><span>Administrator</span></div><MoreHorizontal size={17}/></div>
+        <div className="profile-mini"><div className="avatar">{user?.photoUrl?<img src={user.photoUrl} alt={user.name||"Profil"} />:initials(user?.name||user?.email||"?")}</div><div><b>{user?.name||"Memuat profil..."}</b><span>{user?.email||"Akun Google"}</span></div><MoreHorizontal size={17}/></div>
       </div>
     </aside>
 
@@ -66,7 +66,7 @@ function App(){
         <div className="top-actions">
           <div className="search"><Search size={17}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Cari tugas..." /></div>
           <button className="icon-btn"><Bell size={19}/><i></i></button>
-          <button className="user-chip" onClick={()=>setUser(user?null:{name:"Guru Matematika",email:"guru@mathup.local"})}><div className="avatar small">{user?"GM":"?"}</div><ChevronDown size={15}/></button>
+          <button className="user-chip" onClick={()=>setMenuOpen(v=>v)}><div className="avatar small">{user?.photoUrl?<img src={user.photoUrl} alt={user.name||"Profil"} />:initials(user?.name||user?.email||"?")}</div><ChevronDown size={15}/></button>
         </div>
       </header>
 
@@ -84,7 +84,7 @@ function App(){
   </div>
 }
 
-function Nav({icon,label,active,onClick}){return <button className={active?"nav active":"nav"} onClick={onClick}>{icon}<span>{label}</span>{label==="To-Do"&&<em>3</em>}</button>}
+function initials(value){return String(value||"?").split(/\\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join("").toUpperCase()||"?";}\n\nfunction Nav({icon,label,active,onClick}){return <button className={active?"nav active":"nav"} onClick={onClick}>{icon}<span>{label}</span>{label==="To-Do"&&<em>3</em>}</button>}
 
 function Dashboard({todos,toggleTodo,onAdd,schedule,events,user}){
  const activeSchedule=(schedule||[]).slice().sort((a,b)=>String(a.startTime).localeCompare(String(b.startTime)));
