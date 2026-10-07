@@ -39,6 +39,7 @@ function jsonp(action, args = []) {
 }
 
 export const api = {
+  getCurrentUser: () => jsonp("getCurrentUser"),
   getBootstrap: () => jsonp("getBootstrap"),
   getEffectiveSchedule: date => jsonp("getEffectiveSchedule", [date]),
   getSubstitutionRequests: () => jsonp("getSubstitutionRequests"),
