@@ -17,7 +17,15 @@ const HEADERS = {
 };
 
 function doGet() {
-  return json_({ ok: true, app: 'Math Up API', version: '1.0.0' });
+  return HtmlService
+    .createTemplateFromFile('Index')
+    .evaluate()
+    .setTitle('Math Up — Teacher Workspace')
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+}
+
+function include(filename) {
+  return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }
 
 function setupSheets() {
@@ -77,7 +85,11 @@ function toggleTodo(id, done) {
 }
 
 function saveTeacher(teacher) {
-  requireUser_();
+  const user = requireUser_();
+  if (String(teacher.email || '').trim().toLowerCase() !== user.email) {
+    throw new Error('Guru hanya dapat memperbarui profilnya sendiri.');
+  }
+  setupSheets();
   return upsertRow_(SHEET_NAMES.TEACHERS, {
     id: teacher.id || Utilities.getUuid(),
     email: String(teacher.email || '').trim().toLowerCase(),
@@ -91,9 +103,13 @@ function saveTeacher(teacher) {
 
 function saveSchedule(item) {
   const user = requireUser_();
+  setupSheets();
+  if (item.teacherEmail && String(item.teacherEmail).toLowerCase() !== user.email) {
+    throw new Error('Jadwal harus dimiliki oleh akun yang sedang aktif.');
+  }
   return upsertRow_(SHEET_NAMES.SCHEDULE, {
     id: item.id || Utilities.getUuid(),
-    teacherEmail: item.teacherEmail || user.email,
+    teacherEmail: user.email,
     day: String(item.day || ''),
     startTime: String(item.startTime || ''),
     endTime: String(item.endTime || ''),
@@ -107,6 +123,7 @@ function saveSchedule(item) {
 
 function saveEvent(event) {
   const user = requireUser_();
+  setupSheets();
   return upsertRow_(SHEET_NAMES.EVENTS, {
     id: event.id || Utilities.getUuid(),
     title: String(event.title || '').trim(),
