@@ -44,7 +44,7 @@ function getBootstrap() {
   const user = requireUser_();
   setupSheets();
   upsertUser_(user);
-  const allSchedule = readRows_(SHEET_NAMES.SCHEDULE); const approvedSubs = readRows_(SHEET_NAMES.SUBSTITUTIONS).filter(r => String(r.status || '') === 'Disetujui'); const effectiveSchedule = buildEffectiveSchedule_(allSchedule, approvedSubs);
+  const allSchedule = readRows_(SHEET_NAMES.SCHEDULE); const approvedSubs = readRows_(SHEET_NAMES.SUBSTITUTIONS).filter(r => String(r.status || '') === 'Disetujui'); const today = Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'Asia/Jakarta', 'yyyy-MM-dd'); const effectiveSchedule = buildEffectiveSchedule_(allSchedule, approvedSubs, today);
   return {
     ok: true,
     user,
@@ -180,10 +180,10 @@ function saveSubstitution(item) {
 
 
 
-function buildEffectiveSchedule_(schedules, substitutions) {
+function buildEffectiveSchedule_(schedules, substitutions, targetDate) {
   const base = schedules.map(s => ({...s, scheduleType: 'Reguler', originalTeacherEmail: s.teacherEmail}));
-  const today = Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'Asia/Jakarta', 'yyyy-MM-dd');
-  substitutions.filter(sub => String(sub.date) === today).forEach(sub => {
+  const date = String(targetDate || Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'Asia/Jakarta', 'yyyy-MM-dd'));
+  substitutions.filter(sub => String(sub.date) === date).forEach(sub => {
     const absent = String(sub.absentTeacherEmail || '').toLowerCase();
     const substitute = String(sub.substituteTeacherEmail || '').toLowerCase();
     const day = dayNameId_(String(sub.date || ''));
@@ -211,6 +211,16 @@ function buildEffectiveSchedule_(schedules, substitutions) {
     }));
   });
   return base;
+}
+
+function getEffectiveSchedule(date) {
+  requireUser_();
+  setupSheets();
+  const targetDate = String(date || '').trim();
+  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(targetDate)) throw new Error('Format tanggal tidak valid.');
+  const schedules = readRows_(SHEET_NAMES.SCHEDULE);
+  const approvedSubs = readRows_(SHEET_NAMES.SUBSTITUTIONS).filter(r => String(r.status || '') === 'Disetujui');
+  return buildEffectiveSchedule_(schedules, approvedSubs, targetDate);
 }
 
 function getSubstitutionRequests() {
