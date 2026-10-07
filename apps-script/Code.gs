@@ -373,7 +373,15 @@ function readRows_(sheetName) {
   if (!sheet || sheet.getLastRow() < 2) return [];
   const values = sheet.getRange(1, 1, sheet.getLastRow(), sheet.getLastColumn()).getValues();
   const headers = values.shift();
-  return values.filter(row => row.some(cell => cell !== '')).map(row => headers.reduce((obj, key, i) => { obj[key] = row[i]; return obj; }, {}));
+  return values.filter(row => row.some(cell => cell !== '')).map(row => headers.reduce((obj, key, i) => {
+    const cell = row[i];
+    if ((key === 'startTime' || key === 'endTime') && cell instanceof Date) {
+      obj[key] = Utilities.formatDate(cell, Session.getScriptTimeZone() || 'Asia/Jakarta', 'HH:mm');
+    } else {
+      obj[key] = cell;
+    }
+    return obj;
+  }, {}));
 }
 
 function findRow_(sheetName, id) {
