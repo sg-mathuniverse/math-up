@@ -23,6 +23,7 @@ function App(){
   const [menuOpen,setMenuOpen]=useState(false);
   const [showTodo,setShowTodo]=useState(false);
   const [query,setQuery]=useState("");
+  const [user,setUser]=useState(null);
 
   const filteredTodos=useMemo(()=>todos.filter(t=>t.title.toLowerCase().includes(query.toLowerCase())),[todos,query]);
 
@@ -52,11 +53,16 @@ function App(){
         <div className="top-actions">
           <div className="search"><Search size={17}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Cari tugas..." /></div>
           <button className="icon-btn"><Bell size={19}/><i></i></button>
-          <button className="user-chip"><div className="avatar small">GM</div><ChevronDown size={15}/></button>
+          <button className="user-chip" onClick={()=>setUser(user?null:{name:"Guru Matematika",email:"guru@mathup.local"})}><div className="avatar small">{user?"GM":"?"}</div><ChevronDown size={15}/></button>
         </div>
       </header>
 
       {active==="Dashboard" ? <Dashboard todos={filteredTodos} toggleTodo={toggleTodo} onAdd={()=>setShowTodo(true)} /> :
+       active==="Jadwal Mengajar" ? <SchedulePage /> :
+       active==="Kalender Akademik" ? <CalendarPage /> :
+       active==="Drive Materi" ? <DrivePage /> :
+       active==="Guru Matematika" ? <TeachersPage /> :
+       active==="Pengaturan" ? <SettingsPage /> :
        active==="To-Do" ? <TodoPage todos={filteredTodos} toggleTodo={toggleTodo} onAdd={()=>setShowTodo(true)} /> :
        <Placeholder title={active} />}
 
