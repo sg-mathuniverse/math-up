@@ -42,7 +42,8 @@ function handleApi_(e) {
     getBootstrap:'getBootstrap', getCurrentUser:'getCurrentUser',
     getSubstitutionRequests:'getSubstitutionRequests', getDriveMaterials:'getDriveMaterials',
     getEffectiveSchedule:'getEffectiveSchedule', saveTodo:'saveTodo', toggleTodo:'toggleTodo',
-    saveTeacher:'saveTeacher', saveSchedule:'saveSchedule', saveEvent:'saveEvent',
+    saveTeacher:'saveTeacher', saveSchedule:'saveSchedule', updateSchedule:'updateSchedule',
+    deleteSchedule:'deleteSchedule', saveEvent:'saveEvent',
     findSubstituteCandidates:'findSubstituteCandidates', saveSubstitution:'saveSubstitution',
     respondSubstitution:'respondSubstitution'
   };
@@ -83,7 +84,10 @@ function getBootstrap() {
   const user = requireUser_();
   setupSheets();
   upsertUser_(user);
-  const allSchedule = readRows_(SHEET_NAMES.SCHEDULE); const approvedSubs = readRows_(SHEET_NAMES.SUBSTITUTIONS).filter(r => String(r.status || '') === 'Disetujui'); const today = Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'Asia/Jakarta', 'yyyy-MM-dd'); const effectiveSchedule = buildEffectiveSchedule_(allSchedule, approvedSubs, today);
+  const allSchedule = readRows_(SHEET_NAMES.SCHEDULE);
+  const approvedSubs = readRows_(SHEET_NAMES.SUBSTITUTIONS).filter(r => String(r.status || '') === 'Disetujui');
+  const today = Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'Asia/Jakarta', 'yyyy-MM-dd');
+  const effectiveSchedule = buildEffectiveSchedule_(allSchedule, approvedSubs, today);
   return {
     ok: true,
     user,
@@ -135,6 +139,44 @@ function saveSchedule(item) {
     topic: String(item.topic || ''), room: String(item.room || ''), createdAt: item.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString()
   });
+}
+
+function updateSchedule(item) {
+  const user = requireUser_();
+  setupSheets();
+  if (!item || !item.id) throw new Error('ID jadwal wajib diisi.');
+  const row = findRow_(SHEET_NAMES.SCHEDULE, item.id);
+  if (!row) throw new Error('Jadwal tidak ditemukan.');
+  if (String(row.data.teacherEmail || '').toLowerCase() !== user.email) throw new Error('Anda hanya dapat mengedit jadwal milik Anda sendiri.');
+
+  const startTime = String(item.startTime || '').trim();
+  const endTime = String(item.endTime || '').trim();
+  if (!item.day || !startTime || !endTime || timeToMinutes_(startTime) >= timeToMinutes_(endTime)) {
+    throw new Error('Hari dan jam jadwal tidak valid.');
+  }
+  return updateRow_(SHEET_NAMES.SCHEDULE, row.rowNumber, {
+    ...row.data,
+    day: String(item.day),
+    startTime,
+    endTime,
+    className: String(item.className || '').trim(),
+    topic: String(item.topic || '').trim(),
+    room: String(item.room || '').trim(),
+    updatedAt: new Date().toISOString()
+  });
+}
+
+function deleteSchedule(id) {
+  const user = requireUser_();
+  setupSheets();
+  if (!id) throw new Error('ID jadwal wajib diisi.');
+  const row = findRow_(SHEET_NAMES.SCHEDULE, id);
+  if (!row) throw new Error('Jadwal tidak ditemukan.');
+  if (String(row.data.teacherEmail || '').toLowerCase() !== user.email) {
+    throw new Error('Anda hanya dapat menghapus jadwal milik Anda sendiri.');
+  }
+  getSpreadsheet_().getSheetByName(SHEET_NAMES.SCHEDULE).deleteRow(row.rowNumber);
+  return {ok:true, id:String(id)};
 }
 
 function saveEvent(event) {
@@ -216,9 +258,6 @@ function saveSubstitution(item) {
   });
 }
 
-
-
-
 function buildEffectiveSchedule_(schedules, substitutions, targetDate) {
   const base = schedules.map(s => ({...s, scheduleType: 'Reguler', originalTeacherEmail: s.teacherEmail}));
   const date = String(targetDate || Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'Asia/Jakarta', 'yyyy-MM-dd'));
@@ -256,7 +295,7 @@ function getEffectiveSchedule(date) {
   requireUser_();
   setupSheets();
   const targetDate = String(date || '').trim();
-  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(targetDate)) throw new Error('Format tanggal tidak valid.');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(targetDate)) throw new Error('Format tanggal tidak valid.');
   const schedules = readRows_(SHEET_NAMES.SCHEDULE);
   const approvedSubs = readRows_(SHEET_NAMES.SUBSTITUTIONS).filter(r => String(r.status || '') === 'Disetujui');
   return buildEffectiveSchedule_(schedules, approvedSubs, targetDate);
@@ -413,7 +452,6 @@ function updateRow_(sheetName, rowNumber, data) {
   sheet.getRange(rowNumber, 1, 1, headers.length).setValues([headers.map(key => data[key] ?? '')]);
   return {ok: true, data};
 }
-
 function json_(payload) {
   return ContentService.createTextOutput(JSON.stringify(payload)).setMimeType(ContentService.MimeType.JSON);
 }
