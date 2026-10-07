@@ -37,7 +37,7 @@ function App(){
       if(u?.email){
         return api.getBootstrap().then(d=>{
           setTodos(d?.todos||[]);
-          setUser(d?.user||u);
+          setUser(u);
           setDashboard({schedule:d?.schedule||[],events:d?.events||[]});
         });
       }
@@ -88,7 +88,7 @@ function App(){
        active==="Jadwal Mengajar" ? <SchedulePage user={user} /> : active==="Guru Pengganti" ? <SubstitutePage user={user} /> :
        active==="Kalender Akademik" ? <CalendarPage /> :
        active==="Drive Materi" ? <DrivePage /> :
-       active==="Guru Matematika" ? <TeachersPage user={user} /> :
+       active==="Guru Matematika" ? <TeachersPage user={user} onUserUpdated={setUser} /> :
        active==="Pengaturan" ? <SettingsPage /> :
        active==="To-Do" ? <TodoPage todos={filteredTodos} toggleTodo={toggleTodo} onAdd={()=>setShowTodo(true)} /> :
        <Placeholder title={active} />}
@@ -100,7 +100,7 @@ function App(){
 
 
 function LoadingScreen(){
-  return <div className="auth-screen"><div className="auth-card"><div className="brand-mark">∑</div><h1>Math Up</h1><p>Memeriksa akun Google Anda…</p></div></div>;
+  return <div className="auth-screen"><div className="auth-card loading-card"><div className="brand-mark">∑</div><div className="loading-spinner" aria-hidden="true"></div><div className="eyebrow loading-eyebrow">Menyiapkan ruang kerja</div><h1>Math Up</h1><p>Memuat profil, jadwal, tugas, dan agenda Anda. Mohon tunggu sampai Math Up selesai dimuat.</p><div className="loading-track"><span></span></div><small>Jangan tutup halaman ini selama proses pemuatan.</small></div></div>;
 }
 
 function LoginScreen({error}){
@@ -142,7 +142,7 @@ function Stat({icon,label,value,note}){return <div className="stat"><div classNa
 function TodoRow({t,toggle}){return <div className={t.done?"todo-row done":"todo-row"}><button className="check" onClick={toggle}>{t.done&&<CheckCircle2 size={20}/>}</button><div className="todo-copy"><b>{t.title}</b><span>{t.desc}</span><small><Clock3 size={13}/>{t.due}</small></div><span className={"priority "+t.priority.toLowerCase()}>{t.priority}</span></div>}
 function Event({day,title,meta}){return <div className="event"><div className="date-box"><b>{day}</b><span>OKT</span></div><div><b>{title}</b><span>{meta}</span></div></div>}
 function TodoPage({todos,toggleTodo,onAdd}){return <div className="content"><section className="page-title"><div><div className="eyebrow">Produktivitas</div><h1>To-Do</h1><p>Kelola pekerjaan mengajar tanpa kehilangan deadline.</p></div><button className="primary" onClick={onAdd}><CirclePlus size={18}/> Tambah tugas</button></section><section className="card"><div className="todo-list large">{todos.map(t=><TodoRow key={t.id} t={t} toggle={()=>toggleTodo(t.id)}/>)}</div></section></div>}
-function TeachersPage({user}){ 
+function TeachersPage({user,onUserUpdated}){ 
   const [teachers,setTeachers]=useState([]);
   const [schedule,setSchedule]=useState([]);
   const [form,setForm]=useState({name:user?.name||"",subject:"Matematika",status:"Aktif"});
@@ -165,6 +165,8 @@ function TeachersPage({user}){
     setSaving(true);setError("");setMessage("");
     try{
       await api.saveTeacher({email:user?.email,name:form.name.trim(),subject:form.subject,status:form.status});
+      const freshUser=await api.getCurrentUser();
+      onUserUpdated?.(freshUser);
       setMessage("Profil guru berhasil disimpan. Anda sekarang dapat menjadi kandidat guru pengganti.");
       load();
     }catch(e){setError(e.message||String(e));}
@@ -181,11 +183,11 @@ function TeachersPage({user}){
     {error&&<div className="card" style={{marginBottom:16}}>{error}</div>}
     {message&&<div className="card" style={{marginBottom:16}}>{message}</div>}
 
-    <section className="card">
+    <section className="card profile-card">
       <div className="card-head"><div><h2>Profil saya</h2><p>Email diambil otomatis dari akun Google yang sedang digunakan.</p></div></div>
-      <label>Nama guru<input value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Nama lengkap"/></label>
-      <label>Email akun Google<input value={user?.email||""} disabled/></label>
-      <div className="two">
+      <div className="form-grid">
+        <label>Nama guru<input value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Nama lengkap"/></label>
+        <label>Email akun Google<input value={user?.email||""} disabled/></label>
         <label>Mata pelajaran<input value={form.subject} onChange={e=>setForm({...form,subject:e.target.value})}/></label>
         <label>Status<select value={form.status} onChange={e=>setForm({...form,status:e.target.value})}><option>Aktif</option><option>Tidak aktif</option></select></label>
       </div>
@@ -210,7 +212,8 @@ function CalendarPage(){const [events,setEvents]=useState([]);const [cal,setCal]
 
 function DrivePage(){const [data,setData]=useState({configured:false,files:[]});useEffect(()=>{api.getDriveMaterials().then(setData).catch(()=>{})},[]);return <div className="content"><section className="page-title"><div><div className="eyebrow">Google Drive</div><h1>Drive Materi</h1><p>Materi mengajar yang tersimpan di folder Google Drive sekolah.</p></div>{data.folderUrl&&<a className="primary" href={data.folderUrl} target="_blank" rel="noreferrer">Buka folder Drive</a>}</section><section className="card">{!data.configured?<p>Folder Drive belum dikonfigurasi.</p>:data.files.length?data.files.map(x=><div className="event" key={x.id}><div className="date-box"><FileText size={22}/></div><div><b>{x.name}</b><span>{x.mimeType} · {Math.round((x.size||0)/1024)} KB</span></div><a className="text-btn" href={x.url} target="_blank" rel="noreferrer">Buka</a></div>):<p>Folder Drive masih kosong.</p>}</section></div>}
 function SubstitutePage({user}){
- const [form,setForm]=useState({date:"2026-10-07",startTime:"07:00",endTime:"08:20",className:"",topic:"",room:"",reason:""});
+ const today=new Date().toISOString().slice(0,10);
+ const [form,setForm]=useState({date:today,startTime:"07:00",endTime:"08:20",className:"",topic:"",room:"",reason:""});
  const [candidates,setCandidates]=useState([]);
  const [selected,setSelected]=useState(null);
  const [requests,setRequests]=useState([]);
@@ -258,13 +261,19 @@ function SubstitutePage({user}){
      <div><div className="eyebrow">Kolaborasi</div><h1>Guru Pengganti</h1><p>Cari guru matematika yang tidak bentrok jadwal untuk menggantikan kelas Anda.</p></div>
    </section>
 
-   <section className="card">
-     <div className="two"><label>Tanggal<input type="date" value={form.date} onChange={e=>setForm({...form,date:e.target.value})}/></label><label>Kelas<input value={form.className} onChange={e=>setForm({...form,className:e.target.value})} placeholder="VIII-A"/></label></div>
-     <div className="two"><label>Mulai<input type="time" value={form.startTime} onChange={e=>setForm({...form,startTime:e.target.value})}/></label><label>Selesai<input type="time" value={form.endTime} onChange={e=>setForm({...form,endTime:e.target.value})}/></label></div>
-     <div className="two"><label>Materi<input value={form.topic} onChange={e=>setForm({...form,topic:e.target.value})}/></label><label>Ruangan<input value={form.room} onChange={e=>setForm({...form,room:e.target.value})}/></label></div>
-     <label>Alasan<input value={form.reason} onChange={e=>setForm({...form,reason:e.target.value})} placeholder="Berhalangan hadir"/></label>
-     <button className="primary" onClick={search} disabled={loading}>{loading?"Mencari...":"Cari guru yang tersedia"}</button>
-     {message&&<p>{message}</p>}
+   <section className="card substitution-form-card">
+     <div className="card-head"><div><h2>Ajukan guru pengganti</h2><p>Isi detail kelas. Math Up akan memeriksa bentrok jadwal secara otomatis.</p></div></div>
+     <div className="form-grid">
+       <label>Tanggal<input type="date" value={form.date} onChange={e=>setForm({...form,date:e.target.value})}/></label>
+       <label>Kelas<input value={form.className} onChange={e=>setForm({...form,className:e.target.value})} placeholder="VIII-A"/></label>
+       <label>Mulai<input type="time" value={form.startTime} onChange={e=>setForm({...form,startTime:e.target.value})}/></label>
+       <label>Selesai<input type="time" value={form.endTime} onChange={e=>setForm({...form,endTime:e.target.value})}/></label>
+       <label>Materi<input value={form.topic} onChange={e=>setForm({...form,topic:e.target.value})} placeholder="Materi pelajaran"/></label>
+       <label>Ruangan<input value={form.room} onChange={e=>setForm({...form,room:e.target.value})} placeholder="R. 201"/></label>
+       <label className="form-full">Alasan<input value={form.reason} onChange={e=>setForm({...form,reason:e.target.value})} placeholder="Berhalangan hadir"/></label>
+     </div>
+     <button className="primary" onClick={search} disabled={loading}>{loading?"Mencari guru...":"Cari guru yang tersedia"}</button>
+     {message&&<div className="notice">{message}</div>}
    </section>
 
    {candidates.length>0&&<section className="card">
