@@ -28,7 +28,7 @@ function App(){
 
   const filteredTodos=useMemo(()=>todos.filter(t=>t.title.toLowerCase().includes(query.toLowerCase())),[todos,query]);
 
-  const toggleTodo=id=>setTodos(ts=>ts.map(t=>t.id===id?{...t,done:!t.done}:t));
+  const toggleTodo=id=>{const t=todos.find(x=>x.id===id);if(!t)return;api.toggleTodo(id,!t.done).then(()=>setTodos(ts=>ts.map(x=>x.id===id?{...x,done:!x.done}:x))).catch(e=>setApiError(e.message||String(e)));};
 
   return <div className="app">
     <aside className={menuOpen?"sidebar open":"sidebar"}>
@@ -67,7 +67,7 @@ function App(){
        active==="To-Do" ? <TodoPage todos={filteredTodos} toggleTodo={toggleTodo} onAdd={()=>setShowTodo(true)} /> :
        <Placeholder title={active} />}
 
-      {showTodo && <TodoModal onClose={()=>setShowTodo(false)} onSave={t=>{setTodos(ts=>[...ts,{...t,id:Date.now(),done:false}]);setShowTodo(false)}}/>}
+      {apiError && <div className="card" style={{margin:"16px"}}>{apiError}</div>}{showTodo && <TodoModal onClose={()=>setShowTodo(false)} onSave={t=>{api.saveTodo({title:t.title,description:t.desc,dueAt:t.due,priority:t.priority,done:false}).then(saved=>{setTodos(ts=>[...ts,saved]);setShowTodo(false)}).catch(e=>setApiError(e.message||String(e)))}}/>}
     </main>
   </div>
 }
