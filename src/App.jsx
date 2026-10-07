@@ -20,6 +20,8 @@ const schedule = [
 
 function App(){
   const [active,setActive]=useState("Dashboard");
+  const [authChecked,setAuthChecked]=useState(false);
+  const [authUser,setAuthUser]=useState(null);
   const [todos,setTodos]=useState(initialTodos);
   const [menuOpen,setMenuOpen]=useState(false);
   const [showTodo,setShowTodo]=useState(false);
@@ -30,14 +32,26 @@ function App(){
   const [apiError,setApiError]=useState("");
 
   useEffect(()=>{
-    api.getBootstrap().then(d=>{
-      setTodos(d?.todos||[]);
-      setUser(d?.user||null);
-      setDashboard({schedule:d?.schedule||[],events:d?.events||[]});
-    }).catch(e=>setApiError(e.message||String(e))).finally(()=>setLoading(false));
+    api.getCurrentUser().then(u=>{
+      setAuthUser(u||null);
+      if(u?.email){
+        return api.getBootstrap().then(d=>{
+          setTodos(d?.todos||[]);
+          setUser(d?.user||u);
+          setDashboard({schedule:d?.schedule||[],events:d?.events||[]});
+        });
+      }
+    }).catch(e=>setApiError(e.message||String(e))).finally(()=>{
+      setAuthChecked(true);
+      setLoading(false);
+    });
   },[]);
 
   const filteredTodos=useMemo(()=>todos.filter(t=>t.title.toLowerCase().includes(query.toLowerCase())),[todos,query]);
+
+  if(!authChecked || loading) return <LoadingScreen/>;
+
+  if(!authUser?.email) return <LoginScreen error={apiError}/>;
 
   const toggleTodo=id=>{const t=todos.find(x=>x.id===id);if(!t)return;api.toggleTodo(id,!t.done).then(()=>setTodos(ts=>ts.map(x=>x.id===id?{...x,done:!x.done}:x))).catch(e=>setApiError(e.message||String(e)));};
 
@@ -82,6 +96,26 @@ function App(){
       {apiError && <div className="card" style={{margin:"16px"}}>{apiError}</div>}{showTodo && <TodoModal onClose={()=>setShowTodo(false)} onSave={t=>{api.saveTodo({title:t.title,description:t.desc,dueAt:t.due,priority:t.priority,done:false}).then(saved=>{setTodos(ts=>[...ts,saved]);setShowTodo(false)}).catch(e=>setApiError(e.message||String(e)))}}/>}
     </main>
   </div>
+}
+
+
+function LoadingScreen(){
+  return <div className="auth-screen"><div className="auth-card"><div className="brand-mark">∑</div><h1>Math Up</h1><p>Memeriksa akun Google Anda…</p></div></div>;
+}
+
+function LoginScreen({error}){
+  const loginUrl=(import.meta.env.VITE_APPS_SCRIPT_URL||"").replace(/\\/$/,"");
+  return <div className="auth-screen"><div className="auth-card">
+    <div className="brand-mark">∑</div>
+    <div className="eyebrow">Teacher Workspace</div>
+    <h1>Masuk ke Math Up</h1>
+    <p>Gunakan akun Google sekolah Anda. Math Up akan mengambil identitas akun secara aman dari Google Apps Script.</p>
+    {error&&<div className="auth-error">{error}</div>}
+    <a className="google-login" href={loginUrl} target="_blank" rel="noreferrer">
+      <span className="google-g">G</span> Masuk dengan Google
+    </a>
+    <p className="auth-hint">Setelah Google selesai memverifikasi akun, kembali ke tab Math Up lalu muat ulang halaman.</p>
+  </div></div>;
 }
 
 function initials(value){return String(value||"?").split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join("").toUpperCase()||"?";}
