@@ -164,16 +164,78 @@ function InlineLoading({text="Memuat data..."}){return <div className="card load
 
 function Nav({icon,label,active,onClick,todoCount=0}){return <button className={active?"nav active":"nav"} onClick={onClick}>{icon}<span>{label}</span>{label==="To-Do"&&todoCount>0&&<em>{todoCount}</em>}</button>}
 
-function Dashboard({todos,toggleTodo,schedule,events,user}){
+function Dashboard({todos,toggleTodo,schedule,allSchedule,events,user,substitutionNotifications=[]}){
+ const [now,setNow]=useState(new Date());
+ useEffect(()=>{const timer=setInterval(()=>setNow(new Date()),1000);return()=>clearInterval(timer)},[]);
  const activeSchedule=(schedule||[]).slice().sort((a,b)=>String(a.startTime).localeCompare(String(b.startTime)));
+ const weeklySchedule=(allSchedule||[]).filter(x=>String(x.teacherEmail||"").toLowerCase()===String(user?.email||"").toLowerCase());
  const activeEvents=(events||[]).slice().sort((a,b)=>String(a.eventDate).localeCompare(String(b.eventDate))).slice(0,3);
  const priorityRank={Tinggi:0,Sedang:1,Rendah:2};
- const activeTodos=(todos||[]).slice().sort((a,b)=>{
-   const ad=todoDueTimestamp(a), bd=todoDueTimestamp(b);
-   if(ad!==bd) return ad-bd;
+ const activeTodos=(todos||[]).filter(t=>!t.done).slice().sort((a,b)=>{
+   const ad=todoDueTimestamp(a),bd=todoDueTimestamp(b);
+   if(ad!==bd)return ad-bd;
    return (priorityRank[a.priority]??99)-(priorityRank[b.priority]??99);
- }).slice(0,4);
- return <div className="content"><section className="hero"><div><div className="eyebrow"><Sparkles size={14}/> Selamat datang kembali</div><h1>Halo, {user?.name||"Guru"}! 👋</h1><p>Berikut ringkasan aktivitas matematika Anda hari ini.</p></div></section><div className="stats"><Stat icon={<BookOpen/>} label="Jam mengajar hari ini" value={activeSchedule.length} note={activeSchedule.length?formatTime(activeSchedule[0].startTime)+" — "+formatTime(activeSchedule[activeSchedule.length-1].endTime):"Tidak ada jadwal"}/><Stat icon={<ListTodo/>} label="Tugas aktif" value={todos.filter(t=>!t.done).length} note="Perlu diselesaikan"/><Stat icon={<CalendarDays/>} label="Agenda tersedia" value={events.length} note="Dari kalender sekolah"/></div><div className="grid"><section className="card schedule-card"><div className="card-head"><div><h2>Jadwal mengajar hari ini</h2><p>Data dari Google Sheets</p></div></div><div className="schedule-list">{activeSchedule.length?activeSchedule.map((s,i)=><div className="schedule-row" key={s.id||s.startTime}><div className="time"><b>{formatTime(s.startTime)}</b><span>{formatTime(s.endTime)}</span></div><div className="line"><i></i></div><div className="lesson"><div><b>{s.className}</b><span>{s.topic||"Tanpa topik"}</span></div><small>{s.room||"-"}</small></div></div>):<p style={{padding:20}}>Belum ada jadwal untuk hari ini.</p>}</div></section><section className="card todo-card"><div className="card-head"><div><h2>To-Do terdekat</h2><p>Urut berdasarkan deadline & prioritas</p></div></div><div className="todo-list">{todos.slice(0,4).map(t=><TodoRow key={t.id} t={t} toggle={()=>toggleTodo(t.id)}/>)}</div></section></div><section className="card calendar-card"><div className="card-head"><div><h2>Agenda akademik</h2><p>Data dari Google Sheets</p></div></div><div className="events">{activeEvents.length?activeEvents.map(x=><Event key={x.id} day={normalizeCalendarDate(x.eventDate).slice(8,10)||"—"} title={x.title} meta={formatDate(x.eventDate)+" · "+formatTime(x.startTime)}/>):<p>Belum ada agenda.</p>}</div></section></div>
+ });
+ const runningMessages=[];
+ if(substitutionNotifications.length)runningMessages.push("Ada "+substitutionNotifications.length+" permintaan guru pengganti yang perlu diperiksa.");
+ const overdue=activeTodos.filter(t=>todoDueTimestamp(t)<Date.now());
+ if(overdue.length)runningMessages.push(overdue.length+" To-Do List terlewat deadline.");
+ const nearest=activeTodos.find(t=>Number.isFinite(todoDueTimestamp(t))&&todoDueTimestamp(t)>=Date.now());
+ if(nearest){
+   const days=Math.ceil((todoDueTimestamp(nearest)-Date.now())/86400000);
+   runningMessages.push("Deadline To-Do List \""+nearest.title+"\" "+(days<=0?"hari ini":days+" hari lagi")+".");
+ }
+ if(!runningMessages.length)runningMessages.push("Tidak ada notifikasi penting. Semangat mengajar hari ini!");
+ const days=["Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
+ const slots=["08:00-08:40","08:40-09:20","09:20-10:00","10:00-10:15","10:15-10:55","10:55-11:35","11:35-12:15","12:15-13:00","13:00-13:40","13:40-14:20","14:20-15:00","15:00-15:40","15:40-16:20","16:20-17:00"];
+ const toMin=v=>{const m=String(v||"").match(/^(\d{1,2}):(\d{2})$/);return m?Number(m[1])*60+Number(m[2]):NaN};
+ const slotData=(day,slot)=>{
+   const [ss,ee]=slot.split("-"),s=toMin(ss),e=toMin(ee);
+   return weeklySchedule.filter(x=>String(x.day||"").toLowerCase()===day.toLowerCase()).filter(x=>{
+     const a=toMin(formatTime(x.startTime)),b=toMin(formatTime(x.endTime));
+     return Number.isFinite(a)&&Number.isFinite(b)&&a<e&&b>s;
+   });
+ };
+ const dateLabel=new Intl.DateTimeFormat("id-ID",{weekday:"long",day:"2-digit",month:"long",year:"numeric"}).format(now);
+ const timeLabel=new Intl.DateTimeFormat("id-ID",{hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false}).format(now).replaceAll(".",":");
+ return <div className="content">
+   <section className="hero dashboard-hero">
+     <div className="hero-main">
+       <div className="hero-date">{dateLabel}</div>
+       <div className="eyebrow"><Sparkles size={14}/> Selamat datang di Math Up</div>
+       <h1>Halo, {user?.name||"Guru"}! 👋</h1>
+       <div className="running-wrap"><span className="running-label">Info</span><div className="running-track"><div className="running-text">{runningMessages.map((m,i)=><span key={i}>{m}</span>)}</div></div></div>
+     </div>
+     <div className="hero-clock"><span>Waktu sekarang</span><strong>{timeLabel}</strong></div>
+   </section>
+
+   <div className="stats dashboard-summary">
+     <Stat icon={<BookOpen/>} label="Jadwal mengajar hari ini" value={activeSchedule.length} note={activeSchedule.length?formatTime(activeSchedule[0].startTime)+" — "+formatTime(activeSchedule[activeSchedule.length-1].endTime):"Tidak ada jadwal"}/>
+     <Stat icon={<ListTodo/>} label="To-Do List" value={activeTodos.length} note="Tugas yang belum selesai"/>
+     <Stat icon={<CalendarDays/>} label="Agenda akademik" value={events.length} note="Dari kalender sekolah"/>
+   </div>
+
+   <div className="grid dashboard-main-grid">
+     <section className="card schedule-card">
+       <div className="card-head dashboard-section-head"><div className="section-title-icon"><BookOpen size={18}/><div><h2>Jadwal mengajar hari ini</h2><p>Jadwal Anda untuk hari ini</p></div></div></div>
+       <div className="schedule-list">{activeSchedule.length?activeSchedule.map((s,i)=><div className="schedule-row" key={s.id||s.startTime+i}><div className="time"><b>{formatTime(s.startTime)}</b><span>{formatTime(s.endTime)}</span></div><div className="line"><i></i></div><div className="lesson"><div><b>{s.className}</b><span>{s.topic||"Tanpa topik"}</span></div><small>{s.room||"-"}</small></div></div>):<p style={{padding:20}}>Belum ada jadwal untuk hari ini.</p>}</div>
+     </section>
+     <section className="card todo-card">
+       <div className="card-head dashboard-section-head"><div className="section-title-icon"><ListTodo size={18}/><div><h2>To-Do List</h2><p>Deadline terdekat</p></div></div></div>
+       <div className="todo-list">{activeTodos.slice(0,4).map(t=><TodoRow key={t.id} t={t} toggle={()=>toggleTodo(t.id)}/>)}</div>
+     </section>
+   </div>
+
+   <section className="card calendar-card dashboard-agenda-card">
+     <div className="card-head dashboard-section-head"><div className="section-title-icon"><CalendarDays size={18}/><div><h2>Agenda akademik</h2><p>Agenda terdekat dari kalender sekolah</p></div></div></div>
+     <div className="events">{activeEvents.length?activeEvents.map(x=><Event key={x.id} day={normalizeCalendarDate(x.eventDate).slice(8,10)||"—"} title={x.title} meta={formatDate(x.eventDate)+" · "+formatTime(x.startTime)}/>):<p>Belum ada agenda.</p>}</div>
+   </section>
+
+   <section className="card weekly-schedule-card">
+     <div className="card-head dashboard-section-head"><div className="section-title-icon"><CalendarDays size={18}/><div><h2>Jadwal mengajar Anda</h2><p>Jadwal mingguan sesuai akun guru yang sedang login</p></div></div></div>
+     <div className="weekly-scroll"><table className="weekly-table"><thead><tr><th>Jam</th>{days.map(day=><th key={day}>{day}</th>)}</tr></thead><tbody>{slots.map(slot=><tr key={slot}><th>{slot}</th>{days.map(day=>{const items=slotData(day,slot);return <td key={day}>{items.length?items.map(x=><div className="weekly-lesson" key={x.id||x.className+x.startTime}><b>{x.className}</b><span>{x.topic||"Tanpa topik"}</span><small>{x.room||"-"}</small></div>):<span className="weekly-empty">—</span>})}</td>)}</tr>)}</tbody></table></div>
+   </section>
+ </div>
 }
 
 function Stat({icon,label,value,note}){return <div className="stat"><div className="stat-icon">{icon}</div><div><span>{label}</span><strong>{value}</strong><small>{note}</small></div></div>}
