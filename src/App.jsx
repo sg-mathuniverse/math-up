@@ -211,11 +211,77 @@ function TeachersPage({user,onUserUpdated}){
 function CalendarPage(){const [events,setEvents]=useState([]);const [cal,setCal]=useState([]);useEffect(()=>{api.getBootstrap().then(d=>{setEvents(d?.events||[]);setCal(d?.academicCalendar||[])}).catch(()=>{})},[]);return <div className="content"><section className="page-title"><div><div className="eyebrow">Akademik</div><h1>Kalender Akademik</h1><p>Agenda sekolah dan kalender akademik terhubung ke Google Sheets.</p></div></section><section className="card"><div className="card-head"><div><h2>Agenda sekolah</h2><p>{events.length} agenda</p></div></div>{events.length?events.map(x=><div className="event" key={x.id}><div className="date-box"><b>{String(x.eventDate||"").slice(8,10)||"—"}</b><span>OKT</span></div><div><b>{x.title}</b><span>{x.eventDate} · {formatTime(x.startTime)}{x.endTime?"–"+formatTime(x.endTime):""}</span></div></div>):<p>Belum ada agenda.</p>}</section><section className="card"><div className="card-head"><div><h2>Hari penting</h2><p>{cal.length} data kalender</p></div></div>{cal.length?cal.map(x=><div className="event" key={x.id}><div className="date-box"><b>{String(x.date||"").slice(8,10)||"—"}</b><span>OKT</span></div><div><b>{x.title}</b><span>{x.date} · {x.isNationalHoliday?"Libur nasional":"Kalender akademik"}</span></div></div>):<p>Belum ada data kalender akademik.</p>}</section></div>}
 
 function DrivePage(){const [data,setData]=useState({configured:false,files:[]});useEffect(()=>{api.getDriveMaterials().then(setData).catch(()=>{})},[]);return <div className="content"><section className="page-title"><div><div className="eyebrow">Google Drive</div><h1>Drive Materi</h1><p>Materi mengajar yang tersimpan di folder Google Drive sekolah.</p></div>{data.folderUrl&&<a className="primary" href={data.folderUrl} target="_blank" rel="noreferrer">Buka folder Drive</a>}</section><section className="card">{!data.configured?<p>Folder Drive belum dikonfigurasi.</p>:data.files.length?data.files.map(x=><div className="event" key={x.id}><div className="date-box"><FileText size={22}/></div><div><b>{x.name}</b><span>{x.mimeType} · {Math.round((x.size||0)/1024)} KB</span></div><a className="text-btn" href={x.url} target="_blank" rel="noreferrer">Buka</a></div>):<p>Folder Drive masih kosong.</p>}</section></div>}
+function minutesToTime(value){
+  const total = Number(value);
+  if(!Number.isFinite(total)) return "";
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  return String(h).padStart(2,"0")+":"+String(m).padStart(2,"0");
+}
+
+function timeToMinutesClient(value){
+  const m=String(value||"").match(/^(\d{1,2}):(\d{2})$/);
+  if(!m) return NaN;
+  return Number(m[1])*60+Number(m[2]);
+}
+
+function buildCoveragePlan(candidates,startTime,endTime){
+  const start=timeToMinutesClient(startTime);
+  const end=timeToMinutesClient(endTime);
+  if(!Number.isFinite(start)||!Number.isFinite(end)||start>=end) return null;
+
+  const segments=[];
+  (candidates||[]).forEach(candidate=>{
+    (candidate.availableSegments||[]).forEach(segment=>{
+      const s=timeToMinutesClient(segment.startTime);
+      const e=timeToMinutesClient(segment.endTime);
+      if(Number.isFinite(s)&&Number.isFinite(e)&&e>s){
+        segments.push({
+          email:candidate.email,
+          name:candidate.name||candidate.email,
+          subject:candidate.subject||"Matematika",
+          start:Math.max(start,s),
+          end:Math.min(end,e),
+          dailyLoad:candidate.dailyLoad||0
+        });
+      }
+    });
+  });
+
+  let cursor=start;
+  const plan=[];
+  const used=new Set();
+
+  while(cursor<end){
+    const options=segments
+      .filter(x=>x.start<=cursor && x.end>cursor && !used.has(x.email))
+      .sort((a,b)=>b.end-a.end || a.dailyLoad-b.dailyLoad || a.name.localeCompare(b.name));
+
+    if(!options.length) return null;
+
+    const chosen=options[0];
+    const segmentEnd=Math.min(chosen.end,end);
+
+    plan.push({
+      email:chosen.email,
+      name:chosen.name,
+      subject:chosen.subject,
+      startTime:minutesToTime(cursor),
+      endTime:minutesToTime(segmentEnd)
+    });
+
+    used.add(chosen.email);
+    cursor=segmentEnd;
+  }
+
+  return plan;
+}
+
 function SubstitutePage({user}){
  const today=new Date().toISOString().slice(0,10);
  const [form,setForm]=useState({date:today,startTime:"07:00",endTime:"08:20",className:"",topic:"",room:"",reason:""});
  const [candidates,setCandidates]=useState([]);
- const [selected,setSelected]=useState(null);
+ const [plan,setPlan]=useState(null);
  const [requests,setRequests]=useState([]);
  const [history,setHistory]=useState([]);
  const [loading,setLoading]=useState(false);
@@ -228,41 +294,74 @@ function SubstitutePage({user}){
  };
 
  const search=()=>{
-   setLoading(true);setMessage("");
+   setLoading(true);
+   setMessage("");
+   setPlan(null);
    api.findSubstituteCandidates(form)
-     .then(r=>setCandidates(r?.candidates||r||[]))
+     .then(r=>{
+       const list=r?.candidates||r||[];
+       setCandidates(Array.isArray(list)?list:[]);
+       const coverage=buildCoveragePlan(Array.isArray(list)?list:[],form.startTime,form.endTime);
+       setPlan(coverage);
+       if(!coverage){
+         setMessage("Belum ditemukan kombinasi guru yang dapat menutup seluruh jam pengganti.");
+       }
+     })
      .catch(e=>setMessage(e.message||String(e)))
      .finally(()=>setLoading(false));
  };
 
- const send=()=>{
-   if(!selected)return;
-   setLoading(true);setMessage("");
-   api.saveSubstitution({...form,substituteTeacherEmail:selected.email})
-     .then(()=>{setMessage("Permintaan guru pengganti berhasil dikirim.");setSelected(null);setCandidates([]);return refresh();})
-     .catch(e=>setMessage(e.message||String(e)))
-     .finally(()=>setLoading(false));
+ const send=async()=>{
+   if(!plan||!plan.length)return;
+   setLoading(true);
+   setMessage("");
+   try{
+     for(const segment of plan){
+       await api.saveSubstitution({
+         ...form,
+         startTime:segment.startTime,
+         endTime:segment.endTime,
+         substituteTeacherEmail:segment.email
+       });
+     }
+     setMessage(
+       plan.length===1
+         ? "Permintaan guru pengganti berhasil dikirim."
+         : "Rencana pengganti terbagi menjadi "+plan.length+" permintaan dan berhasil dikirim."
+     );
+     setPlan(null);
+     setCandidates([]);
+     await refresh();
+   }catch(e){
+     setMessage(e.message||String(e));
+   }finally{
+     setLoading(false);
+   }
  };
 
  const respond=async(id,response)=>{
-   setLoading(true);setMessage("");
+   setLoading(true);
+   setMessage("");
    try{
      await api.respondSubstitution(id,response);
      setMessage(response==="terima"?"Permintaan diterima. Jadwal pengganti akan masuk ke jadwal efektif.":"Permintaan ditolak.");
      await refresh();
-   }catch(e){setMessage(e.message||String(e));}
-   finally{setLoading(false);}
+   }catch(e){
+     setMessage(e.message||String(e));
+   }finally{
+     setLoading(false);
+   }
  };
 
  useEffect(()=>{refresh().catch(()=>{})},[]);
 
  return <div className="content">
    <section className="page-title">
-     <div><div className="eyebrow">Kolaborasi</div><h1>Guru Pengganti</h1><p>Cari guru matematika yang tidak bentrok jadwal untuk menggantikan kelas Anda.</p></div>
+     <div><div className="eyebrow">Kolaborasi</div><h1>Guru Pengganti</h1><p>Math Up dapat membagi satu jam mengajar ke beberapa guru jika tidak ada satu guru yang tersedia penuh.</p></div>
    </section>
 
    <section className="card substitution-form-card">
-     <div className="card-head"><div><h2>Ajukan guru pengganti</h2><p>Isi detail kelas. Math Up akan memeriksa bentrok jadwal secara otomatis.</p></div></div>
+     <div className="card-head"><div><h2>Ajukan guru pengganti</h2><p>Isi detail kelas. Sistem akan mencari satu guru atau kombinasi beberapa guru yang dapat menutup seluruh waktu.</p></div></div>
      <div className="form-grid">
        <label>Tanggal<input type="date" value={form.date} onChange={e=>setForm({...form,date:e.target.value})}/></label>
        <label>Kelas<input value={form.className} onChange={e=>setForm({...form,className:e.target.value})} placeholder="VIII-A"/></label>
@@ -272,17 +371,52 @@ function SubstitutePage({user}){
        <label>Ruangan<input value={form.room} onChange={e=>setForm({...form,room:e.target.value})} placeholder="R. 201"/></label>
        <label className="form-full">Alasan<input value={form.reason} onChange={e=>setForm({...form,reason:e.target.value})} placeholder="Berhalangan hadir"/></label>
      </div>
-     <button className="primary" onClick={search} disabled={loading}>{loading?"Mencari guru...":"Cari guru yang tersedia"}</button>
+     <button className="primary" onClick={search} disabled={loading}>{loading?"Mencari guru...":"Cari guru pengganti"}</button>
      {message&&<div className="notice">{message}</div>}
    </section>
 
-   {candidates.length>0&&<section className="card">
-     <div className="card-head"><div><h2>Guru tersedia</h2><p>Pilih salah satu guru untuk mengirim permintaan.</p></div></div>
-     {candidates.map(x=><div className="todo-row" key={x.email}>
-       <div className="todo-copy"><b>{x.name||x.email}</b><span>{x.email}</span><small>{x.available===false?"Bentrok jadwal":"Tersedia"}{x.dailyLoad!=null?" · Beban "+x.dailyLoad+" jadwal":""}</small></div>
-       <button className="secondary" disabled={x.available===false||loading} onClick={()=>setSelected(x)}>{selected?.email===x.email?"Dipilih":"Pilih"}</button>
+   {plan&&<section className="card">
+     <div className="card-head">
+       <div>
+         <h2>Rencana pengganti</h2>
+         <p>{plan.length===1?"Satu guru dapat menutup seluruh waktu.":"Jadwal dibagi agar seluruh waktu "+formatTime(form.startTime)+"–"+formatTime(form.endTime)+" tertutup."}</p>
+       </div>
+     </div>
+     {plan.map((x,i)=><div className="todo-row" key={x.email+"-"+i}>
+       <div className="todo-copy">
+         <b>{x.name||x.email}</b>
+         <span>{formatTime(x.startTime)}–{formatTime(x.endTime)} · {x.subject||"Matematika"}</span>
+         <small>{i===0?"Bagian "+(i+1):"Lanjutan bagian "+(i+1)}</small>
+       </div>
+       <span className="priority sedang">Dipilih</span>
      </div>)}
-     {selected&&<button className="primary" disabled={loading} onClick={send}>Kirim permintaan ke {selected.name||selected.email}</button>}
+     <button className="primary" disabled={loading} onClick={send}>
+       {loading?"Mengirim...":plan.length===1?"Kirim permintaan":"Kirim semua permintaan"}
+     </button>
+   </section>}
+
+   {!plan&&candidates.length>0&&<section className="card">
+     <div className="card-head">
+       <div>
+         <h2>Ketersediaan guru</h2>
+         <p>Daftar ini menunjukkan bagian waktu yang masih dapat diisi masing-masing guru.</p>
+       </div>
+     </div>
+     {candidates.map(x=><div className="todo-row" key={x.email}>
+       <div className="todo-copy">
+         <b>{x.name||x.email}</b>
+         <span>{x.email}</span>
+         <small>
+           {x.availableSegments?.length
+             ? x.availableSegments.map(s=>formatTime(s.startTime)+"–"+formatTime(s.endTime)).join(" · ")
+             : "Tidak ada waktu tersedia"}
+           {x.dailyLoad!=null?" · Beban "+x.dailyLoad+" jadwal":""}
+         </small>
+       </div>
+       <span className={"priority "+(x.availableSegments?.length?"sedang":"tinggi")}>
+         {x.status||"Tidak tersedia"}
+       </span>
+     </div>)}
    </section>}
 
    <section className="card">
