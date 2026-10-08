@@ -226,7 +226,7 @@ function Dashboard({todos,toggleTodo,schedule,allSchedule,events,user,substituti
 
    <section className="card weekly-schedule-card">
      <div className="card-head dashboard-section-head"><div className="section-title-icon"><CalendarDays size={18}/><div><h2>Jadwal mengajar Anda</h2><p>Jadwal mingguan sesuai akun guru yang sedang login</p></div></div></div>
-     <div className="weekly-scroll"><table className="weekly-table"><thead><tr><th>Jam</th>{days.map(day=><th key={day}>{day}</th>)}</tr></thead><tbody>{slots.map(slot=><tr key={slot}><th>{slot}</th>{days.map(day=>{const items=slotData(day,slot);return <td key={day}>{items.length?items.map(x=><div className="weekly-lesson" key={x.id||x.className+x.startTime}><b>{x.className}</b><span>{x.topic||"Tanpa topik"}</span><small>{x.room||"-"}</small></div>):<span className="weekly-empty">—</span>})}</td>)}</tr>)}</tbody></table></div>
+     <div className="weekly-scroll"><table className="weekly-table"><thead><tr><th>Jam</th>{days.map(day=><th key={day}>{day}</th>)}</tr></thead><tbody>{slots.map(slot=><tr key={slot}><th>{slot}</th>{days.map(day=>{const items=slotData(day,slot);return <td key={day}>{items.length>0?items.map(x=><div className="weekly-lesson" key={x.id||x.className+x.startTime}><b>{x.className}</b><span>{x.topic||"Tanpa topik"}</span><small>{x.room||"-"}</small></div>):<span className="weekly-empty">—</span>}</td>})}</tr>)}</tbody></table></div>
    </section>
  </div>
 }
