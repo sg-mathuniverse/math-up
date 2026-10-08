@@ -61,7 +61,7 @@ function App(){
         <Nav icon={<LayoutDashboard size={19}/>} label="Dashboard" active={active==="Dashboard"} onClick={()=>setActive("Dashboard")}/>
         <Nav icon={<CalendarDays size={19}/>} label="Jadwal Mengajar" active={active==="Jadwal Mengajar"} onClick={()=>setActive("Jadwal Mengajar")}/>
         <Nav icon={<Users size={19}/>} label="Guru Pengganti" active={active==="Guru Pengganti"} onClick={()=>setActive("Guru Pengganti")}/>
-        <Nav icon={<ListTodo size={19}/>} label="To-Do" active={active==="To-Do"} onClick={()=>setActive("To-Do")}/>
+        <Nav icon={<ListTodo size={19}/>} label="To-Do" active={active==="To-Do"} onClick={()=>setActive("To-Do")} todoCount={todos.filter(t=>!t.done).length}/>
         <Nav icon={<CalendarDays size={19}/>} label="Kalender Akademik" active={active==="Kalender Akademik"} onClick={()=>setActive("Kalender Akademik")}/>
         <Nav icon={<FileText size={19}/>} label="Drive Materi" active={active==="Drive Materi"} onClick={()=>setActive("Drive Materi")}/>
         <Nav icon={<Users size={19}/>} label="Guru Matematika" active={active==="Guru Matematika"} onClick={()=>setActive("Guru Matematika")}/>
@@ -145,7 +145,7 @@ function formatDate(value){
 
 function InlineLoading({text="Memuat data..."}){return <div className="card loading-inline"><div className="loading-spinner small-spinner" aria-hidden="true"></div><div><b>{text}</b><span>Mohon tunggu sebentar...</span></div></div>}
 
-function Nav({icon,label,active,onClick}){return <button className={active?"nav active":"nav"} onClick={onClick}>{icon}<span>{label}</span>{label==="To-Do"&&<em>3</em>}</button>}
+function Nav({icon,label,active,onClick,todoCount=0}){return <button className={active?"nav active":"nav"} onClick={onClick}>{icon}<span>{label}</span>{label==="To-Do"&&todoCount>0&&<em>{todoCount}</em>}</button>}
 
 function Dashboard({todos,toggleTodo,schedule,events,user}){
  const activeSchedule=(schedule||[]).slice().sort((a,b)=>String(a.startTime).localeCompare(String(b.startTime)));
