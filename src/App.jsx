@@ -3,7 +3,7 @@ import { api } from "./api";
 import {
   Bell, CalendarDays, CheckCircle2, ChevronDown, CirclePlus, Clock3,
   FileText, LayoutDashboard, ListTodo, Menu, MoreHorizontal, Search,
-  Settings, Users, X, BookOpen, Sparkles
+  Settings, Users, X, BookOpen, Sparkles, Mail, HardDrive
 } from "lucide-react";
 
 const schedule = [
@@ -27,15 +27,17 @@ function App(){
   const [loading,setLoading]=useState(true);
   const [apiError,setApiError]=useState("");
   const [todoActionLoading,setTodoActionLoading]=useState("");
+  const [substitutionNotifications,setSubstitutionNotifications]=useState([]);
 
   useEffect(()=>{
     api.getCurrentUser().then(u=>{
       setAuthUser(u||null);
       if(u?.email){
-        return api.getBootstrap().then(d=>{
+        return Promise.all([api.getBootstrap(),api.getSubstitutionRequests()]).then(([d,requests])=>{
           setTodos(d?.todos||[]);
           setUser(u);
           setDashboard({schedule:d?.schedule||[],events:(d?.events||[]).map(x=>({...x,eventDate:normalizeCalendarDate(x.eventDate)}))});
+          setSubstitutionNotifications(Array.isArray(requests?.requests)?requests.requests:(Array.isArray(requests)?requests:[]));
         });
       }
     }).catch(e=>setApiError(e.message||String(e))).finally(()=>{
