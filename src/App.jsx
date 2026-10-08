@@ -326,7 +326,8 @@ function CalendarPage(){
   const [saving,setSaving]=useState(false);
   const [error,setError]=useState("");
   const [message,setMessage]=useState("");
-  const [showAdd,setShowAdd]=useState(false);\n  const [editingEvent,setEditingEvent]=useState(null);
+  const [showAdd,setShowAdd]=useState(false);
+  const [editingEvent,setEditingEvent]=useState(null);
   const [month,setMonth]=useState(new Date(today.getFullYear(),today.getMonth(),1));
   const [selectedDate,setSelectedDate]=useState("");
   const [form,setForm]=useState({title:"",description:"",eventDate:"",startTime:"",endTime:"",type:"Agenda sekolah"});
