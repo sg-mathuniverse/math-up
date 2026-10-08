@@ -720,33 +720,126 @@ function SubstitutePage({user}){
 }
 function SchedulePage({user}){
   const [items,setItems]=useState([]);
+  const [teachers,setTeachers]=useState([]);
   const [loading,setLoading]=useState(true);
   const [loaded,setLoaded]=useState(false);
   const [show,setShow]=useState(false);
-  const [view,setView]=useState("mine");
   const [saving,setSaving]=useState(false);
   const [error,setError]=useState("");
-  const [form,setForm]=useState({day:"Senin",startTime:"07:00",endTime:"08:20",className:"",topic:"",room:""}); const [editing,setEditing]=useState(null);
-  const load=()=>{setLoading(true);setError("");return api.getBootstrap().then(d=>{setItems(d?.allSchedule||[]);setLoaded(true);}).catch(e=>{setError(e.message||String(e));}).finally(()=>setLoading(false));};
+  const [form,setForm]=useState({day:"Senin",startTime:"08:00",endTime:"08:40",className:"",topic:"",room:""});
+  const [editing,setEditing]=useState(null);
+
+  const days=["Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
+  const slots=["08:00-08:40","08:40-09:20","09:20-10:00","10:00-10:15","10:15-10:55","10:55-11:35","11:35-12:15","12:15-13:00","13:00-13:40","13:40-14:20","14:20-15:00","15:00-15:40","15:40-16:20","16:20-17:00"];
+  const dayOrder=Object.fromEntries(days.map((d,i)=>[d,i]));
+
+  const load=()=>{
+    setLoading(true);setError("");
+    return api.getBootstrap().then(d=>{
+      setItems(d?.allSchedule||[]);
+      setTeachers(d?.teachers||[]);
+      setLoaded(true);
+    }).catch(e=>setError(e.message||String(e))).finally(()=>setLoading(false));
+  };
   useEffect(()=>{load()},[]);
-  const mine=items.filter(x=>String(x.teacherEmail||"").toLowerCase()===String(user?.email||"").toLowerCase());
-  const visible=(view==="mine"?mine:items).slice().sort((a,b)=>{const days={Senin:1,Selasa:2,Rabu:3,Kamis:4,Jumat:5,Sabtu:6,Minggu:7};return (days[a.day]||99)-(days[b.day]||99)||String(formatTime(a.startTime)||"").localeCompare(String(formatTime(b.startTime)||""));});
+
+  const teacherMap={};
+  (teachers||[]).forEach(t=>{const email=String(t.email||"").toLowerCase();if(email)teacherMap[email]=t.name||email;});
+  const teacherEmails=[...new Set((items||[]).map(x=>String(x.teacherEmail||"").trim().toLowerCase()).filter(Boolean))];
+  const teacherList=(teachers||[]).filter(t=>String(t.email||"").trim()).slice().sort((a,b)=>String(a.name||a.email).localeCompare(String(b.name||b.email))).concat(
+    teacherEmails.filter(email=>!(teachers||[]).some(t=>String(t.email||"").toLowerCase()===email)).map(email=>({email,name:email}))
+  );
+
+  const toMin=v=>{const m=String(v||"").match(/^(\d{1,2}):(\d{2})$/);return m?Number(m[1])*60+Number(m[2]):NaN;};
+  const slotItems=(day,email,slot)=>{
+    const [ss,ee]=slot.split("-");
+    const start=toMin(ss),end=toMin(ee);
+    return items.filter(x=>{
+      if(String(x.day||"").trim().toLowerCase()!==day.toLowerCase()) return false;
+      if(String(x.teacherEmail||"").trim().toLowerCase()!==String(email||"").trim().toLowerCase()) return false;
+      const a=toMin(formatTime(x.startTime)),b=toMin(formatTime(x.endTime));
+      return Number.isFinite(a)&&Number.isFinite(b)&&a<end&&b>start;
+    }).sort((a,b)=>toMin(formatTime(a.startTime))-toMin(formatTime(b.startTime)));
+  };
+
   const save=async()=>{
     if(!form.className.trim()){setError("Nama kelas wajib diisi.");return;}
     if(!form.startTime||!form.endTime){setError("Jam mulai dan selesai wajib diisi.");return;}
     if(form.startTime>=form.endTime){setError("Jam selesai harus lebih besar dari jam mulai.");return;}
     setSaving(true);setError("");
     try{
-      const payload={...form,className:form.className.trim(),topic:form.topic.trim(),room:form.room.trim()}; if(editing) await api.updateSchedule({...payload,id:editing.id}); else await api.saveSchedule(payload);
+      const payload={...form,className:form.className.trim(),topic:form.topic.trim(),room:form.room.trim()};
+      if(editing) await api.updateSchedule({...payload,id:editing.id}); else await api.saveSchedule(payload);
       const data=await api.getBootstrap();
-      setItems(data?.allSchedule||[]);
-      setShow(false); setEditing(null); setForm({day:"Senin",startTime:"07:00",endTime:"08:20",className:"",topic:"",room:""});
+      setItems(data?.allSchedule||[]);setTeachers(data?.teachers||[]);
+      setShow(false);setEditing(null);
+      setForm({day:"Senin",startTime:"08:00",endTime:"08:40",className:"",topic:"",room:""});
     }catch(e){setError(e.message||String(e));}
     finally{setSaving(false);}
   };
-  const startEdit=s=>{if(String(s.teacherEmail||"").toLowerCase()!==String(user?.email||"").toLowerCase())return;setEditing(s);setForm({day:s.day||"Senin",startTime:formatTime(s.startTime),endTime:formatTime(s.endTime),className:s.className||"",topic:s.topic||"",room:s.room||""});setShow(true);setError("");};
-  const remove=async s=>{if(String(s.teacherEmail||"").toLowerCase()!==String(user?.email||"").toLowerCase())return;if(!window.confirm("Hapus jadwal ini?"))return;setSaving(true);setError("");try{await api.deleteSchedule(s.id);const data=await api.getBootstrap();setItems(data?.allSchedule||[]);}catch(e){setError(e.message||String(e));}finally{setSaving(false);}};
-  return <div className="content"><section className="page-title"><div><div className="eyebrow">Jadwal</div><h1>Jadwal Mengajar</h1><p>Jadwal tersimpan bersama di Google Sheets dan dapat dilihat oleh guru matematika.</p></div><button className="primary add-schedule-btn" type="button" title="Tambah jadwal mengajar" onClick={()=>{setEditing(null);setForm({day:"Senin",startTime:"07:00",endTime:"08:20",className:"",topic:"",room:""});setShow(true);setError("");}}><CirclePlus size={18}/> Tambah jadwal</button></section>{loading?<InlineLoading text="Memuat data jadwal mengajar..."/>:error&&!loaded?<div className="card"><div className="card-head"><div><h2>Jadwal belum dapat dimuat</h2><p>Koneksi ke server Math Up sedang bermasalah.</p></div><button className="secondary" onClick={load}>Coba lagi</button></div><p>{error}</p></div>:<><section className="card"><div className="card-head"><div><h2>{view==="mine"?"Jadwal saya":"Jadwal semua guru"}</h2><p>{visible.length} jadwal tersimpan</p></div><div style={{display:"flex",gap:8}}><button className={view==="mine"?"primary":"secondary"} onClick={()=>setView("mine")}>Jadwal saya</button><button className={view==="all"?"primary":"secondary"} onClick={()=>setView("all")}>Semua guru</button></div></div><div className="schedule-list">{visible.length?visible.map(s=><div className="schedule-row" key={s.id}><div className="time"><b>{s.startTime}</b><span>{s.endTime}</span></div><div className="line"><i></i></div><div className="lesson"><div><b>{s.day} · {s.className}</b><span>{s.topic||"Tanpa topik"}{view==="all"&&s.teacherEmail?" · "+s.teacherEmail:""}</span></div><small>{s.room||"-"}</small></div>{view==="mine"&&String(s.teacherEmail||"").toLowerCase()===String(user?.email||"").toLowerCase()&&<div style={{display:"flex",gap:6,marginLeft:"auto"}}><button className="secondary" type="button" onClick={()=>startEdit(s)} disabled={saving}>{saving?<><span className="button-spinner"></span>Menyimpan...</>:"Edit"}</button><button className="secondary" type="button" onClick={()=>remove(s)} disabled={saving}>{saving?<><span className="button-spinner"></span>Memproses...</>:"Hapus"}</button></div>}</div>):<p style={{padding:20}}>Belum ada jadwal. Klik “Tambah jadwal”.</p>}</div></section></>}{show&&<div className="modal-backdrop"><div className="modal"><div className="modal-head"><div><h2>{editing?"Edit jadwal":"Tambah jadwal"}</h2><p>Jadwal akan tersimpan ke Google Sheets.</p></div><button className="icon-btn" onClick={()=>{if(!saving){setShow(false);setEditing(null);}}} disabled={saving}><X/></button></div><label>Hari<select value={form.day} onChange={e=>setForm({...form,day:e.target.value})}>{["Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"].map(x=><option key={x}>{x}</option>)}</select></label><div className="two"><label>Mulai<input type="time" value={form.startTime} onChange={e=>setForm({...form,startTime:e.target.value})}/></label><label>Selesai<input type="time" value={form.endTime} onChange={e=>setForm({...form,endTime:e.target.value})}/></label></div><label>Kelas<input value={form.className} onChange={e=>setForm({...form,className:e.target.value})} placeholder="VIII-A"/></label><label>Materi / Topik<input value={form.topic} onChange={e=>setForm({...form,topic:e.target.value})} placeholder="Persamaan Linear"/></label><label>Ruangan<input value={form.room} onChange={e=>setForm({...form,room:e.target.value})} placeholder="R. 201"/></label><div className="modal-actions"><button className="secondary" type="button" onClick={()=>{if(!saving){setShow(false);setEditing(null);}}} disabled={saving}>Batal</button><button className="primary" type="button" disabled={saving||!form.className.trim()} onClick={save}>{saving?<><span className="button-spinner"></span>{editing?"Menyimpan perubahan...":"Menyimpan jadwal..."}</>:editing?"Simpan perubahan":"Simpan jadwal"}</button></div></div></div>}</div>
+
+  const startEdit=s=>{
+    if(String(s.teacherEmail||"").toLowerCase()!==String(user?.email||"").toLowerCase()) return;
+    setEditing(s);
+    setForm({day:s.day||"Senin",startTime:formatTime(s.startTime),endTime:formatTime(s.endTime),className:s.className||"",topic:s.topic||"",room:s.room||""});
+    setShow(true);setError("");
+  };
+
+  const remove=async s=>{
+    if(String(s.teacherEmail||"").toLowerCase()!==String(user?.email||"").toLowerCase()) return;
+    if(!window.confirm("Hapus jadwal ini?")) return;
+    setSaving(true);setError("");
+    try{
+      await api.deleteSchedule(s.id);
+      const data=await api.getBootstrap();
+      setItems(data?.allSchedule||[]);setTeachers(data?.teachers||[]);
+    }catch(e){setError(e.message||String(e));}
+    finally{setSaving(false);}
+  };
+
+  return <div className="content">
+    <section className="page-title">
+      <div><div className="eyebrow">Jadwal</div><h1>Jadwal Mengajar</h1><p>Jadwal ditampilkan per hari dengan kolom masing-masing guru matematika.</p></div>
+      <button className="primary add-schedule-btn" type="button" title="Tambah jadwal mengajar" onClick={()=>{setEditing(null);setForm({day:"Senin",startTime:"08:00",endTime:"08:40",className:"",topic:"",room:""});setShow(true);setError("");}}><CirclePlus size={18}/> Tambah jadwal</button>
+    </section>
+
+    {loading?<InlineLoading text="Memuat data jadwal mengajar..."/>:
+    error&&!loaded?<div className="card"><div className="card-head"><div><h2>Jadwal belum dapat dimuat</h2><p>Koneksi ke server Math Up sedang bermasalah.</p></div><button className="secondary" onClick={load}>Coba lagi</button></div><p>{error}</p></div>:
+    <>{error&&<div className="card schedule-error">{error}</div>}
+      {teacherList.length===0?<section className="card"><p style={{padding:20}}>Belum ada guru yang terdaftar.</p></section>:
+      days.map(day=><section className="card daily-schedule-card" key={day}>
+        <div className="card-head">
+          <div><h2>Hari {day}</h2><p>{teacherList.length} guru · jadwal {day}</p></div>
+        </div>
+        <div className="teacher-schedule-scroll">
+          <table className="teacher-schedule-table">
+            <thead><tr><th className="time-col">Jam</th>{teacherList.map(t=><th key={t.email}>{t.name||t.email}</th>)}</tr></thead>
+            <tbody>{slots.map(slot=><tr key={slot}>
+              <th className="time-col">{slot}</th>
+              {teacherList.map(t=>{
+                const cellItems=slotItems(day,t.email,slot);
+                return <td key={t.email}>
+                  {cellItems.length?cellItems.map(s=><div className="teacher-schedule-item" key={s.id}>
+                    <b>{s.className}</b><span>{s.topic||"Tanpa topik"}</span><small>{s.room||"-"} · {formatTime(s.startTime)}–{formatTime(s.endTime)}</small>
+                    {String(s.teacherEmail||"").toLowerCase()===String(user?.email||"").toLowerCase()&&<div className="teacher-schedule-actions"><button type="button" className="secondary" onClick={()=>startEdit(s)} disabled={saving}>Edit</button><button type="button" className="secondary" onClick={()=>remove(s)} disabled={saving}>Hapus</button></div>}
+                  </div>):<span className="teacher-schedule-empty">—</span>}
+                </td>;
+              })}
+            </tr>)}</tbody>
+          </table>
+        </div>
+      </section>)}
+    </>}
+    {show&&<div className="modal-backdrop"><div className="modal">
+      <div className="modal-head"><div><h2>{editing?"Edit jadwal":"Tambah jadwal"}</h2><p>Jadwal akan tersimpan ke Google Sheets.</p></div><button className="icon-btn" onClick={()=>{if(!saving){setShow(false);setEditing(null);}}} disabled={saving}><X/></button></div>
+      <label>Hari<select value={form.day} onChange={e=>setForm({...form,day:e.target.value})}>{days.map(x=><option key={x}>{x}</option>)}</select></label>
+      <div className="two"><label>Mulai<input type="time" value={form.startTime} onChange={e=>setForm({...form,startTime:e.target.value})}/></label><label>Selesai<input type="time" value={form.endTime} onChange={e=>setForm({...form,endTime:e.target.value})}/></label></div>
+      <label>Kelas<input value={form.className} onChange={e=>setForm({...form,className:e.target.value})} placeholder="VIII-A"/></label>
+      <label>Materi / Topik<input value={form.topic} onChange={e=>setForm({...form,topic:e.target.value})} placeholder="Persamaan Linear"/></label>
+      <label>Ruangan<input value={form.room} onChange={e=>setForm({...form,room:e.target.value})} placeholder="R. 201"/></label>
+      <div className="modal-actions"><button className="secondary" type="button" onClick={()=>{if(!saving){setShow(false);setEditing(null);}}} disabled={saving}>Batal</button><button className="primary" type="button" disabled={saving||!form.className.trim()} onClick={save}>{saving?<><span className="button-spinner"></span>{editing?"Menyimpan perubahan...":"Menyimpan jadwal..."}</>:editing?"Simpan perubahan":"Simpan jadwal"}</button></div>
+    </div></div>}
+  </div>
 }
 function Placeholder({title}){return <div className="content"><section className="empty card"><div className="empty-icon"><CalendarDays size={28}/></div><h1>{title}</h1><p>Modul ini sudah disiapkan di Math Up dan akan kita sambungkan ke data Google Sheets/Drive pada tahap berikutnya.</p><button className="primary">Siapkan modul</button></section></div>}
 function TodoModal({onClose,onSave,initial,saving}){const [title,setTitle]=useState(initial?.title||"");const [desc,setDesc]=useState(initial?.description||initial?.desc||"");const initialDue=String(initial?.dueAt||initial?.due||"");const [dueDate,setDueDate]=useState(initialDue.match(/^(\\d{4}-\\d{2}-\\d{2})/)?.[1]||"");const [dueTime,setDueTime]=useState(initialDue.match(/T(\\d{2}:\\d{2})/)?.[1]||"");const [priority,setPriority]=useState(initial?.priority||"Sedang");const save=()=>{const due=dueDate&&dueTime?dueDate+"T"+dueTime:"";onSave({title,desc,due,priority});};return <div className="modal-backdrop"><div className="modal"><div className="modal-head"><div><h2>{initial?"Edit tugas":"Tugas baru"}</h2><p>Tambahkan pekerjaan yang perlu diselesaikan.</p></div><button className="icon-btn" onClick={onClose}><X/></button></div><label>Nama tugas<input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Contoh: Siapkan soal..." /></label><label>Deskripsi<textarea value={desc} onChange={e=>setDesc(e.target.value)} placeholder="Detail tugas..." /></label><div className="two"><label>Tanggal deadline<input type="date" value={dueDate} onChange={e=>setDueDate(e.target.value)}/></label><label>Jam berakhir<input type="time" value={dueTime} onChange={e=>setDueTime(e.target.value)}/></label></div><label>Prioritas<select value={priority} onChange={e=>setPriority(e.target.value)}><option>Rendah</option><option>Sedang</option><option>Tinggi</option></select></label><div className="modal-actions"><button className="secondary" onClick={onClose}>Batal</button><button className="primary" disabled={!title.trim()||!dueDate||!dueTime||saving} onClick={save}>{saving?<><span className="button-spinner"></span>Menyimpan...</>:initial?"Simpan perubahan":"Simpan tugas"}</button></div></div></div>}
