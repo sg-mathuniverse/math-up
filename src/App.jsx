@@ -30,20 +30,47 @@ function App(){
   const [substitutionNotifications,setSubstitutionNotifications]=useState([]);
 
   useEffect(()=>{
-    api.getCurrentUser().then(u=>{
-      setAuthUser(u||null);
-      if(u?.email){
-        return Promise.all([api.getBootstrap(),api.getSubstitutionRequests()]).then(([d,requests])=>{
-          setTodos(d?.todos||[]);
-          setUser(u);
-          setDashboard({schedule:d?.schedule||[],events:(d?.events||[]).map(x=>({...x,eventDate:normalizeCalendarDate(x.eventDate)})),allSchedule:d?.allSchedule||[]});
-          setSubstitutionNotifications(Array.isArray(requests?.requests)?requests.requests:(Array.isArray(requests)?requests:[]));
+    let cancelled=false;
+    const loadWorkspace=async()=>{
+      try{
+        const u=await api.getCurrentUser();
+        if(cancelled)return;
+        setAuthUser(u||null);
+        if(!u?.email)return;
+        setUser(u);
+
+        // Load the core workspace first; avoid hitting Apps Script with
+        // multiple spreadsheet reads at the same instant during sign-in.
+        const d=await api.getBootstrap();
+        if(cancelled)return;
+        setTodos(d?.todos||[]);
+        setDashboard({
+          schedule:d?.schedule||[],
+          events:(d?.events||[]).map(x=>({...x,eventDate:normalizeCalendarDate(x.eventDate)})),
+          allSchedule:d?.allSchedule||[]
         });
+
+        // Notifications are supplementary: their failure must not block
+        // access to the dashboard or make sign-in appear unsuccessful.
+        try{
+          const requests=await api.getSubstitutionRequests();
+          if(!cancelled)setSubstitutionNotifications(
+            Array.isArray(requests?.requests)?requests.requests:(Array.isArray(requests)?requests:[])
+          );
+        }catch(notificationError){
+          if(!cancelled)setSubstitutionNotifications([]);
+        }
+      }catch(e){
+        if(!cancelled)setApiError(e.message||String(e));
+      }finally{
+        if(!cancelled){
+          setAuthChecked(true);
+          setLoading(false);
+        }
       }
-    }).catch(e=>setApiError(e.message||String(e))).finally(()=>{
-      setAuthChecked(true);
-      setLoading(false);
-    });
+    };
+    loadWorkspace();
+    return()=>{cancelled=true};
   },[]);
 
   const filteredTodos=useMemo(()=>todos.filter(t=>String(t?.title||"").toLowerCase().includes(query.toLowerCase())),[todos,query]);
