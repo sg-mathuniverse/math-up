@@ -409,9 +409,33 @@ function CalendarPage(){
 
   const selectedItems=(byDate[selectedDate]||[]);
   const openAddFor=(date)=>{
-    setError("");setMessage("");
-    setForm(f=>({...f,eventDate:date||f.eventDate}));
+    setError("");setMessage("");setEditingEvent(null);
+    setForm({title:"",description:"",eventDate:date||"",startTime:"",endTime:"",type:"Agenda sekolah"});
     setShowAdd(true);
+  };
+
+  const openEdit=(event)=>{
+    setError("");setMessage("");setEditingEvent(event);
+    setForm({
+      title:String(event.title||""),
+      description:String(event.description||""),
+      eventDate:normalizeCalendarDate(event.eventDate),
+      startTime:String(event.startTime||""),
+      endTime:String(event.endTime||""),
+      type:String(event.type||"Agenda sekolah")
+    });
+    setShowAdd(true);
+  };
+
+  const removeEvent=async(event)=>{
+    if(!window.confirm("Hapus agenda "+String(event.title||"")+"?")) return;
+    setSaving(true);setError("");setMessage("");
+    try{
+      await api.deleteEvent(event.id);
+      setMessage("Agenda sekolah berhasil dihapus.");
+      await load();
+    }catch(e){setError(e.message||String(e))}
+    finally{setSaving(false)}
   };
 
   return <div className="content">
