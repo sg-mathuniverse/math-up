@@ -35,7 +35,7 @@ function App(){
         return api.getBootstrap().then(d=>{
           setTodos(d?.todos||[]);
           setUser(u);
-          setDashboard({schedule:d?.schedule||[],events:d?.events||[]});
+          setDashboard({schedule:d?.schedule||[],events:(d?.events||[]).map(x=>({...x,eventDate:normalizeCalendarDate(x.eventDate)}))});
         });
       }
     }).catch(e=>setApiError(e.message||String(e))).finally(()=>{
@@ -131,6 +131,19 @@ function formatTime(value){
   return s;
 }
 
+function normalizeCalendarDate(value){
+  if(value==null||value==="") return "";
+  const s=String(value).trim();
+  if(/^\\d{4}-\\d{2}-\\d{2}$/.test(s)) return s;
+  const match=s.match(/^(\\d{4})-(\\d{2})-(\\d{2})T/);
+  if(match && !/[zZ]|[+-]\\d{2}:?\\d{2}$/.test(s)) return `${match[1]}-${match[2]}-${match[3]}`;
+  const date=new Date(s);
+  if(Number.isNaN(date.getTime())) return s.slice(0,10);
+  const parts=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Jakarta",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(date);
+  const map=Object.fromEntries(parts.map(x=>[x.type,x.value]));
+  return `${map.year}-${map.month}-${map.day}`;
+}
+
 function formatDate(value){
   if(value==null||value==="") return "-";
   const s=String(value).trim();
@@ -156,7 +169,7 @@ function Dashboard({todos,toggleTodo,schedule,events,user}){
    if(ad!==bd) return ad-bd;
    return (priorityRank[a.priority]??99)-(priorityRank[b.priority]??99);
  }).slice(0,4);
- return <div className="content"><section className="hero"><div><div className="eyebrow"><Sparkles size={14}/> Selamat datang kembali</div><h1>Halo, {user?.name||"Guru"}! 👋</h1><p>Berikut ringkasan aktivitas matematika Anda hari ini.</p></div></section><div className="stats"><Stat icon={<BookOpen/>} label="Jam mengajar hari ini" value={activeSchedule.length} note={activeSchedule.length?formatTime(activeSchedule[0].startTime)+" — "+formatTime(activeSchedule[activeSchedule.length-1].endTime):"Tidak ada jadwal"}/><Stat icon={<ListTodo/>} label="Tugas aktif" value={todos.filter(t=>!t.done).length} note="Perlu diselesaikan"/><Stat icon={<CalendarDays/>} label="Agenda tersedia" value={events.length} note="Dari kalender sekolah"/></div><div className="grid"><section className="card schedule-card"><div className="card-head"><div><h2>Jadwal mengajar hari ini</h2><p>Data dari Google Sheets</p></div></div><div className="schedule-list">{activeSchedule.length?activeSchedule.map((s,i)=><div className="schedule-row" key={s.id||s.startTime}><div className="time"><b>{formatTime(s.startTime)}</b><span>{formatTime(s.endTime)}</span></div><div className="line"><i></i></div><div className="lesson"><div><b>{s.className}</b><span>{s.topic||"Tanpa topik"}</span></div><small>{s.room||"-"}</small></div></div>):<p style={{padding:20}}>Belum ada jadwal untuk hari ini.</p>}</div></section><section className="card todo-card"><div className="card-head"><div><h2>To-Do terdekat</h2><p>Urut berdasarkan deadline & prioritas</p></div></div><div className="todo-list">{todos.slice(0,4).map(t=><TodoRow key={t.id} t={t} toggle={()=>toggleTodo(t.id)}/>)}</div></section></div><section className="card calendar-card"><div className="card-head"><div><h2>Agenda akademik</h2><p>Data dari Google Sheets</p></div></div><div className="events">{activeEvents.length?activeEvents.map(x=><Event key={x.id} day={String(x.eventDate||"").slice(8,10)||"—"} title={x.title} meta={(x.eventDate||"")+" · "+formatTime(x.startTime)}/>):<p>Belum ada agenda.</p>}</div></section></div>
+ return <div className="content"><section className="hero"><div><div className="eyebrow"><Sparkles size={14}/> Selamat datang kembali</div><h1>Halo, {user?.name||"Guru"}! 👋</h1><p>Berikut ringkasan aktivitas matematika Anda hari ini.</p></div></section><div className="stats"><Stat icon={<BookOpen/>} label="Jam mengajar hari ini" value={activeSchedule.length} note={activeSchedule.length?formatTime(activeSchedule[0].startTime)+" — "+formatTime(activeSchedule[activeSchedule.length-1].endTime):"Tidak ada jadwal"}/><Stat icon={<ListTodo/>} label="Tugas aktif" value={todos.filter(t=>!t.done).length} note="Perlu diselesaikan"/><Stat icon={<CalendarDays/>} label="Agenda tersedia" value={events.length} note="Dari kalender sekolah"/></div><div className="grid"><section className="card schedule-card"><div className="card-head"><div><h2>Jadwal mengajar hari ini</h2><p>Data dari Google Sheets</p></div></div><div className="schedule-list">{activeSchedule.length?activeSchedule.map((s,i)=><div className="schedule-row" key={s.id||s.startTime}><div className="time"><b>{formatTime(s.startTime)}</b><span>{formatTime(s.endTime)}</span></div><div className="line"><i></i></div><div className="lesson"><div><b>{s.className}</b><span>{s.topic||"Tanpa topik"}</span></div><small>{s.room||"-"}</small></div></div>):<p style={{padding:20}}>Belum ada jadwal untuk hari ini.</p>}</div></section><section className="card todo-card"><div className="card-head"><div><h2>To-Do terdekat</h2><p>Urut berdasarkan deadline & prioritas</p></div></div><div className="todo-list">{todos.slice(0,4).map(t=><TodoRow key={t.id} t={t} toggle={()=>toggleTodo(t.id)}/>)}</div></section></div><section className="card calendar-card"><div className="card-head"><div><h2>Agenda akademik</h2><p>Data dari Google Sheets</p></div></div><div className="events">{activeEvents.length?activeEvents.map(x=><Event key={x.id} day={normalizeCalendarDate(x.eventDate).slice(8,10)||"—"} title={x.title} meta={formatDate(x.eventDate)+" · "+formatTime(x.startTime)}/>):<p>Belum ada agenda.</p>}</div></section></div>
 }
 
 function Stat({icon,label,value,note}){return <div className="stat"><div className="stat-icon">{icon}</div><div><span>{label}</span><strong>{value}</strong><small>{note}</small></div></div>}
@@ -299,7 +312,7 @@ function CalendarPage(){
   const load=()=>{
     setLoading(true); setError("");
     return api.getBootstrap()
-      .then(d=>{setEvents(d?.events||[]);setCal(d?.academicCalendar||[])})
+      .then(d=>{setEvents((d?.events||[]).map(x=>({...x,eventDate:normalizeCalendarDate(x.eventDate)})));setCal(d?.academicCalendar||[])})
       .catch(e=>setError(e.message||String(e)))
       .finally(()=>setLoading(false));
   };
