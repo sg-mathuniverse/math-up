@@ -55,3 +55,13 @@
 .substitution-candidate-row.selected{border-color:#cfd6df;background:#fafbfc}
 .candidate-select{flex:none;border:1px solid #d0d5dd;background:#fff;border-radius:8px;padding:7px 10px;font:700 10px 'Plus Jakarta Sans';cursor:pointer;color:#475467}
 .candidate-select.selected{background:#172033;color:#fff;border-color:#172033}
+
+.substitution-form-card+.card,
+.substitution-form-card~.card{overflow:hidden}
+.substitution-form-card~.card .card-head{padding-left:20px;padding-right:20px}
+.substitution-form-card~.card>.notice,
+.substitution-form-card~.card>.empty-state,
+.substitution-form-card~.card>p{margin-left:20px;margin-right:20px}
+.substitution-form-card~.card .todo-row{margin-left:20px;margin-right:20px}
+.substitution-candidate-row{margin-left:20px;margin-right:20px}
+.substitution-candidate-row .candidate-select{margin-left:0}
