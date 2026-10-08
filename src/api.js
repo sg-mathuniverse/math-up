@@ -55,5 +55,5 @@ export const api = {
   saveSubstitution: item => jsonp("saveSubstitution", [item]),
   respondSubstitution: (id, response) => jsonp("respondSubstitution", [id, response]),
   saveTeacher: teacher => jsonp("saveTeacher", [teacher]),
-  saveEvent: event => jsonp("saveEvent", [event])
+  saveEvent: event => jsonp("saveEvent", [event]),\n  updateEvent: event => jsonp("updateEvent", [event]),\n  deleteEvent: id => jsonp("deleteEvent", [id])
 };
