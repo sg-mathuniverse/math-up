@@ -3,7 +3,7 @@ import { api } from "./api";
 import {
   Bell, CalendarDays, CheckCircle2, ChevronDown, CirclePlus, Clock3,
   FileText, LayoutDashboard, ListTodo, Menu, MoreHorizontal, Search,
-  Settings, Users, X, BookOpen, Sparkles, Mail, HardDrive
+  Settings, Users, UserRoundCheck, X, BookOpen, Sparkles, Mail, HardDrive
 } from "lucide-react";
 
 const schedule = [
@@ -62,7 +62,7 @@ function App(){
       <nav>
         <Nav icon={<LayoutDashboard size={19}/>} label="Dashboard" active={active==="Dashboard"} onClick={()=>setActive("Dashboard")}/>
         <Nav icon={<CalendarDays size={19}/>} label="Jadwal Mengajar" active={active==="Jadwal Mengajar"} onClick={()=>setActive("Jadwal Mengajar")}/>
-        <Nav icon={<Users size={19}/>} label="Guru Pengganti" active={active==="Guru Pengganti"} onClick={()=>setActive("Guru Pengganti")}/>
+        <Nav icon={<UserRoundCheck size={19}/>} label="Guru Pengganti" active={active==="Guru Pengganti"} onClick={()=>setActive("Guru Pengganti")}/>
         <Nav icon={<ListTodo size={19}/>} label="To-Do" active={active==="To-Do"} onClick={()=>setActive("To-Do")} todoCount={todos.filter(t=>!t.done).length}/>
         <Nav icon={<CalendarDays size={19}/>} label="Kalender Akademik" active={active==="Kalender Akademik"} onClick={()=>setActive("Kalender Akademik")}/>
         <Nav icon={<FileText size={19}/>} label="Drive Materi" active={active==="Drive Materi"} onClick={()=>setActive("Drive Materi")}/>
@@ -589,6 +589,14 @@ function SubstitutePage({user}){
      .finally(()=>setLoading(false));
  };
 
+ const toggleCandidate=email=>setSelectedEmails(prev=>prev.includes(email)?prev.filter(x=>x!==email):[...prev,email]);
+ const preparePlan=()=>{
+   const selected=candidates.filter(x=>selectedEmails.includes(String(x.email||"").toLowerCase()));
+   const coverage=buildCoveragePlan(selected,form.startTime,form.endTime);
+   if(!coverage){setPlan(null);setMessage("Guru yang dipilih belum dapat menutup seluruh waktu. Pilih guru lain atau beberapa guru.");return;}
+   setPlan(coverage);setMessage("");
+ };
+ 
  const send=async()=>{
    if(!plan||!plan.length)return;
    setLoading(true);
