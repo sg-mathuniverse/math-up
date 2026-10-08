@@ -159,16 +159,19 @@ function TeachersPage({user,onUserUpdated}){
   const [schedule,setSchedule]=useState([]);
   const [form,setForm]=useState({name:user?.name||"",subject:"Matematika",status:"Aktif"});
   const [saving,setSaving]=useState(false);
+  const [loading,setLoading]=useState(true);
   const [message,setMessage]=useState("");
   const [error,setError]=useState("");
 
   const load=()=>{
+    setLoading(true);
+    setError("");
     api.getBootstrap().then(d=>{
       setTeachers(d?.teachers||[]);
       setSchedule(d?.allSchedule||[]);
       const mine=(d?.teachers||[]).find(t=>String(t.email||"").toLowerCase()===String(user?.email||"").toLowerCase());
       if(mine) setForm({name:mine.name||user?.name||"",subject:mine.subject||"Matematika",status:mine.status||"Aktif"});
-    }).catch(e=>setError(e.message||String(e)));
+    }).catch(e=>setError(e.message||String(e))).finally(()=>setLoading(false));
   };
   useEffect(()=>{load()},[]);
 
