@@ -130,6 +130,18 @@ function formatTime(value){
   return s;
 }
 
+function formatDate(value){
+  if(value==null||value==="") return "-";
+  const s=String(value).trim();
+  const iso=s.match(/^(\d{4})-(\d{2})-(\d{2})(?:T|$)/);
+  let date=null;
+  if(iso) date=new Date(Number(iso[1]),Number(iso[2])-1,Number(iso[3]));
+  else if(/^\d{4}-\d{2}-\d{2}$/.test(s)) date=new Date(`${s}T00:00:00`);
+  else return s;
+  if(Number.isNaN(date.getTime())) return s;
+  return new Intl.DateTimeFormat("id-ID",{day:"numeric",month:"long",year:"numeric"}).format(date);
+}
+
 function Nav({icon,label,active,onClick}){return <button className={active?"nav active":"nav"} onClick={onClick}>{icon}<span>{label}</span>{label==="To-Do"&&<em>3</em>}</button>}
 
 function Dashboard({todos,toggleTodo,onAdd,schedule,events,user}){
@@ -191,12 +203,12 @@ function TeachersPage({user,onUserUpdated}){
         <label>Mata pelajaran<input value={form.subject} onChange={e=>setForm({...form,subject:e.target.value})}/></label>
         <label>Status<select value={form.status} onChange={e=>setForm({...form,status:e.target.value})}><option>Aktif</option><option>Tidak aktif</option></select></label>
       </div>
-      <button className="primary" onClick={save} disabled={saving}>{saving?"Menyimpan...":mine?"Simpan perubahan":"Daftarkan saya sebagai guru"}</button>
+      <button className="primary" onClick={save} disabled={saving||loading}>{loading?"Memuat data...":saving?"Menyimpan...":mine?"Simpan perubahan":"Daftarkan saya sebagai guru"}</button>
     </section>
 
     <section className="card">
       <div className="card-head"><div><h2>Daftar guru</h2><p>{teachers.length} guru terdaftar · digunakan untuk pencarian guru pengganti</p></div></div>
-      {teachers.length?teachers.map(t=>{
+      {loading?<div className="loading-placeholder"><span className="loading-bar"></span><span className="loading-bar short"></span><span className="loading-bar"></span></div>:teachers.length?teachers.map(t=>{
         const count=schedule.filter(s=>String(s.teacherEmail||"").toLowerCase()===String(t.email||"").toLowerCase()).length;
         return <div className="todo-row" key={t.id||t.email}>
           <div className="avatar small">{initials(t.name||t.email)}</div>
@@ -422,7 +434,7 @@ function SubstitutePage({user}){
    <section className="card">
      <div className="card-head"><div><h2>Permintaan masuk</h2><p>Permintaan yang ditujukan kepada Anda.</p></div></div>
      {requests.length?requests.map(x=><div className="todo-row" key={x.id}>
-       <div className="todo-copy"><b>{x.className} · {x.date}</b><span>{formatTime(x.startTime)}–{formatTime(x.endTime)} · {x.topic||"Tanpa materi"}</span><small>{x.reason||"Tanpa alasan"}{x.room?" · "+x.room:""}</small></div>
+       <div className="todo-copy"><b>{x.className} · {formatDate(x.date)}</b><span>{formatTime(x.startTime)}–{formatTime(x.endTime)} · {x.topic||"Tanpa materi"}</span><small>{x.reason||"Tanpa alasan"}{x.room?" · "+x.room:""}</small></div>
        <div style={{display:"flex",gap:6,alignItems:"center",marginLeft:"auto"}}>
          <span className="priority sedang">{x.status}</span>
          {String(x.status||"") === "Diajukan" && <><button className="secondary" disabled={loading} onClick={()=>respond(x.id,"terima")}>Terima</button><button className="secondary" disabled={loading} onClick={()=>respond(x.id,"tolak")}>Tolak</button></>}
@@ -433,7 +445,7 @@ function SubstitutePage({user}){
    <section className="card">
      <div className="card-head"><div><h2>Riwayat permintaan saya</h2><p>Pengajuan pengganti yang Anda buat.</p></div></div>
      {history.length?history.slice().sort((a,b)=>String(b.createdAt||"").localeCompare(String(a.createdAt||""))).map(x=><div className="todo-row" key={x.id}>
-       <div className="todo-copy"><b>{x.className} · {x.date}</b><span>{formatTime(x.startTime)}–{formatTime(x.endTime)} · {x.substituteTeacherEmail||"Belum dipilih"}</span><small>{x.topic||"Tanpa materi"}{x.reason?" · "+x.reason:""}</small></div>
+       <div className="todo-copy"><b>{x.className} · {formatDate(x.date)}</b><span>{formatTime(x.startTime)}–{formatTime(x.endTime)} · {x.substituteTeacherEmail||"Belum dipilih"}</span><small>{x.topic||"Tanpa materi"}{x.reason?" · "+x.reason:""}</small></div>
        <span className="priority sedang">{x.status}</span>
      </div>):<p>Belum ada pengajuan.</p>}
    </section>
