@@ -484,6 +484,7 @@ function SubstitutePage({user}){
  const [requests,setRequests]=useState([]);
  const [history,setHistory]=useState([]);
  const [loading,setLoading]=useState(false);
+ const [initialLoading,setInitialLoading]=useState(true);
  const [message,setMessage]=useState("");
 
  const refresh=async()=>{
@@ -552,9 +553,10 @@ function SubstitutePage({user}){
    }
  };
 
- useEffect(()=>{refresh().catch(()=>{})},[]);
+ useEffect(()=>{refresh().catch(e=>setMessage(e.message||String(e))).finally(()=>setInitialLoading(false))},[]);
 
  return <div className="content">
+   {initialLoading ? <InlineLoading text="Memuat guru pengganti..." /> : <>
    <section className="page-title">
      <div><div className="eyebrow">Kolaborasi</div><h1>Guru Pengganti</h1><p>Math Up dapat membagi satu jam mengajar ke beberapa guru jika tidak ada satu guru yang tersedia penuh.</p></div>
    </section>
@@ -636,6 +638,7 @@ function SubstitutePage({user}){
        <span className="priority sedang">{x.status}</span>
      </div>):<p>Belum ada pengajuan.</p>}
    </section>
+   </>}
  </div>
 }
 function SchedulePage({user}){
