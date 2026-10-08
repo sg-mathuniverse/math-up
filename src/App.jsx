@@ -226,6 +226,7 @@ function TeachersPage({user,onUserUpdated}){
 }
 
 function CalendarPage(){
+  const today=new Date();
   const [events,setEvents]=useState([]);
   const [cal,setCal]=useState([]);
   const [loading,setLoading]=useState(true);
@@ -233,120 +234,120 @@ function CalendarPage(){
   const [error,setError]=useState("");
   const [message,setMessage]=useState("");
   const [showAdd,setShowAdd]=useState(false);
+  const [month,setMonth]=useState(new Date(today.getFullYear(),today.getMonth(),1));
+  const [selectedDate,setSelectedDate]=useState("");
   const [form,setForm]=useState({title:"",description:"",eventDate:"",startTime:"",endTime:"",type:"Agenda sekolah"});
 
   const load=()=>{
-    setLoading(true);
-    setError("");
+    setLoading(true); setError("");
     return api.getBootstrap()
-      .then(d=>{
-        setEvents(d?.events||[]);
-        setCal(d?.academicCalendar||[]);
-      })
+      .then(d=>{setEvents(d?.events||[]);setCal(d?.academicCalendar||[])})
       .catch(e=>setError(e.message||String(e)))
       .finally(()=>setLoading(false));
   };
-
   useEffect(()=>{load()},[]);
 
   const save=async()=>{
-    if(!form.title.trim()){setError("Nama agenda wajib diisi.");return;}
-    if(!form.eventDate){setError("Tanggal agenda wajib diisi.");return;}
-    if(form.startTime && form.endTime && form.startTime>=form.endTime){setError("Jam selesai harus lebih besar dari jam mulai.");return;}
-
-    setSaving(true);
-    setError("");
-    setMessage("");
+    if(!form.title.trim()){setError("Nama agenda wajib diisi.");return}
+    if(!form.eventDate){setError("Tanggal agenda wajib diisi.");return}
+    if(form.startTime&&form.endTime&&form.startTime>=form.endTime){setError("Jam selesai harus lebih besar dari jam mulai.");return}
+    setSaving(true);setError("");setMessage("");
     try{
-      await api.saveEvent({
-        title:form.title.trim(),
-        description:form.description.trim(),
-        eventDate:form.eventDate,
-        startTime:form.startTime||"",
-        endTime:form.endTime||"",
-        type:form.type
-      });
+      await api.saveEvent({title:form.title.trim(),description:form.description.trim(),eventDate:form.eventDate,startTime:form.startTime||"",endTime:form.endTime||"",type:form.type});
       setMessage("Agenda sekolah berhasil ditambahkan dan dapat dilihat oleh semua guru.");
       setForm({title:"",description:"",eventDate:"",startTime:"",endTime:"",type:"Agenda sekolah"});
-      setShowAdd(false);
-      await load();
-    }catch(e){
-      setError(e.message||String(e));
-    }finally{
-      setSaving(false);
-    }
+      setShowAdd(false); await load();
+    }catch(e){setError(e.message||String(e))}
+    finally{setSaving(false)}
   };
 
-  const sortedEvents=events.slice().sort((a,b)=>String(a.eventDate||"").localeCompare(String(b.eventDate||""))||String(a.startTime||"").localeCompare(String(b.startTime||"")));
-  const sortedCal=cal.slice().sort((a,b)=>String(a.date||"").localeCompare(String(b.date||"")));
+  const keyForDate=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  const monthName=new Intl.DateTimeFormat("id-ID",{month:"long",year:"numeric"}).format(month);
+  const firstDay=(month.getDay()+6)%7;
+  const daysInMonth=new Date(month.getFullYear(),month.getMonth()+1,0).getDate();
+  const cells=[];
+  for(let i=0;i<firstDay;i++) cells.push(null);
+  for(let d=1;d<=daysInMonth;d++) cells.push(new Date(month.getFullYear(),month.getMonth(),d));
+  while(cells.length%7) cells.push(null);
+
+  const byDate={};
+  cal.forEach(x=>{const k=String(x.date||"").slice(0,10);if(k)(byDate[k]??=[]).push({...x,kind:x.isNationalHoliday?"holiday":"important"})});
+  events.forEach(x=>{const k=String(x.eventDate||"").slice(0,10);if(k)(byDate[k]??=[]).push({...x,kind:"school"})});
+
+  const selectedItems=(byDate[selectedDate]||[]);
+  const openAddFor=(date)=>{
+    setError("");setMessage("");
+    setForm(f=>({...f,eventDate:date||f.eventDate}));
+    setShowAdd(true);
+  };
 
   return <div className="content">
     <section className="page-title">
-      <div><div className="eyebrow">Akademik</div><h1>Kalender Akademik</h1><p>Libur nasional, hari besar, dan agenda sekolah dapat dilihat bersama oleh semua guru.</p></div>
-      <button className="primary" type="button" onClick={()=>{setError("");setMessage("");setShowAdd(true);}}><CirclePlus size={18}/> Tambah agenda sekolah</button>
+      <div><div className="eyebrow">Akademik</div><h1>Kalender Akademik</h1><p>Libur nasional, hari besar, dan agenda sekolah dalam satu kalender bersama.</p></div>
+      <button className="primary" type="button" onClick={()=>openAddFor("")}><CirclePlus size={18}/> Tambah agenda</button>
     </section>
-
     {error&&<div className="card" style={{marginBottom:16}}><b>Gagal memproses kalender</b><p>{error}</p></div>}
     {message&&<div className="card" style={{marginBottom:16}}>{message}</div>}
 
-    {loading?<InlineLoading text="Memuat data kalender akademik..."/>:<>
-      <section className="card">
-        <div className="card-head">
-          <div><h2>Agenda sekolah</h2><p>{sortedEvents.length} agenda · dibagikan ke semua guru</p></div>
-        </div>
-        {sortedEvents.length?sortedEvents.map(x=><div className="event" key={x.id}>
-          <div className="date-box"><b>{String(x.eventDate||"").slice(8,10)||"—"}</b><span>{String(x.eventDate||"").slice(5,7)||"—"}</span></div>
-          <div>
-            <b>{x.title}</b>
-            <span>{formatDate(x.eventDate)}{x.startTime? " · "+formatTime(x.startTime):""}{x.endTime?"–"+formatTime(x.endTime):""}</span>
-            {x.description&&<small>{x.description}</small>}
+    {loading?<InlineLoading text="Memuat kalender akademik..."/>:<>
+      <section className="card calendar-card">
+        <div className="calendar-full">
+          <div className="month-head">
+            <button className="secondary" onClick={()=>setMonth(new Date(month.getFullYear(),month.getMonth()-1,1))}>‹</button>
+            <h2>{monthName}</h2>
+            <button className="secondary" onClick={()=>setMonth(new Date(month.getFullYear(),month.getMonth()+1,1))}>›</button>
           </div>
-          <span className="priority sedang">{x.type||"Agenda sekolah"}</span>
-        </div>):<p>Belum ada agenda sekolah. Klik “Tambah agenda sekolah” untuk menambahkan.</p>}
+          <div className="calendar-legend">
+            <span><i className="legend-dot holiday-dot"></i> Libur nasional</span>
+            <span><i className="legend-dot important-dot"></i> Hari besar</span>
+            <span><i className="legend-dot school-dot"></i> Agenda sekolah</span>
+          </div>
+          <div className="weekdays">{["Sen","Sel","Rab","Kam","Jum","Sab","Min"].map(x=><b key={x}>{x}</b>)}</div>
+          <div className="days">
+            {cells.map((date,i)=>{
+              if(!date)return <div className="day muted" key={"empty"+i}></div>;
+              const k=keyForDate(date), items=byDate[k]||[], isToday=k===keyForDate(today), isSelected=k===selectedDate;
+              return <button type="button" className={"day calendar-day "+(isToday?"today ":"")+(isSelected?"selected ":"")} key={k} onClick={()=>setSelectedDate(isSelected?"":k)}>
+                <b>{date.getDate()}</b>
+                <div className="day-items">
+                  {items.slice(0,3).map((x,j)=><span key={x.id||j} className={"calendar-event "+x.kind} title={x.title}>{x.title}</span>)}
+                  {items.length>3&&<span className="more-events">+{items.length-3} lainnya</span>}
+                </div>
+              </button>
+            })}
+          </div>
+        </div>
       </section>
 
-      <section className="card">
-        <div className="card-head">
-          <div><h2>Libur nasional & hari besar</h2><p>{sortedCal.length} data kalender resmi</p></div>
-        </div>
-        {sortedCal.length?sortedCal.map(x=><div className="event" key={x.id}>
-          <div className="date-box"><b>{String(x.date||"").slice(8,10)||"—"}</b><span>{String(x.date||"").slice(5,7)||"—"}</span></div>
-          <div>
-            <b>{x.title}</b>
-            <span>{formatDate(x.date)} · {x.isNationalHoliday?"Libur nasional":"Hari besar / kalender akademik"}</span>
-            {x.description&&<small>{x.description}</small>}
+      <section className="calendar-details">
+        <section className="card">
+          <div className="card-head"><div><h2>{selectedDate?formatDate(selectedDate):"Agenda & hari penting"}</h2><p>{selectedDate?"Kegiatan pada tanggal yang dipilih":"Klik tanggal pada kalender untuk melihat detail."}</p></div></div>
+          <div className="calendar-list">
+            {selectedDate ? (selectedItems.length?selectedItems.map(x=><div className="calendar-detail-item" key={x.id}><span className={"calendar-badge "+x.kind}>{x.kind==="holiday"?"Libur nasional":x.kind==="important"?"Hari besar":"Agenda sekolah"}</span><div><b>{x.title}</b><small>{x.description||((x.startTime?formatTime(x.startTime):"")+(x.endTime?"–"+formatTime(x.endTime):""))||"Tanpa keterangan tambahan"}</small></div></div>):<p>Tidak ada agenda atau hari penting pada tanggal ini.</p>) : <p>Pilih tanggal untuk melihat detail agenda.</p>}
           </div>
-          <span className={x.isNationalHoliday?"priority tinggi":"priority sedang"}>{x.isNationalHoliday?"Libur":"Hari besar"}</span>
-        </div>):<p>Belum ada data libur nasional dan hari besar.</p>}
+        </section>
+        <section className="card">
+          <div className="card-head"><div><h2>Tambah agenda sekolah</h2><p>Agenda yang dibuat akan terlihat oleh semua guru.</p></div></div>
+          <div className="calendar-add-box"><button className="primary" onClick={()=>openAddFor(selectedDate)}>Tambah agenda sekolah</button></div>
+        </section>
       </section>
     </>}
 
     {showAdd&&<div className="modal-backdrop">
       <div className="modal">
-        <div className="modal-head">
-          <div><h2>Tambah agenda sekolah</h2><p>Agenda akan tersimpan di Google Sheets dan terlihat oleh semua guru.</p></div>
-          <button className="icon-btn" onClick={()=>setShowAdd(false)}><X/></button>
-        </div>
+        <div className="modal-head"><div><h2>Tambah agenda sekolah</h2><p>Agenda tersimpan di kalender bersama untuk semua guru.</p></div><button className="icon-btn" onClick={()=>setShowAdd(false)}><X/></button></div>
         <label>Nama agenda<input value={form.title} onChange={e=>setForm({...form,title:e.target.value})} placeholder="Contoh: Sumatif Tengah Semester"/></label>
         <label>Deskripsi<textarea value={form.description} onChange={e=>setForm({...form,description:e.target.value})} placeholder="Keterangan agenda (opsional)"/></label>
         <label>Tanggal<input type="date" value={form.eventDate} onChange={e=>setForm({...form,eventDate:e.target.value})}/></label>
-        <div className="two">
-          <label>Mulai<input type="time" value={form.startTime} onChange={e=>setForm({...form,startTime:e.target.value})}/></label>
-          <label>Selesai<input type="time" value={form.endTime} onChange={e=>setForm({...form,endTime:e.target.value})}/></label>
-        </div>
-        <label>Jenis agenda<select value={form.type} onChange={e=>setForm({...form,type:e.target.value})}>
-          <option>Agenda sekolah</option><option>Ujian / Asesmen</option><option>Rapat</option><option>Kegiatan sekolah</option><option>Lainnya</option>
-        </select></label>
-        <div className="modal-actions">
-          <button className="secondary" type="button" onClick={()=>setShowAdd(false)}>Batal</button>
-          <button className="primary" type="button" disabled={saving||!form.title.trim()||!form.eventDate} onClick={save}>{saving?"Menyimpan...":"Simpan agenda"}</button>
-        </div>
+        <div className="two"><label>Mulai<input type="time" value={form.startTime} onChange={e=>setForm({...form,startTime:e.target.value})}/></label><label>Selesai<input type="time" value={form.endTime} onChange={e=>setForm({...form,endTime:e.target.value})}/></label></div>
+        <label>Jenis agenda<select value={form.type} onChange={e=>setForm({...form,type:e.target.value})}><option>Agenda sekolah</option><option>Ujian / Asesmen</option><option>Rapat</option><option>Kegiatan sekolah</option><option>Lainnya</option></select></label>
+        <div className="modal-actions"><button className="secondary" type="button" onClick={()=>setShowAdd(false)}>Batal</button><button className="primary" type="button" disabled={saving||!form.title.trim()||!form.eventDate} onClick={save}>{saving?"Menyimpan...":"Simpan agenda"}</button></div>
       </div>
     </div>}
   </div>
 }
 
-function DrivePage(){const [data,setData]=useState({configured:false,files:[]});const [loading,setLoading]=useState(true);const [error,setError]=useState("");useEffect(()=>{api.getDriveMaterials().then(setData).catch(e=>setError(e.message||String(e))).finally(()=>setLoading(false))},[]);return <div className="content"><section className="page-title"><div><div className="eyebrow">Google Drive</div><h1>Drive Materi</h1><p>Materi mengajar yang tersimpan di folder Google Drive sekolah.</p></div>{data.folderUrl&&<a className="primary" href={data.folderUrl} target="_blank" rel="noreferrer">Buka folder Drive</a>}</section>{error&&<div className="card" style={{marginBottom:16}}>{error}</div>}{loading?<InlineLoading text="Memuat data Drive materi..."/>:<section className="card">{!data.configured?<p>Folder Drive belum dikonfigurasi.</p>:data.files.length?data.files.map(x=><div className="event" key={x.id}><div className="date-box"><FileText size={22}/></div><div><b>{x.name}</b><span>{x.mimeType} · {Math.round((x.size||0)/1024)} KB</span></div><a className="text-btn" href={x.url} target="_blank" rel="noreferrer">Buka</a></div>):<p>Folder Drive masih kosong.</p>}</section>}</div>}
+function DrivePage){const [data,setData]=useState({configured:false,files:[]});const [loading,setLoading]=useState(true);const [error,setError]=useState("");useEffect(()=>{api.getDriveMaterials().then(setData).catch(e=>setError(e.message||String(e))).finally(()=>setLoading(false))},[]);return <div className="content"><section className="page-title"><div><div className="eyebrow">Google Drive</div><h1>Drive Materi</h1><p>Materi mengajar yang tersimpan di folder Google Drive sekolah.</p></div>{data.folderUrl&&<a className="primary" href={data.folderUrl} target="_blank" rel="noreferrer">Buka folder Drive</a>}</section>{error&&<div className="card" style={{marginBottom:16}}>{error}</div>}{loading?<InlineLoading text="Memuat data Drive materi..."/>:<section className="card">{!data.configured?<p>Folder Drive belum dikonfigurasi.</p>:data.files.length?data.files.map(x=><div className="event" key={x.id}><div className="date-box"><FileText size={22}/></div><div><b>{x.name}</b><span>{x.mimeType} · {Math.round((x.size||0)/1024)} KB</span></div><a className="text-btn" href={x.url} target="_blank" rel="noreferrer">Buka</a></div>):<p>Folder Drive masih kosong.</p>}</section>}</div>}
 function minutesToTime(value){
   const total = Number(value);
   if(!Number.isFinite(total)) return "";
