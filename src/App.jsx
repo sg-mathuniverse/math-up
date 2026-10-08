@@ -209,27 +209,20 @@ function Dashboard({todos,toggleTodo,schedule,allSchedule,events,user,substituti
      <div className="hero-clock"><span>Waktu sekarang</span><strong>{timeLabel}</strong></div>
    </section>
 
-   <div className="stats dashboard-summary">
-     <Stat icon={<BookOpen/>} label="Jadwal mengajar hari ini" value={activeSchedule.length} note={activeSchedule.length?formatTime(activeSchedule[0].startTime)+" — "+formatTime(activeSchedule[activeSchedule.length-1].endTime):"Tidak ada jadwal"}/>
-     <Stat icon={<ListTodo/>} label="To-Do List" value={activeTodos.length} note="Tugas yang belum selesai"/>
-     <Stat icon={<CalendarDays/>} label="Agenda akademik" value={events.length} note="Dari kalender sekolah"/>
-   </div>
-
-   <div className="grid dashboard-main-grid">
-     <section className="card schedule-card">
+   <div className="dashboard-three-cards">
+     <section className="card dashboard-mini-card">
        <div className="card-head dashboard-section-head"><div className="section-title-icon"><BookOpen size={18}/><div><h2>Jadwal mengajar hari ini</h2><p>Jadwal Anda untuk hari ini</p></div></div></div>
        <div className="schedule-list">{activeSchedule.length?activeSchedule.map((s,i)=><div className="schedule-row" key={s.id||s.startTime+i}><div className="time"><b>{formatTime(s.startTime)}</b><span>{formatTime(s.endTime)}</span></div><div className="line"><i></i></div><div className="lesson"><div><b>{s.className}</b><span>{s.topic||"Tanpa topik"}</span></div><small>{s.room||"-"}</small></div></div>):<p style={{padding:20}}>Belum ada jadwal untuk hari ini.</p>}</div>
      </section>
-     <section className="card todo-card">
+     <section className="card dashboard-mini-card">
        <div className="card-head dashboard-section-head"><div className="section-title-icon"><ListTodo size={18}/><div><h2>To-Do List</h2><p>Deadline terdekat</p></div></div></div>
        <div className="todo-list">{activeTodos.slice(0,4).map(t=><TodoRow key={t.id} t={t} toggle={()=>toggleTodo(t.id)}/>)}</div>
      </section>
+     <section className="card dashboard-mini-card">
+       <div className="card-head dashboard-section-head"><div className="section-title-icon"><CalendarDays size={18}/><div><h2>Agenda akademik</h2><p>Agenda terdekat</p></div></div></div>
+       <div className="events">{activeEvents.length?activeEvents.map(x=><Event key={x.id} day={normalizeCalendarDate(x.eventDate).slice(8,10)||"—"} title={x.title} meta={formatDate(x.eventDate)+" · "+formatTime(x.startTime)}/>):<p>Belum ada agenda.</p>}</div>
+     </section>
    </div>
-
-   <section className="card calendar-card dashboard-agenda-card">
-     <div className="card-head dashboard-section-head"><div className="section-title-icon"><CalendarDays size={18}/><div><h2>Agenda akademik</h2><p>Agenda terdekat dari kalender sekolah</p></div></div></div>
-     <div className="events">{activeEvents.length?activeEvents.map(x=><Event key={x.id} day={normalizeCalendarDate(x.eventDate).slice(8,10)||"—"} title={x.title} meta={formatDate(x.eventDate)+" · "+formatTime(x.startTime)}/>):<p>Belum ada agenda.</p>}</div>
-   </section>
 
    <section className="card weekly-schedule-card">
      <div className="card-head dashboard-section-head"><div className="section-title-icon"><CalendarDays size={18}/><div><h2>Jadwal mengajar Anda</h2><p>Jadwal mingguan sesuai akun guru yang sedang login</p></div></div></div>
