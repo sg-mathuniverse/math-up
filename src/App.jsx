@@ -238,6 +238,45 @@ function CalendarPage(){
   const [selectedDate,setSelectedDate]=useState("");
   const [form,setForm]=useState({title:"",description:"",eventDate:"",startTime:"",endTime:"",type:"Agenda sekolah"});
 
+  const defaultAcademicCalendar2026=[
+    ["2026-01-01","Tahun Baru 2026 Masehi","holiday","Libur nasional"],
+    ["2026-01-16","Isra Mikraj Nabi Muhammad SAW","holiday","Libur nasional"],
+    ["2026-02-16","Tahun Baru Imlek 2577 Kongzili","important","Cuti bersama"],
+    ["2026-02-17","Tahun Baru Imlek 2577 Kongzili","holiday","Libur nasional"],
+    ["2026-03-18","Hari Suci Nyepi (Tahun Baru Saka 1948)","important","Cuti bersama"],
+    ["2026-03-19","Hari Suci Nyepi (Tahun Baru Saka 1948)","holiday","Libur nasional"],
+    ["2026-03-20","Cuti bersama Idulfitri 1447 H","important","Cuti bersama"],
+    ["2026-03-21","Idulfitri 1447 H","holiday","Libur nasional"],
+    ["2026-03-22","Idulfitri 1447 H","holiday","Libur nasional"],
+    ["2026-03-23","Cuti bersama Idulfitri 1447 H","important","Cuti bersama"],
+    ["2026-03-24","Cuti bersama Idulfitri 1447 H","important","Cuti bersama"],
+    ["2026-04-03","Wafat Yesus Kristus","holiday","Libur nasional"],
+    ["2026-04-05","Kebangkitan Yesus Kristus (Paskah)","holiday","Libur nasional"],
+    ["2026-05-01","Hari Buruh Internasional","holiday","Libur nasional"],
+    ["2026-05-02","Hari Pendidikan Nasional","important","Hari besar nasional"],
+    ["2026-05-14","Kenaikan Yesus Kristus","holiday","Libur nasional"],
+    ["2026-05-15","Cuti bersama Kenaikan Yesus Kristus","important","Cuti bersama"],
+    ["2026-05-20","Hari Kebangkitan Nasional","important","Hari besar nasional"],
+    ["2026-05-27","Iduladha 1447 H","holiday","Libur nasional"],
+    ["2026-05-28","Cuti bersama Iduladha 1447 H","important","Cuti bersama"],
+    ["2026-05-31","Hari Raya Waisak 2570 BE","holiday","Libur nasional"],
+    ["2026-06-01","Hari Lahir Pancasila","holiday","Libur nasional"],
+    ["2026-06-16","1 Muharam / Tahun Baru Islam 1448 H","holiday","Libur nasional"],
+    ["2026-07-23","Hari Anak Nasional","important","Hari besar nasional"],
+    ["2026-08-14","Hari Pramuka","important","Hari besar nasional"],
+    ["2026-08-17","Hari Proklamasi Kemerdekaan Republik Indonesia","holiday","Libur nasional"],
+    ["2026-08-25","Maulid Nabi Muhammad SAW","holiday","Libur nasional"],
+    ["2026-09-24","Hari Tani Nasional","important","Hari besar nasional"],
+    ["2026-10-01","Hari Kesaktian Pancasila","important","Hari besar nasional"],
+    ["2026-10-02","Hari Batik Nasional","important","Hari besar nasional"],
+    ["2026-10-28","Hari Sumpah Pemuda","important","Hari besar nasional"],
+    ["2026-11-10","Hari Pahlawan","important","Hari besar nasional"],
+    ["2026-11-25","Hari Guru Nasional","important","Hari besar nasional"],
+    ["2026-12-22","Hari Ibu","important","Hari besar nasional"],
+    ["2026-12-24","Cuti bersama Kelahiran Yesus Kristus","important","Cuti bersama"],
+    ["2026-12-25","Kelahiran Yesus Kristus","holiday","Libur nasional"]
+  ].map(([date,title,kind,description],i)=>({id:"default-2026-"+i,date,title,description,isNationalHoliday:kind==="holiday"}));
+
   const load=()=>{
     setLoading(true); setError("");
     return api.getBootstrap()
@@ -271,7 +310,7 @@ function CalendarPage(){
   while(cells.length%7) cells.push(null);
 
   const byDate={};
-  cal.forEach(x=>{const k=String(x.date||"").slice(0,10);if(k)(byDate[k]??=[]).push({...x,kind:x.isNationalHoliday?"holiday":"important"})});
+  [...defaultAcademicCalendar2026,...cal].forEach(x=>{const k=String(x.date||"").slice(0,10);if(k)(byDate[k]??=[]).push({...x,kind:x.isNationalHoliday?"holiday":"important"})});
   events.forEach(x=>{const k=String(x.eventDate||"").slice(0,10);if(k)(byDate[k]??=[]).push({...x,kind:"school"})});
 
   const selectedItems=(byDate[selectedDate]||[]);
