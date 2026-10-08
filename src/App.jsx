@@ -469,8 +469,15 @@ function buildCoveragePlan(candidates,startTime,endTime){
   return plan;
 }
 
+function localDateKey(date=new Date()){
+ const y=date.getFullYear();
+ const m=String(date.getMonth()+1).padStart(2,"0");
+ const d=String(date.getDate()).padStart(2,"0");
+ return `${y}-${m}-${d}`;
+}
+
 function SubstitutePage({user}){
- const today=new Date().toISOString().slice(0,10);
+ const today=localDateKey();
  const [form,setForm]=useState({date:today,startTime:"07:00",endTime:"08:20",className:"",topic:"",room:"",reason:""});
  const [candidates,setCandidates]=useState([]);
  const [plan,setPlan]=useState(null);
