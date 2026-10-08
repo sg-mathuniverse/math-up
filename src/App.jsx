@@ -577,12 +577,12 @@ function SubstitutePage({user}){
    setPlan(null);
    api.findSubstituteCandidates(form)
      .then(r=>{
-       const list=r?.candidates||r||[];
-       setCandidates(Array.isArray(list)?list:[]);
-       const coverage=buildCoveragePlan(Array.isArray(list)?list:[],form.startTime,form.endTime);
-       setPlan(coverage);
-       if(!coverage){
-         setMessage("Belum ditemukan kombinasi guru yang dapat menutup seluruh jam pengganti.");
+       const list=Array.isArray(r?.candidates)?r.candidates:(Array.isArray(r)?r:[]);
+       setCandidates(list);
+       setSelectedEmails([]);
+       setPlan(null);
+       if(!list.length){
+         setMessage("Tidak ada kandidat guru yang ditemukan untuk tanggal dan waktu tersebut.");
        }
      })
      .catch(e=>setMessage(e.message||String(e)))
