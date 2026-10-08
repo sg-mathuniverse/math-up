@@ -41,7 +41,8 @@ function handleApi_(e) {
   const allowed = {
     getBootstrap:'getBootstrap', getCurrentUser:'getCurrentUser',
     getSubstitutionRequests:'getSubstitutionRequests', getDriveMaterials:'getDriveMaterials',
-    getEffectiveSchedule:'getEffectiveSchedule', saveTodo:'saveTodo', toggleTodo:'toggleTodo',
+    getEffectiveSchedule:'getEffectiveSchedule', saveTodo:'saveTodo', updateTodo:'updateTodo',
+    deleteTodo:'deleteTodo', toggleTodo:'toggleTodo',
     saveTeacher:'saveTeacher', saveSchedule:'saveSchedule', updateSchedule:'updateSchedule',
     deleteSchedule:'deleteSchedule', saveEvent:'saveEvent',
     findSubstituteCandidates:'findSubstituteCandidates', saveSubstitution:'saveSubstitution',
@@ -104,17 +105,45 @@ function getBootstrap() {
 function saveTodo(todo) {
   const user = requireUser_();
   setupSheets();
+  const id = todo.id || Utilities.getUuid();
+  if (todo.id) {
+    const existing = findRow_(SHEET_NAMES.TODO, id);
+    if (!existing || String(existing.data.teacherEmail || '').toLowerCase() !== user.email) throw new Error('Tugas tidak ditemukan.');
+    return updateRow_(SHEET_NAMES.TODO, existing.rowNumber, {
+      ...existing.data,
+      teacherEmail: user.email,
+      title: String(todo.title || '').trim(),
+      description: String(todo.description || ''),
+      dueAt: String(todo.dueAt || ''),
+      priority: todo.priority || 'Sedang',
+      done: Boolean(todo.done),
+      updatedAt: new Date().toISOString()
+    });
+  }
   return upsertRow_(SHEET_NAMES.TODO, {
-    id: todo.id || Utilities.getUuid(), teacherEmail: user.email, title: String(todo.title || '').trim(),
+    id, teacherEmail: user.email, title: String(todo.title || '').trim(),
     description: String(todo.description || ''), dueAt: String(todo.dueAt || ''), priority: todo.priority || 'Sedang',
-    done: Boolean(todo.done), createdAt: todo.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString()
+    done: Boolean(todo.done), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
   });
+}
+
+function updateTodo(todo) {
+  return saveTodo(todo);
+}
+
+function deleteTodo(id) {
+  const user = requireUser_();
+  const row = findRow_(SHEET_NAMES.TODO, id);
+  if (!row || String(row.data.teacherEmail || '').toLowerCase() !== user.email) throw new Error('Tugas tidak ditemukan.');
+  const sheet = getSpreadsheet_().getSheetByName(SHEET_NAMES.TODO);
+  sheet.deleteRow(row.rowNumber);
+  return {ok:true,id};
 }
 
 function toggleTodo(id, done) {
   const user = requireUser_();
   const row = findRow_(SHEET_NAMES.TODO, id);
-  if (!row || row.data.teacherEmail !== user.email) throw new Error('Tugas tidak ditemukan.');
+  if (!row || String(row.data.teacherEmail || '').toLowerCase() !== user.email) throw new Error('Tugas tidak ditemukan.');
   return updateRow_(SHEET_NAMES.TODO, row.rowNumber, {...row.data, done: Boolean(done), updatedAt: new Date().toISOString()});
 }
 
