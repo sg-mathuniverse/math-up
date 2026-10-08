@@ -556,7 +556,7 @@ function localDateKey(date=new Date()){
 function SubstitutePage({user}){
  const today=localDateKey();
  const [form,setForm]=useState({date:today,startTime:"07:00",endTime:"08:20",className:"",topic:"",room:"",reason:""});
- const [candidates,setCandidates]=useState([]);
+ const [candidates,setCandidates]=useState([]);\n const [selectedEmails,setSelectedEmails]=useState([]);
  const [plan,setPlan]=useState(null);
  const [requests,setRequests]=useState([]);
  const [history,setHistory]=useState([]);
@@ -674,27 +674,13 @@ function SubstitutePage({user}){
    </section>}
 
    {!plan&&candidates.length>0&&<section className="card">
-     <div className="card-head">
-       <div>
-         <h2>Ketersediaan guru</h2>
-         <p>Daftar ini menunjukkan bagian waktu yang masih dapat diisi masing-masing guru.</p>
-       </div>
-     </div>
-     {candidates.map(x=><div className="todo-row" key={x.email}>
-       <div className="todo-copy">
-         <b>{x.name||x.email}</b>
-         <span>{x.email}</span>
-         <small>
-           {x.availableSegments?.length
-             ? x.availableSegments.map(s=>formatTime(s.startTime)+"–"+formatTime(s.endTime)).join(" · ")
-             : "Tidak ada waktu tersedia"}
-           {x.dailyLoad!=null?" · Beban "+x.dailyLoad+" jadwal":""}
-         </small>
-       </div>
-       <span className={"priority "+(x.availableSegments?.length?"sedang":"tinggi")}>
-         {x.status||"Tidak tersedia"}
-       </span>
-     </div>)}
+     <div className="card-head"><div><h2>Pilih guru pengganti</h2><p>Pilih satu atau beberapa guru yang tersedia. Sistem akan memeriksa pilihan sebelum permintaan dikirim.</p></div></div>
+     {candidates.map(x=>{const email=String(x.email||"").toLowerCase();const selected=selectedEmails.includes(email);return <div className={"todo-row substitution-candidate-row "+(selected?"selected":"")} key={x.email}>
+       <button type="button" className={"candidate-select "+(selected?"selected":"")} onClick={()=>toggleCandidate(email)}>{selected?"✓ Terpilih":"Pilih"}</button>
+       <div className="todo-copy"><b>{x.name||x.email}</b><span>{x.email}</span><small>{x.availableSegments?.length?x.availableSegments.map(s=>formatTime(s.startTime)+"–"+formatTime(s.endTime)).join(" · "):"Tidak tersedia"}{x.dailyLoad!=null?" · "+x.dailyLoad+" jadwal hari itu":""}</small></div>
+       <span className={"priority "+(x.availableSegments?.length?"sedang":"tinggi")}>{x.status||"Tersedia"}</span>
+     </div>})}
+     <button className="primary" disabled={loading||selectedEmails.length===0} onClick={preparePlan}>{loading?"Memeriksa...":"Gunakan guru terpilih"}</button>
    </section>}
 
    <section className="card">
