@@ -48,7 +48,7 @@ function App(){
     });
   },[]);
 
-  const filteredTodos=useMemo(()=>todos.filter(t=>t.title.toLowerCase().includes(query.toLowerCase())),[todos,query]);
+  const filteredTodos=useMemo(()=>todos.filter(t=>String(t?.title||"").toLowerCase().includes(query.toLowerCase())),[todos,query]);
 
   if(!authChecked || loading) return <LoadingScreen/>;
 
@@ -98,7 +98,7 @@ function App(){
 
       {apiError && <div className="card" style={{margin:"16px"}}>{apiError}</div>}
       {confirmTodo&&<div className="modal-backdrop"><div className="modal confirm-modal"><div className="modal-head"><div><h2>{confirmTodo.done?"Buka kembali tugas?":"Konfirmasi tugas selesai"}</h2><p>{confirmTodo.done?"Tugas ini akan dikembalikan ke daftar tugas aktif.":"Pastikan tugas ini benar-benar sudah selesai dikerjakan."}</p></div><button className="icon-btn" onClick={()=>setConfirmTodo(null)}><X/></button></div><div className="confirm-task"><b>{confirmTodo.title}</b><span>{confirmTodo.description||confirmTodo.desc||"Tanpa deskripsi"}</span></div><div className="modal-actions"><button className="secondary" onClick={()=>setConfirmTodo(null)}>Batal</button><button className="primary" onClick={confirmTodoToggle}>{confirmTodo.done?"Buka kembali":"Ya, sudah selesai"}</button></div></div></div>}
-      {showTodo && <TodoModal onClose={()=>setShowTodo(false)} onSave={t=>{api.saveTodo({title:t.title,description:t.desc,dueAt:t.due,priority:t.priority,done:false}).then(saved=>{setTodos(ts=>[...ts,saved]);setShowTodo(false)}).catch(e=>setApiError(e.message||String(e)))}}/>}
+      {showTodo && <TodoModal onClose={()=>setShowTodo(false)} onSave={async t=>{setApiError("");try{await api.saveTodo({title:t.title,description:t.desc,dueAt:t.due,priority:t.priority,done:false});const fresh=await api.getBootstrap();setTodos(fresh?.todos||[]);setShowTodo(false);}catch(e){setApiError(e.message||String(e));}}}/>} 
     </main>
   </div>
 }
