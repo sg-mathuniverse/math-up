@@ -556,7 +556,8 @@ function localDateKey(date=new Date()){
 function SubstitutePage({user}){
  const today=localDateKey();
  const [form,setForm]=useState({date:today,startTime:"07:00",endTime:"08:20",className:"",topic:"",room:"",reason:""});
- const [candidates,setCandidates]=useState([]);\n const [selectedEmails,setSelectedEmails]=useState([]);
+ const [candidates,setCandidates]=useState([]);
+ const [selectedEmails,setSelectedEmails]=useState([]);
  const [plan,setPlan]=useState(null);
  const [requests,setRequests]=useState([]);
  const [history,setHistory]=useState([]);
