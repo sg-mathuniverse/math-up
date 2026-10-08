@@ -22,3 +22,7 @@
 .confirm-task{padding:16px 18px;border:1px solid #e6eaf0;border-radius:10px;background:#f8fafc;margin:4px 0 18px}.confirm-task b{display:block;font-size:13px}.confirm-task span{display:block;margin-top:5px;color:#667085;font-size:11px}
 
 .loading-inline{min-height:220px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:12px}.loading-inline>div:last-child{display:flex;flex-direction:column;align-items:center;gap:5px}.loading-inline b{font-size:13px;color:#172033}.loading-inline span{font-size:11px;color:#667085}.loading-inline .small-spinner{width:28px;height:28px;margin:0}
+
+.button-spinner{width:14px;height:14px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;display:inline-block;animation:mathup-spin .7s linear infinite;flex:none}
+.todo-actions{display:flex;gap:6px;align-items:center;margin-left:auto;flex:none}
+.todo-actions .secondary{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:72px}
