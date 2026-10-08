@@ -65,3 +65,15 @@
 .substitution-form-card~.card .todo-row{margin-left:20px;margin-right:20px}
 .substitution-candidate-row{margin-left:20px;margin-right:20px}
 .substitution-candidate-row .candidate-select{margin-left:0}
+
+
+/* Calendar agenda actions */
+.calendar-detail-item{gap:12px}
+.calendar-detail-item>div:nth-child(2){min-width:0;flex:1}
+.calendar-item-actions{display:flex;gap:6px;align-items:center;margin-left:auto;flex:none}
+.calendar-item-actions .secondary{padding:7px 10px;font-size:11px}
+.calendar-item-actions .danger{color:#b42318;border-color:#fecdca}
+
+/* To-Do list spacing */
+.todo-list.large .todo-row{padding-left:20px;padding-right:20px}
+.todo-list.large .empty-state{padding-left:20px;padding-right:20px}
