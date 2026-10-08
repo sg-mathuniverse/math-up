@@ -23,7 +23,7 @@ function App(){
   const [confirmTodo,setConfirmTodo]=useState(null);
   const [query,setQuery]=useState("");
   const [user,setUser]=useState(null);
-  const [dashboard,setDashboard]=useState({schedule:[],events:[]});
+  const [dashboard,setDashboard]=useState({schedule:[],events:[],allSchedule:[]});
   const [loading,setLoading]=useState(true);
   const [apiError,setApiError]=useState("");
   const [todoActionLoading,setTodoActionLoading]=useState("");
@@ -36,7 +36,7 @@ function App(){
         return Promise.all([api.getBootstrap(),api.getSubstitutionRequests()]).then(([d,requests])=>{
           setTodos(d?.todos||[]);
           setUser(u);
-          setDashboard({schedule:d?.schedule||[],events:(d?.events||[]).map(x=>({...x,eventDate:normalizeCalendarDate(x.eventDate)}))});
+          setDashboard({schedule:d?.schedule||[],events:(d?.events||[]).map(x=>({...x,eventDate:normalizeCalendarDate(x.eventDate)})),allSchedule:d?.allSchedule||[]});
           setSubstitutionNotifications(Array.isArray(requests?.requests)?requests.requests:(Array.isArray(requests)?requests:[]));
         });
       }
@@ -87,7 +87,7 @@ function App(){
         </div>
       </header>
 
-      {active==="Dashboard" ? <Dashboard todos={filteredTodos} toggleTodo={requestTodoToggle} todoActionLoading={todoActionLoading} schedule={dashboard.schedule} events={dashboard.events} user={user} /> :
+      {active==="Dashboard" ? <Dashboard todos={filteredTodos} toggleTodo={requestTodoToggle} todoActionLoading={todoActionLoading} schedule={dashboard.schedule} allSchedule={dashboard.allSchedule} events={dashboard.events} user={user} substitutionNotifications={substitutionNotifications} /> :
        active==="Jadwal Mengajar" ? <SchedulePage user={user} /> : active==="Guru Pengganti" ? <SubstitutePage user={user} /> :
        active==="Kalender Akademik" ? <CalendarPage /> :
        active==="Drive Materi" ? <DrivePage /> :
