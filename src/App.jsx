@@ -79,8 +79,10 @@ function App(){
         <button className="icon-btn mobile-menu" onClick={()=>setMenuOpen(v=>!v)}><Menu size={20}/></button>
         <div className="crumb"><span>Workspace</span><b>/</b><strong>{active}</strong></div>
         <div className="top-actions">
-          <div className="search"><Search size={17}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Cari tugas..." /></div>
-          <button className="icon-btn"><Bell size={19}/><i></i></button>
+          <form className="search google-search" action="https://www.google.com/search" method="get" target="_blank"><Search size={17}/><input name="q" placeholder="Cari di Google..." aria-label="Cari di Google" /></form>
+          <a className="icon-btn top-link" href="https://mail.google.com/" target="_blank" rel="noreferrer" title="Buka Gmail" aria-label="Buka Gmail"><Mail size={19}/></a>
+          <a className="icon-btn top-link" href="https://drive.google.com/" target="_blank" rel="noreferrer" title="Buka Google Drive" aria-label="Buka Google Drive"><HardDrive size={19}/></a>
+          <button className="icon-btn notification-btn" onClick={()=>setActive("Guru Pengganti")} title="Notifikasi guru pengganti" aria-label="Notifikasi guru pengganti"><Bell size={19}/>{substitutionNotifications.length>0&&<i></i>}{substitutionNotifications.length>0&&<em>{substitutionNotifications.length>9?"9+":substitutionNotifications.length}</em>}</button>
           <button className="user-chip" onClick={()=>setMenuOpen(v=>v)}><div className="avatar small">{user?.photoUrl?<img src={user.photoUrl} alt={user.name||"Profil"} />:initials(user?.name||user?.email||"?")}</div><ChevronDown size={15}/></button>
         </div>
       </header>
