@@ -50,3 +50,8 @@
 .teacher-schedule-actions .secondary{padding:4px 7px;font-size:9px}
 .teacher-schedule-empty{display:block;text-align:center;color:#d0d5dd;padding:13px 0}
 .schedule-error{margin-bottom:16px}
+
+.substitution-candidate-row{gap:10px;align-items:center}
+.substitution-candidate-row.selected{border-color:#cfd6df;background:#fafbfc}
+.candidate-select{flex:none;border:1px solid #d0d5dd;background:#fff;border-radius:8px;padding:7px 10px;font:700 10px 'Plus Jakarta Sans';cursor:pointer;color:#475467}
+.candidate-select.selected{background:#172033;color:#fff;border-color:#172033}
