@@ -326,7 +326,7 @@ function CalendarPage(){
   const [saving,setSaving]=useState(false);
   const [error,setError]=useState("");
   const [message,setMessage]=useState("");
-  const [showAdd,setShowAdd]=useState(false);
+  const [showAdd,setShowAdd]=useState(false);\n  const [editingEvent,setEditingEvent]=useState(null);
   const [month,setMonth]=useState(new Date(today.getFullYear(),today.getMonth(),1));
   const [selectedDate,setSelectedDate]=useState("");
   const [form,setForm]=useState({title:"",description:"",eventDate:"",startTime:"",endTime:"",type:"Agenda sekolah"});
@@ -385,10 +385,10 @@ function CalendarPage(){
     if(form.startTime&&form.endTime&&form.startTime>=form.endTime){setError("Jam selesai harus lebih besar dari jam mulai.");return}
     setSaving(true);setError("");setMessage("");
     try{
-      await api.saveEvent({title:form.title.trim(),description:form.description.trim(),eventDate:form.eventDate,startTime:form.startTime||"",endTime:form.endTime||"",type:form.type});
-      setMessage("Agenda sekolah berhasil ditambahkan dan dapat dilihat oleh semua guru.");
+      await (editingEvent ? api.updateEvent({id:editingEvent.id,title:form.title.trim(),description:form.description.trim(),eventDate:form.eventDate,startTime:form.startTime||"",endTime:form.endTime||"",type:form.type}) : api.saveEvent({title:form.title.trim(),description:form.description.trim(),eventDate:form.eventDate,startTime:form.startTime||"",endTime:form.endTime||"",type:form.type}));
+      setMessage(editingEvent ? "Agenda sekolah berhasil diperbarui." : "Agenda sekolah berhasil ditambahkan dan dapat dilihat oleh semua guru.");
       setForm({title:"",description:"",eventDate:"",startTime:"",endTime:"",type:"Agenda sekolah"});
-      setShowAdd(false); await load();
+      setShowAdd(false); setEditingEvent(null); await load();
     }catch(e){setError(e.message||String(e))}
     finally{setSaving(false)}
   };
@@ -455,7 +455,7 @@ function CalendarPage(){
         <section className="card">
           <div className="card-head"><div><h2>{selectedDate?formatDate(selectedDate):"Agenda & hari penting"}</h2><p>{selectedDate?"Kegiatan pada tanggal yang dipilih":"Klik tanggal pada kalender untuk melihat detail."}</p></div></div>
           <div className="calendar-list">
-            {selectedDate ? (selectedItems.length?selectedItems.map(x=><div className="calendar-detail-item" key={x.id}><span className={"calendar-badge "+x.kind}>{x.kind==="holiday"?"Libur nasional":x.kind==="important"?"Hari besar":"Agenda sekolah"}</span><div><b>{x.title}</b><small>{x.description||((x.startTime?formatTime(x.startTime):"")+(x.endTime?"–"+formatTime(x.endTime):""))||"Tanpa keterangan tambahan"}</small></div></div>):<p>Tidak ada agenda atau hari penting pada tanggal ini.</p>) : <p>Pilih tanggal untuk melihat detail agenda.</p>}
+            {selectedDate ? (selectedItems.length?selectedItems.map(x=><div className="calendar-detail-item" key={x.id}><span className={"calendar-badge "+x.kind}>{x.kind==="holiday"?"Libur nasional":x.kind==="important"?"Hari besar":"Agenda sekolah"}</span><div><b>{x.title}</b><small>{x.description||((x.startTime?formatTime(x.startTime):"")+(x.endTime?"–"+formatTime(x.endTime):""))||"Tanpa keterangan tambahan"}</small></div>{x.kind==="school"&&<div className="calendar-item-actions"><button className="secondary" type="button" onClick={()=>openEdit(x)} disabled={saving}>Edit</button><button className="secondary danger" type="button" onClick={()=>removeEvent(x)} disabled={saving}>Hapus</button></div>}</div>):<p>Tidak ada agenda atau hari penting pada tanggal ini.</p>) : <p>Pilih tanggal untuk melihat detail agenda.</p>}
           </div>
         </section>
         <section className="card">
@@ -467,13 +467,13 @@ function CalendarPage(){
 
     {showAdd&&<div className="modal-backdrop">
       <div className="modal">
-        <div className="modal-head"><div><h2>Tambah agenda sekolah</h2><p>Agenda tersimpan di kalender bersama untuk semua guru.</p></div><button className="icon-btn" onClick={()=>{if(!saving)setShowAdd(false)}} disabled={saving}><X/></button></div>
+        <div className="modal-head"><div><h2>{editingEvent?"Edit agenda sekolah":"Tambah agenda sekolah"}</h2><p>Agenda tersimpan di kalender bersama untuk semua guru.</p></div><button className="icon-btn" onClick={()=>{if(!saving)setShowAdd(false)}} disabled={saving}><X/></button></div>
         <label>Nama agenda<input value={form.title} onChange={e=>setForm({...form,title:e.target.value})} placeholder="Contoh: Sumatif Tengah Semester"/></label>
         <label>Deskripsi<textarea value={form.description} onChange={e=>setForm({...form,description:e.target.value})} placeholder="Keterangan agenda (opsional)"/></label>
         <label>Tanggal<input type="date" value={form.eventDate} onChange={e=>setForm({...form,eventDate:e.target.value})}/></label>
         <div className="two"><label>Mulai<input type="time" value={form.startTime} onChange={e=>setForm({...form,startTime:e.target.value})}/></label><label>Selesai<input type="time" value={form.endTime} onChange={e=>setForm({...form,endTime:e.target.value})}/></label></div>
         <label>Jenis agenda<select value={form.type} onChange={e=>setForm({...form,type:e.target.value})}><option>Agenda sekolah</option><option>Ujian / Asesmen</option><option>Rapat</option><option>Kegiatan sekolah</option><option>Lainnya</option></select></label>
-        <div className="modal-actions"><button className="secondary" type="button" onClick={()=>setShowAdd(false)} disabled={saving}>Batal</button><button className="primary" type="button" disabled={saving||!form.title.trim()||!form.eventDate} onClick={save}>{saving?<><span className="button-spinner"></span>Menyimpan agenda...</>:"Simpan agenda"}</button></div>
+        <div className="modal-actions"><button className="secondary" type="button" onClick={()=>setShowAdd(false)} disabled={saving}>Batal</button><button className="primary" type="button" disabled={saving||!form.title.trim()||!form.eventDate} onClick={save}>{saving?<><span className="button-spinner"></span>{editingEvent?"Menyimpan perubahan...":"Menyimpan agenda..."}</>:editingEvent?"Simpan perubahan":"Simpan agenda"}</button></div>
       </div>
     </div>}
   </div>
