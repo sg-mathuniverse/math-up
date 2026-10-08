@@ -167,7 +167,9 @@ function Nav({icon,label,active,onClick,todoCount=0}){return <button className={
 function Dashboard({todos,toggleTodo,schedule,allSchedule,events,user,substitutionNotifications=[]}){
  const [now,setNow]=useState(new Date());
  useEffect(()=>{const timer=setInterval(()=>setNow(new Date()),1000);return()=>clearInterval(timer)},[]);
- const weekdayMap={Sunday:"Minggu",Monday:"Senin",Tuesday:"Selasa",Wednesday:"Rabu",Thursday:"Kamis",Friday:"Jumat",Saturday:"Sabtu"};\n const currentDay=weekdayMap[new Intl.DateTimeFormat("en-US",{weekday:"long"}).format(now)]||"";\n const activeSchedule=(schedule||[]).filter(s=>String(s.day||"").trim().toLowerCase()===currentDay.toLowerCase()).slice().sort((a,b)=>String(a.startTime).localeCompare(String(b.startTime)));
+ const weekdayMap={Sunday:"Minggu",Monday:"Senin",Tuesday:"Selasa",Wednesday:"Rabu",Thursday:"Kamis",Friday:"Jumat",Saturday:"Sabtu"};
+ const currentDay=weekdayMap[new Intl.DateTimeFormat("en-US",{weekday:"long"}).format(now)]||"";
+ const activeSchedule=(schedule||[]).filter(s=>String(s.day||"").trim().toLowerCase()===currentDay.toLowerCase()).slice().sort((a,b)=>String(a.startTime).localeCompare(String(b.startTime)));
  const weeklySchedule=(allSchedule||[]).filter(x=>String(x.teacherEmail||"").toLowerCase()===String(user?.email||"").toLowerCase());
  const activeEvents=(events||[]).slice().sort((a,b)=>String(a.eventDate).localeCompare(String(b.eventDate))).slice(0,3);
  const priorityRank={Tinggi:0,Sedang:1,Rendah:2};
