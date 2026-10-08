@@ -225,7 +225,126 @@ function TeachersPage({user,onUserUpdated}){
   </div>;
 }
 
-function CalendarPage(){const [events,setEvents]=useState([]);const [cal,setCal]=useState([]);const [loading,setLoading]=useState(true);const [error,setError]=useState("");useEffect(()=>{api.getBootstrap().then(d=>{setEvents(d?.events||[]);setCal(d?.academicCalendar||[])}).catch(e=>setError(e.message||String(e))).finally(()=>setLoading(false))},[]);return <div className="content"><section className="page-title"><div><div className="eyebrow">Akademik</div><h1>Kalender Akademik</h1><p>Agenda sekolah dan kalender akademik terhubung ke Google Sheets.</p></div></section>{error&&<div className="card" style={{marginBottom:16}}>{error}</div>}{loading?<InlineLoading text="Memuat data kalender akademik..."/>:<><section className="card"><div className="card-head"><div><h2>Agenda sekolah</h2><p>{events.length} agenda</p></div></div>{events.length?events.map(x=><div className="event" key={x.id}><div className="date-box"><b>{String(x.eventDate||"").slice(8,10)||"—"}</b><span>OKT</span></div><div><b>{x.title}</b><span>{x.eventDate} · {formatTime(x.startTime)}{x.endTime?"–"+formatTime(x.endTime):""}</span></div></div>):<p>Belum ada agenda.</p>}</section><section className="card"><div className="card-head"><div><h2>Hari penting</h2><p>{cal.length} data kalender</p></div></div>{cal.length?cal.map(x=><div className="event" key={x.id}><div className="date-box"><b>{String(x.date||"").slice(8,10)||"—"}</b><span>OKT</span></div><div><b>{x.title}</b><span>{x.date} · {x.isNationalHoliday?"Libur nasional":"Kalender akademik"}</span></div></div>):<p>Belum ada data kalender akademik.</p>}</section></>}</div>}
+function CalendarPage(){
+  const [events,setEvents]=useState([]);
+  const [cal,setCal]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [saving,setSaving]=useState(false);
+  const [error,setError]=useState("");
+  const [message,setMessage]=useState("");
+  const [showAdd,setShowAdd]=useState(false);
+  const [form,setForm]=useState({title:"",description:"",eventDate:"",startTime:"",endTime:"",type:"Agenda sekolah"});
+
+  const load=()=>{
+    setLoading(true);
+    setError("");
+    return api.getBootstrap()
+      .then(d=>{
+        setEvents(d?.events||[]);
+        setCal(d?.academicCalendar||[]);
+      })
+      .catch(e=>setError(e.message||String(e)))
+      .finally(()=>setLoading(false));
+  };
+
+  useEffect(()=>{load()},[]);
+
+  const save=async()=>{
+    if(!form.title.trim()){setError("Nama agenda wajib diisi.");return;}
+    if(!form.eventDate){setError("Tanggal agenda wajib diisi.");return;}
+    if(form.startTime && form.endTime && form.startTime>=form.endTime){setError("Jam selesai harus lebih besar dari jam mulai.");return;}
+
+    setSaving(true);
+    setError("");
+    setMessage("");
+    try{
+      await api.saveEvent({
+        title:form.title.trim(),
+        description:form.description.trim(),
+        eventDate:form.eventDate,
+        startTime:form.startTime||"",
+        endTime:form.endTime||"",
+        type:form.type
+      });
+      setMessage("Agenda sekolah berhasil ditambahkan dan dapat dilihat oleh semua guru.");
+      setForm({title:"",description:"",eventDate:"",startTime:"",endTime:"",type:"Agenda sekolah"});
+      setShowAdd(false);
+      await load();
+    }catch(e){
+      setError(e.message||String(e));
+    }finally{
+      setSaving(false);
+    }
+  };
+
+  const sortedEvents=events.slice().sort((a,b)=>String(a.eventDate||"").localeCompare(String(b.eventDate||""))||String(a.startTime||"").localeCompare(String(b.startTime||"")));
+  const sortedCal=cal.slice().sort((a,b)=>String(a.date||"").localeCompare(String(b.date||"")));
+
+  return <div className="content">
+    <section className="page-title">
+      <div><div className="eyebrow">Akademik</div><h1>Kalender Akademik</h1><p>Libur nasional, hari besar, dan agenda sekolah dapat dilihat bersama oleh semua guru.</p></div>
+      <button className="primary" type="button" onClick={()=>{setError("");setMessage("");setShowAdd(true);}}><CirclePlus size={18}/> Tambah agenda sekolah</button>
+    </section>
+
+    {error&&<div className="card" style={{marginBottom:16}}><b>Gagal memproses kalender</b><p>{error}</p></div>}
+    {message&&<div className="card" style={{marginBottom:16}}>{message}</div>}
+
+    {loading?<InlineLoading text="Memuat data kalender akademik..."/>:<>
+      <section className="card">
+        <div className="card-head">
+          <div><h2>Agenda sekolah</h2><p>{sortedEvents.length} agenda · dibagikan ke semua guru</p></div>
+        </div>
+        {sortedEvents.length?sortedEvents.map(x=><div className="event" key={x.id}>
+          <div className="date-box"><b>{String(x.eventDate||"").slice(8,10)||"—"}</b><span>{String(x.eventDate||"").slice(5,7)||"—"}</span></div>
+          <div>
+            <b>{x.title}</b>
+            <span>{formatDate(x.eventDate)}{x.startTime? " · "+formatTime(x.startTime):""}{x.endTime?"–"+formatTime(x.endTime):""}</span>
+            {x.description&&<small>{x.description}</small>}
+          </div>
+          <span className="priority sedang">{x.type||"Agenda sekolah"}</span>
+        </div>):<p>Belum ada agenda sekolah. Klik “Tambah agenda sekolah” untuk menambahkan.</p>}
+      </section>
+
+      <section className="card">
+        <div className="card-head">
+          <div><h2>Libur nasional & hari besar</h2><p>{sortedCal.length} data kalender resmi</p></div>
+        </div>
+        {sortedCal.length?sortedCal.map(x=><div className="event" key={x.id}>
+          <div className="date-box"><b>{String(x.date||"").slice(8,10)||"—"}</b><span>{String(x.date||"").slice(5,7)||"—"}</span></div>
+          <div>
+            <b>{x.title}</b>
+            <span>{formatDate(x.date)} · {x.isNationalHoliday?"Libur nasional":"Hari besar / kalender akademik"}</span>
+            {x.description&&<small>{x.description}</small>}
+          </div>
+          <span className={x.isNationalHoliday?"priority tinggi":"priority sedang"}>{x.isNationalHoliday?"Libur":"Hari besar"}</span>
+        </div>):<p>Belum ada data libur nasional dan hari besar.</p>}
+      </section>
+    </>}
+
+    {showAdd&&<div className="modal-backdrop">
+      <div className="modal">
+        <div className="modal-head">
+          <div><h2>Tambah agenda sekolah</h2><p>Agenda akan tersimpan di Google Sheets dan terlihat oleh semua guru.</p></div>
+          <button className="icon-btn" onClick={()=>setShowAdd(false)}><X/></button>
+        </div>
+        <label>Nama agenda<input value={form.title} onChange={e=>setForm({...form,title:e.target.value})} placeholder="Contoh: Sumatif Tengah Semester"/></label>
+        <label>Deskripsi<textarea value={form.description} onChange={e=>setForm({...form,description:e.target.value})} placeholder="Keterangan agenda (opsional)"/></label>
+        <label>Tanggal<input type="date" value={form.eventDate} onChange={e=>setForm({...form,eventDate:e.target.value})}/></label>
+        <div className="two">
+          <label>Mulai<input type="time" value={form.startTime} onChange={e=>setForm({...form,startTime:e.target.value})}/></label>
+          <label>Selesai<input type="time" value={form.endTime} onChange={e=>setForm({...form,endTime:e.target.value})}/></label>
+        </div>
+        <label>Jenis agenda<select value={form.type} onChange={e=>setForm({...form,type:e.target.value})}>
+          <option>Agenda sekolah</option><option>Ujian / Asesmen</option><option>Rapat</option><option>Kegiatan sekolah</option><option>Lainnya</option>
+        </select></label>
+        <div className="modal-actions">
+          <button className="secondary" type="button" onClick={()=>setShowAdd(false)}>Batal</button>
+          <button className="primary" type="button" disabled={saving||!form.title.trim()||!form.eventDate} onClick={save}>{saving?"Menyimpan...":"Simpan agenda"}</button>
+        </div>
+      </div>
+    </div>}
+  </div>
+}
 
 function DrivePage(){const [data,setData]=useState({configured:false,files:[]});const [loading,setLoading]=useState(true);const [error,setError]=useState("");useEffect(()=>{api.getDriveMaterials().then(setData).catch(e=>setError(e.message||String(e))).finally(()=>setLoading(false))},[]);return <div className="content"><section className="page-title"><div><div className="eyebrow">Google Drive</div><h1>Drive Materi</h1><p>Materi mengajar yang tersimpan di folder Google Drive sekolah.</p></div>{data.folderUrl&&<a className="primary" href={data.folderUrl} target="_blank" rel="noreferrer">Buka folder Drive</a>}</section>{error&&<div className="card" style={{marginBottom:16}}>{error}</div>}{loading?<InlineLoading text="Memuat data Drive materi..."/>:<section className="card">{!data.configured?<p>Folder Drive belum dikonfigurasi.</p>:data.files.length?data.files.map(x=><div className="event" key={x.id}><div className="date-box"><FileText size={22}/></div><div><b>{x.name}</b><span>{x.mimeType} · {Math.round((x.size||0)/1024)} KB</span></div><a className="text-btn" href={x.url} target="_blank" rel="noreferrer">Buka</a></div>):<p>Folder Drive masih kosong.</p>}</section>}</div>}
 function minutesToTime(value){
