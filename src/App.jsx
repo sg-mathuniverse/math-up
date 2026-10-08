@@ -6,12 +6,6 @@ import {
   Settings, Users, X, BookOpen, Sparkles
 } from "lucide-react";
 
-const initialTodos = [
-  { id:1, title:"Siapkan soal STS kelas VIII", desc:"Kumpulkan kisi-kisi dan finalisasi 25 soal.", due:"Hari ini, 16:00", priority:"Tinggi", done:false },
-  { id:2, title:"Upload materi persamaan linear", desc:"Materi pertemuan minggu depan.", due:"Besok, 10:00", priority:"Sedang", done:false },
-  { id:3, title:"Rapat tim matematika", desc:"Review pembagian jadwal semester.", due:"10 Okt 2026, 13:00", priority:"Sedang", done:true }
-];
-
 const schedule = [
   {time:"07:00", end:"08:20", className:"VIII-A", topic:"Persamaan Linear Dua Variabel", room:"R. 201"},
   {time:"09:00", end:"10:20", className:"IX-B", topic:"Peluang", room:"R. 104"},
@@ -22,7 +16,7 @@ function App(){
   const [active,setActive]=useState("Dashboard");
   const [authChecked,setAuthChecked]=useState(false);
   const [authUser,setAuthUser]=useState(null);
-  const [todos,setTodos]=useState(initialTodos);
+  const [todos,setTodos]=useState([]);
   const [menuOpen,setMenuOpen]=useState(false);
   const [showTodo,setShowTodo]=useState(false);
   const [editingTodo,setEditingTodo]=useState(null);
