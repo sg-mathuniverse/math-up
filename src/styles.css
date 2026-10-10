@@ -216,3 +216,6 @@
   .login-math-logo .sum-part{width:27px;height:46px}
   .login-math-logo .sum-part b{font-size:34px!important}
 }
+
+/* Turunkan sedikit batas bawah i=1 pada simbol sigma di halaman login. */
+.auth-card .login-math-logo .sum-lower{bottom:-3px!important}
