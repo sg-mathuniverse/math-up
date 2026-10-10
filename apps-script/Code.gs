@@ -279,7 +279,7 @@ function findSubstituteCandidates(request) {
     const assigned=subs.filter(s=>String(s.substituteTeacherEmail||'').trim().toLowerCase()===email);
     const conflicts=regular.concat(assigned).filter(s=>{const a=timeToMinutes_(s.startTime),b=timeToMinutes_(s.endTime);return Number.isFinite(a)&&Number.isFinite(b)&&a<re&&b>rs;});
     const blocks=regular.concat(assigned).map(s=>({start:timeToMinutes_(s.startTime),end:timeToMinutes_(s.endTime)})).concat(agenda);
-    const availableSegments=gaps(blocks).map(x=>({startTime:minutesToTime_(x.start),endTime:minutesToTime_(x.end)}));
+    const availableSegments=gaps(blocks).map(x=>({startTime:minutesToTimeSafe_(x.start),endTime:minutesToTimeSafe_(x.end)}));
     const dailyLoad=regular.length;let status='Tersedia';if(!availableSegments.length)status='Tidak tersedia';else if(conflicts.length)status='Sebagian tersedia';
     return {email,name:String(t.name||email.split('@')[0]),subject:String(t.subject||'Matematika'),status,conflicts,availableSegments,dailyLoad};
   }).filter(t=>t.availableSegments.length).sort((a,b)=>{
