@@ -248,6 +248,10 @@ function findSubstituteCandidates(request) {
   const day = String(request.day || dayNameId_(date));
   const schedules = readRows_(SHEET_NAMES.SCHEDULE);
   const events = readRows_(SHEET_NAMES.EVENTS);
+  const substitutions = readRows_(SHEET_NAMES.SUBSTITUTIONS).filter(x =>
+    String(x.date || '') === date &&
+    String(x.status || 'Diajukan') !== 'Ditolak'
+  );
   const teachers = readRows_(SHEET_NAMES.TEACHERS).filter(t => String(t.status || 'Aktif').toLowerCase() !== 'nonaktif');
 
   return teachers.filter(t => String(t.email).toLowerCase() !== absentEmail).map(t => {
@@ -256,6 +260,10 @@ function findSubstituteCandidates(request) {
       String(s.teacherEmail).toLowerCase() === teacherEmail &&
       String(s.day).toLowerCase() === day.toLowerCase() &&
       overlaps_(s.startTime, s.endTime, startTime, endTime)
+    );
+    const substitutionConflicts = substitutions.filter(sub =>
+      String(sub.substituteTeacherEmail || '').toLowerCase() === teacherEmail &&
+      overlaps_(sub.startTime, sub.endTime, startTime, endTime)
     );
     const dayLoad = schedules.filter(s =>
       String(s.teacherEmail).toLowerCase() === teacherEmail &&
@@ -268,8 +276,8 @@ function findSubstituteCandidates(request) {
     );
     return {
       email: teacherEmail, name: t.name || teacherEmail.split('@')[0], subject: t.subject || 'Matematika',
-      status: conflicts.length ? 'Tidak tersedia' : (agendaConflicts.length ? 'Perlu dicek' : 'Tersedia'),
-      conflicts, agendaConflicts, dailyLoad
+      status: (conflicts.length || substitutionConflicts.length) ? 'Tidak tersedia' : (agendaConflicts.length ? 'Perlu dicek' : 'Tersedia'),
+      conflicts, substitutionConflicts, agendaConflicts, dailyLoad
     };
   }).sort((a, b) => {
     const rank = { 'Tersedia': 0, 'Perlu dicek': 1, 'Tidak tersedia': 2 };
@@ -290,7 +298,23 @@ function saveSubstitution(item) {
   });
   const candidate = candidates.find(c => c.email === substituteEmail);
   if (!candidate) throw new Error('Guru pengganti tidak ditemukan.');
-  if (candidate.status === 'Tidak tersedia') throw new Error('Guru tersebut memiliki jadwal bentrok.');
+  if (candidate.status === 'Tidak tersedia') throw new Error('Guru tersebut memiliki jadwal bentrok atau sudah menerima permintaan lain.');
+
+  const requestDate = String(item.date || '');
+  const start = String(item.startTime || '');
+  const end = String(item.endTime || '');
+  if (!requestDate || !start || !end || !Number.isFinite(timeToMinutes_(start)) ||
+      !Number.isFinite(timeToMinutes_(end)) || timeToMinutes_(start) >= timeToMinutes_(end)) {
+    throw new Error('Tanggal dan rentang jam pengganti tidak valid.');
+  }
+  const existingRequests = readRows_(SHEET_NAMES.SUBSTITUTIONS).filter(sub =>
+    String(sub.date || '') === requestDate &&
+    String(sub.status || 'Diajukan') !== 'Ditolak' &&
+    overlaps_(sub.startTime, sub.endTime, start, end)
+  );
+  if (existingRequests.some(sub => String(sub.absentTeacherEmail || '').toLowerCase() === absentEmail)) {
+    throw new Error('Anda sudah memiliki permintaan pengganti yang bertumpang tindih pada waktu tersebut.');
+  }
 
   return upsertRow_(SHEET_NAMES.SUBSTITUTIONS, {
     id: item.id || Utilities.getUuid(), date: String(item.date || ''), startTime: String(item.startTime || ''),
@@ -302,26 +326,54 @@ function saveSubstitution(item) {
 }
 
 function buildEffectiveSchedule_(schedules, substitutions, targetDate) {
-  const base = schedules.map(s => ({...s, scheduleType: 'Reguler', originalTeacherEmail: s.teacherEmail}));
   const date = String(targetDate || Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'Asia/Jakarta', 'yyyy-MM-dd'));
-  substitutions.filter(sub => String(sub.date) === date).forEach(sub => {
+  const day = dayNameId_(date);
+  let base = schedules.map(s => ({...s, scheduleType: 'Reguler', originalTeacherEmail: s.teacherEmail}));
+  const activeSubs = substitutions.filter(sub =>
+    String(sub.date || '') === date && String(sub.status || '') === 'Disetujui'
+  ).sort((a,b) => timeToMinutes_(a.startTime) - timeToMinutes_(b.startTime));
+
+  activeSubs.forEach(sub => {
     const absent = String(sub.absentTeacherEmail || '').toLowerCase();
     const substitute = String(sub.substituteTeacherEmail || '').toLowerCase();
-    const day = dayNameId_(String(sub.date || ''));
-    const matching = schedules.filter(s =>
-      String(s.teacherEmail).toLowerCase() === absent &&
-      String(s.day).toLowerCase() === day.toLowerCase() &&
-      String(s.startTime) === String(sub.startTime) &&
-      String(s.endTime) === String(sub.endTime) &&
-      (!sub.className || String(s.className) === String(sub.className))
+    const subStart = timeToMinutes_(sub.startTime);
+    const subEnd = timeToMinutes_(sub.endTime);
+    if (!Number.isFinite(subStart) || !Number.isFinite(subEnd) || subStart >= subEnd) return;
+
+    const matching = base.filter(s =>
+      String(s.teacherEmail || '').toLowerCase() === absent &&
+      String(s.day || '').toLowerCase() === day.toLowerCase() &&
+      overlaps_(s.startTime, s.endTime, sub.startTime, sub.endTime) &&
+      (!sub.className || String(s.className || '') === String(sub.className))
     );
-    const source = matching.length ? matching : [{
+    const matchedIds = new Set(matching.map(s => s.id));
+    const remaining = base.filter(s => !matchedIds.has(s.id));
+
+    matching.forEach(s => {
+      const originalStart = timeToMinutes_(s.startTime);
+      const originalEnd = timeToMinutes_(s.endTime);
+      if (originalStart < subStart) remaining.push({
+        ...s, id: String(s.id) + '-before-' + sub.id,
+        startTime: minutesToTimeSafe_(originalStart), endTime: minutesToTimeSafe_(Math.min(originalEnd, subStart))
+      });
+      if (originalEnd > subEnd) remaining.push({
+        ...s, id: String(s.id) + '-after-' + sub.id,
+        startTime: minutesToTimeSafe_(Math.max(originalStart, subEnd)), endTime: minutesToTimeSafe_(originalEnd)
+      });
+    });
+    base = remaining;
+
+    const source = matching[0] || {
       id: 'sub-' + sub.id, day, startTime: sub.startTime, endTime: sub.endTime,
       className: sub.className, topic: sub.topic, room: sub.room
-    }];
-    source.forEach(s => base.push({
-      ...s,
-      id: String(s.id) + '-sub-' + sub.id,
+    };
+    base.push({
+      ...source,
+      id: String(source.id) + '-sub-' + sub.id,
+      day, startTime: String(sub.startTime), endTime: String(sub.endTime),
+      className: sub.className || source.className,
+      topic: sub.topic || source.topic,
+      room: sub.room || source.room,
       teacherEmail: substitute,
       originalTeacherEmail: absent,
       scheduleType: 'Pengganti',
@@ -329,9 +381,13 @@ function buildEffectiveSchedule_(schedules, substitutions, targetDate) {
       substitutionDate: sub.date,
       substitutionStatus: sub.status,
       substituteFor: absent
-    }));
+    });
   });
   return base;
+}
+
+function minutesToTimeSafe_(minutes) {
+  return String(Math.floor(minutes / 60)).padStart(2, '0') + ':' + String(minutes % 60).padStart(2, '0');
 }
 
 function getEffectiveSchedule(date) {
@@ -364,6 +420,40 @@ function respondSubstitution(id, response) {
   const action = String(response || '').toLowerCase();
   if (action !== 'terima' && action !== 'tolak') throw new Error('Respons tidak valid.');
   const status = action === 'terima' ? 'Disetujui' : 'Ditolak';
+
+  if (action === 'terima') {
+    const sub = row.data;
+    const date = String(sub.date || '');
+    const start = String(sub.startTime || '');
+    const end = String(sub.endTime || '');
+    const day = dayNameId_(date);
+    if (!date || !Number.isFinite(timeToMinutes_(start)) || !Number.isFinite(timeToMinutes_(end)) ||
+        timeToMinutes_(start) >= timeToMinutes_(end)) {
+      throw new Error('Tanggal atau jam permintaan tidak valid.');
+    }
+    const scheduleConflict = readRows_(SHEET_NAMES.SCHEDULE).some(s =>
+      String(s.teacherEmail || '').toLowerCase() === user.email &&
+      String(s.day || '').toLowerCase() === day.toLowerCase() &&
+      overlaps_(s.startTime, s.endTime, start, end)
+    );
+    const substitutionConflict = readRows_(SHEET_NAMES.SUBSTITUTIONS).some(other =>
+      String(other.id) !== String(id) &&
+      String(other.date || '') === date &&
+      String(other.substituteTeacherEmail || '').toLowerCase() === user.email &&
+      String(other.status || 'Diajukan') !== 'Ditolak' &&
+      overlaps_(other.startTime, other.endTime, start, end)
+    );
+    const agendaConflict = readRows_(SHEET_NAMES.EVENTS).some(e =>
+      String(e.eventDate || '') === date && String(e.startTime || '') &&
+      overlaps_(e.startTime, e.endTime || e.startTime, start, end)
+    );
+    if (scheduleConflict || substitutionConflict) {
+      throw new Error('Anda sudah memiliki jadwal atau permintaan pengganti yang bertabrakan. Permintaan belum disetujui.');
+    }
+    if (agendaConflict) {
+      throw new Error('Ada agenda sekolah pada waktu tersebut. Periksa agenda sebelum menerima permintaan.');
+    }
+  }
 
   return updateRow_(SHEET_NAMES.SUBSTITUTIONS, row.rowNumber, {
     ...row.data,
