@@ -73,6 +73,38 @@ function App(){
     return()=>{cancelled=true};
   },[]);
 
+  // Refresh jadwal efektif saat tab kembali aktif dan secara berkala agar persetujuan pertukaran segera terlihat.
+  useEffect(()=>{
+    if(!authUser?.email)return;
+    let cancelled=false;
+    const refresh=async()=>{
+      if(document.visibilityState==="hidden")return;
+      try{
+        const d=await api.getBootstrap();
+        if(cancelled)return;
+        setDashboard({
+          schedule:d?.schedule||[],
+          events:(d?.events||[]).map(x=>({...x,eventDate:normalizeCalendarDate(x.eventDate)})),
+          allSchedule:d?.allSchedule||[]
+        });
+      }catch(e){}
+      try{
+        const requests=await api.getSubstitutionRequests();
+        if(!cancelled)setSubstitutionNotifications(
+          Array.isArray(requests?.requests)?requests.requests:(Array.isArray(requests)?requests:[])
+        );
+      }catch(e){}
+    };
+    const onFocus=()=>refresh();
+    window.addEventListener("focus",onFocus);
+    const timer=window.setInterval(refresh,60000);
+    return()=>{
+      cancelled=true;
+      window.removeEventListener("focus",onFocus);
+      window.clearInterval(timer);
+    };
+  },[authUser?.email]);
+
   const filteredTodos=useMemo(()=>todos.filter(t=>String(t?.title||"").toLowerCase().includes(query.toLowerCase())),[todos,query]);
 
   if(!authChecked || loading) return <LoadingScreen/>;
@@ -82,6 +114,18 @@ function App(){
   const toggleTodo=async id=>{const t=todos.find(x=>x.id===id);if(!t||todoActionLoading)return;setTodoActionLoading("toggle:"+id);setApiError("");try{await api.toggleTodo(id,!t.done);setTodos(ts=>ts.map(x=>x.id===id?{...x,done:!x.done}:x));}catch(e){setApiError(e.message||String(e));}finally{setTodoActionLoading("");}};
   const requestTodoToggle=id=>{const t=todos.find(x=>x.id===id);if(t&&!todoActionLoading)setConfirmTodo(t);};
   const confirmTodoToggle=()=>{if(!confirmTodo)return;const id=confirmTodo.id;toggleTodo(id);setConfirmTodo(null)};
+  const refreshDashboard=async()=>{
+    const d=await api.getBootstrap();
+    setDashboard({
+      schedule:d?.schedule||[],
+      events:(d?.events||[]).map(x=>({...x,eventDate:normalizeCalendarDate(x.eventDate)})),
+      allSchedule:d?.allSchedule||[]
+    });
+    try{
+      const requests=await api.getSubstitutionRequests();
+      setSubstitutionNotifications(Array.isArray(requests?.requests)?requests.requests:(Array.isArray(requests)?requests:[]));
+    }catch(e){}
+  };
 
   return <div className="app">
     <aside
@@ -119,7 +163,7 @@ function App(){
       </header>
 
       {active==="Dashboard" ? <Dashboard todos={filteredTodos} toggleTodo={requestTodoToggle} todoActionLoading={todoActionLoading} schedule={dashboard.schedule} allSchedule={dashboard.allSchedule} events={dashboard.events} user={user} substitutionNotifications={substitutionNotifications} /> :
-       active==="Jadwal Mengajar" ? <SchedulePage user={user} /> : active==="Guru Pengganti" ? <SubstitutePage user={user} /> :
+       active==="Jadwal Mengajar" ? <SchedulePage user={user} /> : active==="Guru Pengganti" ? <SubstitutePage user={user} onSubstitutionUpdated={refreshDashboard} /> :
        active==="Kalender Akademik" ? <CalendarPage /> :
        active==="Drive Materi" ? <DrivePage /> :
        active==="Guru Matematika" ? <TeachersPage user={user} onUserUpdated={setUser} /> :
@@ -245,7 +289,7 @@ function Dashboard({todos,toggleTodo,schedule,allSchedule,events,user,substituti
    <div className="dashboard-three-cards">
      <section className="card dashboard-mini-card">
        <div className="card-head dashboard-section-head"><div className="section-title-icon"><BookOpen size={18}/><div><h2>Jadwal mengajar hari ini</h2><p>Jadwal Anda untuk hari ini</p></div></div></div>
-       <div className="schedule-list">{activeSchedule.length?activeSchedule.map((s,i)=><div className="schedule-row" key={s.id||s.startTime+i}><div className="time"><b>{formatTime(s.startTime)}</b><span>{formatTime(s.endTime)}</span></div><div className="line"><i></i></div><div className="lesson"><div><b>{s.className}</b><span>{s.topic||"Tanpa topik"}</span></div><small>{s.room||"-"}</small></div></div>):<p style={{padding:20}}>Belum ada jadwal untuk hari ini.</p>}</div>
+       <div className="schedule-list">{activeSchedule.length?activeSchedule.map((s,i)=><div className="schedule-row" key={s.id||s.startTime+i}><div className="time"><b>{formatTime(s.startTime)}</b><span>{formatTime(s.endTime)}</span></div><div className="line"><i></i></div><div className="lesson"><div><b>{s.className}</b><span>{s.topic||"Tanpa topik"}</span>{s.scheduleType==="Pengganti"&&<span className="schedule-substitution-label">Guru Pengganti</span>}</div><small>{s.room||"-"}</small></div></div>):<p style={{padding:20}}>Belum ada jadwal untuk hari ini.</p>}</div>
      </section>
      <section className="card dashboard-mini-card">
        <div className="card-head dashboard-section-head"><div className="section-title-icon"><ListTodo size={18}/><div><h2>To-Do List</h2><p>Deadline terdekat</p></div></div></div>
@@ -609,7 +653,7 @@ function localDateKey(date=new Date()){
  return `${y}-${m}-${d}`;
 }
 
-function SubstitutePage({user}){
+function SubstitutePage({user,onSubstitutionUpdated}){
  const today=localDateKey();
  const [form,setForm]=useState({date:today,startTime:"07:00",endTime:"08:20",className:"",topic:"",room:"",reason:""});
  const [candidates,setCandidates]=useState([]);
@@ -674,6 +718,7 @@ function SubstitutePage({user}){
      setPlan(null);
      setCandidates([]);
      await refresh();
+     await onSubstitutionUpdated?.();
    }catch(e){
      setMessage(e.message||String(e));
    }finally{
@@ -688,6 +733,7 @@ function SubstitutePage({user}){
      await api.respondSubstitution(id,response);
      setMessage(response==="terima"?"Permintaan diterima. Jadwal pengganti akan masuk ke jadwal efektif.":"Permintaan ditolak.");
      await refresh();
+     await onSubstitutionUpdated?.();
    }catch(e){
      setMessage(e.message||String(e));
    }finally{
