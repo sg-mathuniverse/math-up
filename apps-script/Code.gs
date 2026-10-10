@@ -175,10 +175,19 @@ function saveTeacher(teacher) {
 function saveSchedule(item) {
   const user = requireUser_();
   setupSheets();
+  item = item || {};
   if (item.teacherEmail && String(item.teacherEmail).toLowerCase() !== user.email) throw new Error('Jadwal harus dimiliki oleh akun yang sedang aktif.');
+  const day = String(item.day || '').trim();
+  const startTime = String(item.startTime || '').trim();
+  const endTime = String(item.endTime || '').trim();
+  const start = timeToMinutes_(startTime);
+  const end = timeToMinutes_(endTime);
+  if (!day || !Number.isFinite(start) || !Number.isFinite(end) || start >= end) {
+    throw new Error('Hari dan rentang jam jadwal tidak valid.');
+  }
   return upsertRow_(SHEET_NAMES.SCHEDULE, {
-    id: item.id || Utilities.getUuid(), teacherEmail: user.email, day: String(item.day || ''),
-    startTime: String(item.startTime || ''), endTime: String(item.endTime || ''), className: String(item.className || ''),
+    id: item.id || Utilities.getUuid(), teacherEmail: user.email, day,
+    startTime, endTime, className: String(item.className || ''),
     topic: String(item.topic || ''), room: String(item.room || ''), createdAt: item.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString()
   });
@@ -194,7 +203,9 @@ function updateSchedule(item) {
 
   const startTime = String(item.startTime || '').trim();
   const endTime = String(item.endTime || '').trim();
-  if (!item.day || !startTime || !endTime || timeToMinutes_(startTime) >= timeToMinutes_(endTime)) {
+  const start = timeToMinutes_(startTime);
+  const end = timeToMinutes_(endTime);
+  if (!item.day || !Number.isFinite(start) || !Number.isFinite(end) || start >= end) {
     throw new Error('Hari dan jam jadwal tidak valid.');
   }
   return updateRow_(SHEET_NAMES.SCHEDULE, row.rowNumber, {
@@ -225,9 +236,24 @@ function deleteSchedule(id) {
 function saveEvent(event) {
   const user = requireUser_();
   setupSheets();
+  event = event || {};
+  const title = String(event.title || '').trim();
+  const eventDate = String(event.eventDate || '').trim();
+  const startTime = String(event.startTime || '').trim();
+  const endTime = String(event.endTime || '').trim();
+  if (!title) throw new Error('Nama agenda wajib diisi.');
+  if (!eventDate) throw new Error('Tanggal agenda wajib diisi.');
+  if (Boolean(startTime) !== Boolean(endTime)) throw new Error('Isi jam mulai dan selesai, atau kosongkan keduanya untuk agenda sehari penuh.');
+  if (startTime) {
+    const start = timeToMinutes_(startTime);
+    const end = timeToMinutes_(endTime);
+    if (!Number.isFinite(start) || !Number.isFinite(end) || start >= end) {
+      throw new Error('Rentang jam agenda tidak valid.');
+    }
+  }
   return upsertRow_(SHEET_NAMES.EVENTS, {
-    id: event.id || Utilities.getUuid(), title: String(event.title || '').trim(), description: String(event.description || ''),
-    eventDate: String(event.eventDate || ''), startTime: String(event.startTime || ''), endTime: String(event.endTime || ''),
+    id: event.id || Utilities.getUuid(), title, description: String(event.description || ''),
+    eventDate, startTime, endTime,
     type: event.type || 'Sekolah', createdBy: user.email, createdAt: event.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString()
   });
@@ -243,8 +269,11 @@ function updateEvent(event) {
   const startTime=String(event.startTime||'').trim(), endTime=String(event.endTime||'').trim();
   if(!title)throw new Error('Nama agenda wajib diisi.');
   if(!eventDate)throw new Error('Tanggal agenda wajib diisi.');
-  if((startTime&&!Number.isFinite(timeToMinutes_(startTime)))||(endTime&&!Number.isFinite(timeToMinutes_(endTime))))throw new Error('Format jam agenda tidak valid.');
-  if(startTime&&endTime&&timeToMinutes_(startTime)>=timeToMinutes_(endTime))throw new Error('Jam selesai harus lebih besar dari jam mulai.');
+  if(Boolean(startTime)!==Boolean(endTime))throw new Error('Isi jam mulai dan selesai, atau kosongkan keduanya untuk agenda sehari penuh.');
+  if(startTime) {
+    const start=timeToMinutes_(startTime), end=timeToMinutes_(endTime);
+    if(!Number.isFinite(start)||!Number.isFinite(end)||start>=end)throw new Error('Rentang jam agenda tidak valid.');
+  }
   return updateRow_(SHEET_NAMES.EVENTS,row.rowNumber,{...row.data,title,description:String(event.description||''),eventDate,startTime,endTime,type:String(event.type||'Sekolah'),updatedAt:new Date().toISOString()});
 }
 function deleteEvent(id) {
@@ -490,9 +519,12 @@ function dayNameId_(dateString) {
 }
 
 function timeToMinutes_(value) {
-  const m = String(value || '').match(/^(\d{1,2}):(\d{2})$/);
+  const m = String(value == null ? '' : value).trim().match(/^(\d{1,2}):(\d{2})$/);
   if (!m) return NaN;
-  return Number(m[1]) * 60 + Number(m[2]);
+  const hour = Number(m[1]);
+  const minute = Number(m[2]);
+  if (!Number.isFinite(hour) || !Number.isFinite(minute) || hour < 0 || hour > 23 || minute < 0 || minute > 59) return NaN;
+  return hour * 60 + minute;
 }
 
 function overlaps_(startA, endA, startB, endB) {
