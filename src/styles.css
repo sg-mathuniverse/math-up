@@ -85,3 +85,23 @@
 .auth-card>.login-math-logo{width:min(100%,460px);max-width:460px;min-height:104px;align-self:center}
 .sidebar-math-logo .limits{align-self:stretch;justify-content:space-between;line-height:1;font-size:8px;padding:1px 0}.sidebar-math-logo .limits sup{position:relative;top:-2px}.sidebar-math-logo .limits sub{position:relative;bottom:-2px}
 @media(max-width:520px){.login-math-logo{width:100%;min-height:88px;padding:12px 8px;gap:8px}.login-math-logo .equation-part{font-size:clamp(10px,3vw,14px)}.login-math-logo .limit-part small{font-size:24px}.login-math-logo .sum-part b{font-size:35px}}
+
+/* Final layout correction: keep the login formula in one horizontal row. */
+.auth-card>.login-math-logo{display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;width:100%!important;max-width:520px!important;min-width:0!important;min-height:112px!important;padding:16px 14px!important;gap:clamp(8px,2vw,18px)!important;justify-content:center!important;align-items:center!important;overflow:hidden!important}
+.auth-card>.login-math-logo .limit-part,.auth-card>.login-math-logo .sum-part{flex:0 0 auto!important;white-space:nowrap!important}
+.auth-card>.login-math-logo .equation-part{display:block!important;flex:0 1 auto!important;white-space:nowrap!important;font-size:clamp(10px,2.4vw,18px)!important;letter-spacing:-.4px!important}
+.auth-card>.login-math-logo .limit-part small{font-size:clamp(21px,3.4vw,32px)!important}
+.auth-card>.login-math-logo .limit-part sub{font-size:clamp(8px,1.4vw,12px)!important}
+.auth-card>.login-math-logo .sum-part b{font-size:clamp(31px,5vw,45px)!important}
+.auth-card>.login-math-logo .sum-part small,.auth-card>.login-math-logo .sum-part sub{font-size:clamp(8px,1.4vw,12px)!important}
+/* Sidebar integral symbol with true upper/lower bounds beside the integral. */
+.sidebar .brand .sidebar-math-logo{display:flex;flex-direction:row;align-items:center;justify-content:center;gap:2px;overflow:visible;box-sizing:border-box;background:#fff;color:#101828}
+.sidebar .sidebar-math-logo .pi{font-size:12px;line-height:1}
+.sidebar .sidebar-math-logo .integral-wrap{position:relative;display:inline-flex;align-items:center;justify-content:center;width:16px;height:31px;flex:none}
+.sidebar .sidebar-math-logo .integral{font-family:serif;font-size:30px;line-height:1;display:block}
+.sidebar .sidebar-math-logo .limits{position:absolute;inset:0;display:block;align-self:auto;justify-content:initial;padding:0;font-family:serif;font-size:8px;line-height:1}
+.sidebar .sidebar-math-logo .limits sup{position:absolute;top:-1px;right:-1px;font-size:8px;line-height:1}
+.sidebar .sidebar-math-logo .limits sub{position:absolute;bottom:-1px;right:-1px;font-size:8px;line-height:1}
+.sidebar .sidebar-math-logo .formula{font-size:7px;letter-spacing:-.45px;white-space:nowrap}
+.sidebar .brand .brand-name{display:flex;flex-direction:column;gap:1px;min-width:0}
+.sidebar .brand .brand-name strong{font-size:16px;line-height:1.15;white-space:nowrap}
