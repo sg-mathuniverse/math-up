@@ -217,5 +217,7 @@
   .login-math-logo .sum-part b{font-size:34px!important}
 }
 
-/* Turunkan sedikit batas bawah i=1 pada simbol sigma di halaman login. */
-.auth-card .login-math-logo .sum-lower{bottom:-3px!important}
+
+/* Make the lower summation index visible on the login equation. */
+.auth-card .login-math-logo .sum-part{height:64px!important;overflow:visible!important}
+.auth-card .login-math-logo .sum-lower{bottom:-7px!important;display:block!important}
