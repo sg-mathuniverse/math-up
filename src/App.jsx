@@ -136,13 +136,13 @@ function App(){
 
 
 function LoadingScreen(){
-  return <div className="auth-screen"><div className="auth-card loading-card"><div className="brand-mark login-math-logo" aria-label="limit norma delta menuju nol, jumlah pi f c i kuadrat delta x i"><span className="limit-part"><small>lim</small><sub>‖Δ‖ → 0</sub></span><span className="sum-part"><small>n</small><b>∑</b><sub>i=1</sub></span><span className="equation-part">π [f(cᵢ)]² Δxᵢ</span></div><div className="loading-spinner" aria-hidden="true"></div><div className="eyebrow loading-eyebrow">Menyiapkan</div><h1>Ruang Math Up</h1><p>Memuat profil, jadwal, tugas, dan agenda Anda. Mohon tunggu sampai Ruang Math Up selesai dimuat.</p><div className="loading-track"><span></span></div><small>Jangan tutup halaman ini selama proses pemuatan.</small></div></div>;
+  return <div className="auth-screen"><div className="auth-card loading-card"><div className="brand-mark login-math-logo" role="img" aria-label="limit norma delta menuju nol, jumlah dari i sama dengan satu sampai n, pi kali f dari c i kuadrat, delta x i"><span className="limit-part"><span className="limit-symbol">lim</span><span className="limit-condition">‖Δ‖ → 0</span></span><span className="sum-part"><span className="sum-upper">n</span><b>∑</b><span className="sum-lower">i=1</span></span><span className="equation-part"><span className="math-italic">π</span> [<span className="math-italic">f</span>(c<sub>i</sub>)]<sup>2</sup> Δx<sub>i</sub></span></div><div className="loading-spinner" aria-hidden="true"></div><div className="eyebrow loading-eyebrow">Menyiapkan</div><h1>Ruang Math Up</h1><p>Memuat profil, jadwal, tugas, dan agenda Anda. Mohon tunggu sampai Ruang Math Up selesai dimuat.</p><div className="loading-track"><span></span></div><small>Jangan tutup halaman ini selama proses pemuatan.</small></div></div>;
 }
 
 function LoginScreen({error}){
   const loginUrl=(import.meta.env.VITE_APPS_SCRIPT_URL||"").replace(/\/$/,"");
   return <div className="auth-screen"><div className="auth-card">
-    <div className="brand-mark login-math-logo" aria-label="limit norma delta menuju nol, jumlah pi f c i kuadrat delta x i"><span className="limit-part"><small>lim</small><sub>‖Δ‖ → 0</sub></span><span className="sum-part"><small>n</small><b>∑</b><sub>i=1</sub></span><span className="equation-part">π [f(cᵢ)]² Δxᵢ</span></div>
+    <div className="brand-mark login-math-logo" role="img" aria-label="limit norma delta menuju nol, jumlah dari i sama dengan satu sampai n, pi kali f dari c i kuadrat, delta x i"><span className="limit-part"><span className="limit-symbol">lim</span><span className="limit-condition">‖Δ‖ → 0</span></span><span className="sum-part"><span className="sum-upper">n</span><b>∑</b><span className="sum-lower">i=1</span></span><span className="equation-part"><span className="math-italic">π</span> [<span className="math-italic">f</span>(c<sub>i</sub>)]<sup>2</sup> Δx<sub>i</sub></span></div>
     <div className="eyebrow">Ruang Math Up</div>
     <h1>Masuk ke Ruang Math Up</h1>
     <p>Gunakan akun Google sekolah Anda. Ruang Math Up akan mengambil identitas akun secara aman dari Google Apps Script.</p>
