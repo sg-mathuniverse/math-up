@@ -89,7 +89,7 @@ function App(){
       onMouseEnter={()=>{if(window.matchMedia("(min-width: 901px)").matches)setMenuOpen(true)}}
       onMouseLeave={()=>{if(window.matchMedia("(min-width: 901px)").matches)setMenuOpen(false)}}
     >
-      <div className="brand" role="button" tabIndex={0} aria-label={menuOpen?"Tutup menu":"Buka menu"} onClick={()=>setMenuOpen(v=>!v)} onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();setMenuOpen(v=>!v)}}}><div className="brand-mark">∑</div><div><strong>Math Up</strong><span>Teacher Workspace</span></div></div>
+      <div className="brand" role="button" tabIndex={0} aria-label={menuOpen?"Tutup menu":"Buka menu"} onClick={()=>setMenuOpen(v=>!v)} onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();setMenuOpen(v=>!v)}}}><div className="brand-mark sidebar-math-logo" aria-label="pi integral a sampai b f kuadrat x dx"><span>π</span><span className="integral">∫</span><span className="limits"><sup>b</sup><sub>a</sub></span><span className="formula">f²(x) dx</span></div><div><strong>Ruang</strong><span>di bawahnya</span><strong>Math Up</strong></div></div>
       <nav>
         <Nav icon={<LayoutDashboard size={19}/>} label="Dashboard" active={active==="Dashboard"} onClick={()=>setActive("Dashboard")}/>
         <Nav icon={<CalendarDays size={19}/>} label="Jadwal Mengajar" active={active==="Jadwal Mengajar"} onClick={()=>setActive("Jadwal Mengajar")}/>
@@ -136,21 +136,21 @@ function App(){
 
 
 function LoadingScreen(){
-  return <div className="auth-screen"><div className="auth-card loading-card"><div className="brand-mark">∑</div><div className="loading-spinner" aria-hidden="true"></div><div className="eyebrow loading-eyebrow">Menyiapkan ruang kerja</div><h1>Math Up</h1><p>Memuat profil, jadwal, tugas, dan agenda Anda. Mohon tunggu sampai Math Up selesai dimuat.</p><div className="loading-track"><span></span></div><small>Jangan tutup halaman ini selama proses pemuatan.</small></div></div>;
+  return <div className="auth-screen"><div className="auth-card loading-card"><div className="brand-mark login-math-logo" aria-label="limit norma delta menuju nol, jumlah pi f c i kuadrat delta x i"><span className="limit-part"><small>lim</small><sub>‖Δ‖ → 0</sub></span><span className="sum-part"><small>n</small><b>∑</b><sub>i=1</sub></span><span className="equation-part">π [f(cᵢ)]² Δxᵢ</span></div><div className="loading-spinner" aria-hidden="true"></div><div className="eyebrow loading-eyebrow">Menyiapkan</div><h1>Ruang Math Up</h1><p>Memuat profil, jadwal, tugas, dan agenda Anda. Mohon tunggu sampai Ruang Math Up selesai dimuat.</p><div className="loading-track"><span></span></div><small>Jangan tutup halaman ini selama proses pemuatan.</small></div></div>;
 }
 
 function LoginScreen({error}){
   const loginUrl=(import.meta.env.VITE_APPS_SCRIPT_URL||"").replace(/\/$/,"");
   return <div className="auth-screen"><div className="auth-card">
-    <div className="brand-mark">∑</div>
-    <div className="eyebrow">Teacher Workspace</div>
-    <h1>Masuk ke Math Up</h1>
-    <p>Gunakan akun Google sekolah Anda. Math Up akan mengambil identitas akun secara aman dari Google Apps Script.</p>
+    <div className="brand-mark login-math-logo" aria-label="limit norma delta menuju nol, jumlah pi f c i kuadrat delta x i"><span className="limit-part"><small>lim</small><sub>‖Δ‖ → 0</sub></span><span className="sum-part"><small>n</small><b>∑</b><sub>i=1</sub></span><span className="equation-part">π [f(cᵢ)]² Δxᵢ</span></div>
+    <div className="eyebrow">Ruang Math Up</div>
+    <h1>Masuk ke Ruang Math Up</h1>
+    <p>Gunakan akun Google sekolah Anda. Ruang Math Up akan mengambil identitas akun secara aman dari Google Apps Script.</p>
     {error&&<div className="auth-error">{error}</div>}
     <a className="google-login" href={loginUrl} target="_blank" rel="noreferrer">
       <span className="google-g">G</span> Masuk dengan Google
     </a>
-    <p className="auth-hint">Setelah Google selesai memverifikasi akun, kembali ke tab Math Up lalu muat ulang halaman.</p>
+    <p className="auth-hint">Setelah Google selesai memverifikasi akun, kembali ke tab Ruang Math Up lalu muat ulang halaman.</p>
   </div></div>;
 }
 
@@ -235,7 +235,7 @@ function Dashboard({todos,toggleTodo,schedule,allSchedule,events,user,substituti
    <section className="hero dashboard-hero">
      <div className="hero-main">
        <div className="hero-date">{dateLabel}</div>
-       <div className="eyebrow"><Sparkles size={14}/> Selamat datang di Math Up</div>
+       <div className="eyebrow"><Sparkles size={14}/> Selamat datang di Ruang Math Up</div>
        <h1>Halo, {user?.name||"Guru"}! 👋</h1>
        <div className="running-wrap"><span className="running-label">Info</span><div className="running-track"><div className="running-text">{runningMessages.map((m,i)=><span key={i}>{m}</span>)}</div></div></div>
      </div>
