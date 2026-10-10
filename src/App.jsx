@@ -84,8 +84,12 @@ function App(){
   const confirmTodoToggle=()=>{if(!confirmTodo)return;const id=confirmTodo.id;toggleTodo(id);setConfirmTodo(null)};
 
   return <div className="app">
-    <aside className={menuOpen?"sidebar open":"sidebar"}>
-      <div className="brand"><div className="brand-mark">∑</div><div><strong>Math Up</strong><span>Teacher Workspace</span></div></div>
+    <aside
+      className={menuOpen?"sidebar open":"sidebar"}
+      onMouseEnter={()=>{if(window.matchMedia("(min-width: 901px)").matches)setMenuOpen(true)}}
+      onMouseLeave={()=>{if(window.matchMedia("(min-width: 901px)").matches)setMenuOpen(false)}}
+    >
+      <div className="brand" role="button" tabIndex={0} aria-label={menuOpen?"Tutup menu":"Buka menu"} onClick={()=>setMenuOpen(v=>!v)} onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();setMenuOpen(v=>!v)}}}><div className="brand-mark">∑</div><div><strong>Math Up</strong><span>Teacher Workspace</span></div></div>
       <nav>
         <Nav icon={<LayoutDashboard size={19}/>} label="Dashboard" active={active==="Dashboard"} onClick={()=>setActive("Dashboard")}/>
         <Nav icon={<CalendarDays size={19}/>} label="Jadwal Mengajar" active={active==="Jadwal Mengajar"} onClick={()=>setActive("Jadwal Mengajar")}/>
@@ -101,7 +105,7 @@ function App(){
       </div>
     </aside>
 
-    <main className="main">
+    <main className="main" onClick={()=>{if(menuOpen)setMenuOpen(false)}}>
       <header className="topbar">
         <button className="icon-btn mobile-menu" onClick={()=>setMenuOpen(v=>!v)}><Menu size={20}/></button>
         <div className="crumb"><span>Workspace</span><b>/</b><strong>{active}</strong></div>
