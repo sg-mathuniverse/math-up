@@ -89,7 +89,7 @@ function App(){
       onMouseEnter={()=>{if(window.matchMedia("(min-width: 901px)").matches)setMenuOpen(true)}}
       onMouseLeave={()=>{if(window.matchMedia("(min-width: 901px)").matches)setMenuOpen(false)}}
     >
-      <div className="brand" role="button" tabIndex={0} aria-label={menuOpen?"Tutup menu":"Buka menu"} onClick={()=>setMenuOpen(v=>!v)} onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();setMenuOpen(v=>!v)}}}><div className="brand-mark sidebar-math-logo" aria-label="pi integral a sampai b f kuadrat x dx"><span>π</span><span className="integral">∫</span><span className="limits"><sup>b</sup><sub>a</sub></span><span className="formula">f²(x) dx</span></div><div><strong>Ruang</strong><span>di bawahnya</span><strong>Math Up</strong></div></div>
+      <div className="brand" role="button" tabIndex={0} aria-label={menuOpen?"Tutup menu":"Buka menu"} onClick={()=>setMenuOpen(v=>!v)} onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();setMenuOpen(v=>!v)}}}><div className="brand-mark sidebar-math-logo" aria-label="pi integral a sampai b f kuadrat x dx"><span className="pi">π</span><span className="integral-wrap"><span className="integral">∫</span><span className="limits"><sup>b</sup><sub>a</sub></span></span><span className="formula">f²(x) dx</span></div><div className="brand-name"><strong>Ruang</strong><strong>Math Up</strong></div></div>
       <nav>
         <Nav icon={<LayoutDashboard size={19}/>} label="Dashboard" active={active==="Dashboard"} onClick={()=>setActive("Dashboard")}/>
         <Nav icon={<CalendarDays size={19}/>} label="Jadwal Mengajar" active={active==="Jadwal Mengajar"} onClick={()=>setActive("Jadwal Mengajar")}/>
