@@ -643,21 +643,27 @@ function CalendarPage(){
           </section>
 
           <section className="card calendar-side-card">
-            <div className="card-head"><div><h2>{selectedDate?formatDate(selectedDate):"Agenda & hari penting"}</h2><p>{selectedDate?"Kegiatan pada tanggal yang dipilih":"Agenda dan hari penting yang akan datang."}</p></div></div>
+            <div className="card-head"><div><h2>Agenda &amp; hari penting</h2><p>Agenda dan hari penting yang akan datang.</p></div></div>
             <div className="calendar-list">
-              {selectedDate ? (selectedItems.length?selectedItems.map((x,i)=><div className="calendar-detail-item selected-date-detail" key={x.id||String(x.title)+"-"+i}>
-                <span className={"calendar-badge "+x.kind}>{x.kind==="holiday"?"Libur nasional":x.kind==="important"?"Hari besar":"Agenda sekolah"}</span>
-                <div className="calendar-upcoming-copy"><b>{x.title}</b><small>{x.description||((x.startTime?formatTime(x.startTime):"")+(x.endTime?"–"+formatTime(x.endTime):""))||"Tanpa keterangan tambahan"}</small></div>
-                {x.kind==="school"&&<div className="calendar-item-actions compact-actions selected-date-actions"><button className="secondary" type="button" onClick={()=>openEdit(x)} disabled={saving}>Edit</button><button className="secondary danger" type="button" onClick={()=>removeEvent(x)} disabled={saving}>Hapus</button></div>}
-              </div>):<p className="calendar-empty-note">Tidak ada agenda pada tanggal ini.</p>) : (upcomingCalendarItems.length?upcomingCalendarItems.slice(0,5).map(({date,item,key})=><div className="calendar-detail-item" key={key}>
+              {upcomingCalendarItems.length?upcomingCalendarItems.slice(0,5).map(({date,item,key})=><div className="calendar-detail-item" key={key}>
                 <div className="calendar-upcoming-date"><b>{date.slice(8,10)}</b><span>{new Intl.DateTimeFormat("id-ID",{month:"short"}).format(new Date(date+"T00:00:00"))}</span></div>
                 <span className={"calendar-badge "+item.kind}>{item.kind==="holiday"?"Libur nasional":item.kind==="important"?"Hari besar":"Agenda sekolah"}</span>
                 <div className="calendar-upcoming-copy"><b>{item.title}</b><small>{formatDate(date)}{item.startTime?" · "+formatTime(item.startTime):""}{item.endTime?"–"+formatTime(item.endTime):""}</small></div>
-              </div>):<p className="calendar-empty-note">Belum ada agenda atau hari penting mendatang.</p>)}
+              </div>):<p className="calendar-empty-note">Belum ada agenda atau hari penting mendatang.</p>}
             </div>
           </section>
         </aside>
       </section>
+      {selectedDate&&<section className="card calendar-selected-details">
+        <div className="card-head"><div><h2>Detail agenda · {formatDate(selectedDate)}</h2><p>Agenda dan kegiatan pada tanggal yang kamu pilih.</p></div><button className="secondary" type="button" onClick={()=>setSelectedDate("")}>Tutup detail</button></div>
+        <div className="calendar-list">
+          {selectedItems.length?selectedItems.map((x,i)=><div className="calendar-detail-item selected-date-detail" key={x.id||String(x.title)+"-"+i}>
+            <span className={"calendar-badge "+x.kind}>{x.kind==="holiday"?"Libur nasional":x.kind==="important"?"Hari besar":"Agenda sekolah"}</span>
+            <div className="calendar-upcoming-copy"><b>{x.title}</b><small>{x.description||((x.startTime?formatTime(x.startTime):"")+(x.endTime?"–"+formatTime(x.endTime):""))||"Tanpa keterangan tambahan"}</small></div>
+            {x.kind==="school"&&<div className="calendar-item-actions compact-actions selected-date-actions"><button className="secondary" type="button" onClick={()=>openEdit(x)} disabled={saving}>Edit</button><button className="secondary danger" type="button" onClick={()=>removeEvent(x)} disabled={saving}>Hapus</button></div>}
+          </div>):<p className="calendar-empty-note">Tidak ada agenda pada tanggal ini.</p>}
+        </div>
+      </section>}
     </>}
     {showAdd&&<div className="modal-backdrop">
       <div className="modal">
