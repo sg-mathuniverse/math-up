@@ -288,7 +288,18 @@ function Dashboard({todos,toggleTodo,schedule,allSchedule,events,academicCalenda
  const activeSchedule=(schedule||[]).filter(s=>String(s.day||"").trim().toLowerCase()===currentDay.toLowerCase()).slice().sort((a,b)=>String(a.startTime).localeCompare(String(b.startTime)));
  const weeklySchedule=(allSchedule||[]).filter(x=>String(x.teacherEmail||"").toLowerCase()===String(user?.email||"").toLowerCase());
  const todayKey=normalizeCalendarDate(now).slice(0,10);
- const activeEvents=(events||[]).filter(x=>normalizeCalendarDate(x.eventDate).slice(0,10)>=todayKey).slice().sort((a,b)=>normalizeCalendarDate(a.eventDate).localeCompare(normalizeCalendarDate(b.eventDate))).slice(0,3);
+ const futureDashboardEvents=(events||[]).filter(x=>normalizeCalendarDate(x.eventDate).slice(0,10)>=todayKey).slice().sort((a,b)=>normalizeCalendarDate(a.eventDate).slice(0,10).localeCompare(normalizeCalendarDate(b.eventDate).slice(0,10)));
+ const activeEventGroups=[];
+ const dashboardDayNumber=date=>{const m=String(date||"").slice(0,10).match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?Date.UTC(Number(m[1]),Number(m[2])-1,Number(m[3]))/86400000:NaN};
+ futureDashboardEvents.forEach(event=>{
+   const title=String(event.title||"Agenda sekolah").trim(),date=normalizeCalendarDate(event.eventDate).slice(0,10);
+   const matching=activeEventGroups.filter(group=>group.title.trim().toLocaleLowerCase("id-ID")===title.toLocaleLowerCase("id-ID"));
+   const last=matching[matching.length-1];
+   if(last&&dashboardDayNumber(date)-dashboardDayNumber(last.events[last.events.length-1].eventDate)===1)last.events.push(event);
+   else activeEventGroups.push({title,events:[event]});
+ });
+ activeEventGroups.sort((a,b)=>String(a.events[0].eventDate).localeCompare(String(b.events[0].eventDate)));
+ const activeEvents=activeEventGroups.slice(0,3);
  const priorityRank={Tinggi:0,Sedang:1,Rendah:2};
  const activeTodos=(todos||[]).filter(t=>!t.done).slice().sort((a,b)=>{
    const ad=todoDueTimestamp(a),bd=todoDueTimestamp(b);
@@ -362,7 +373,13 @@ function Dashboard({todos,toggleTodo,schedule,allSchedule,events,academicCalenda
      </section>
      <section className="card dashboard-mini-card">
        <div className="card-head dashboard-section-head"><div className="section-title-icon"><CalendarDays size={18}/><div><h2>Agenda akademik</h2><p>Agenda terdekat</p></div></div></div>
-       <div className="events">{activeEvents.length?activeEvents.map(x=><Event key={x.id} day={normalizeCalendarDate(x.eventDate).slice(8,10)||"—"} title={x.title} meta={formatDate(x.eventDate)+" · "+formatTime(x.startTime)}/>):<p>Belum ada agenda.</p>}</div>
+       <div className="events">{activeEvents.length?activeEvents.map((group,i)=>{
+       const first=group.events[0],last=group.events[group.events.length-1];
+       const month=new Intl.DateTimeFormat("id-ID",{month:"short"}).format(new Date(String(first.eventDate).slice(0,10)+"T00:00:00"));
+       const dayLabel=group.events.length>1?String(first.eventDate).slice(8,10)+"–"+String(last.eventDate).slice(8,10):String(first.eventDate).slice(8,10);
+       const meta=(group.events.length>1?formatDate(first.eventDate)+" – "+formatDate(last.eventDate):formatDate(first.eventDate))+(first.startTime?" · "+formatTime(first.startTime):"");
+       return <div className="event dashboard-grouped-event" key={String(first.id||first.eventDate)+"-"+i}><div className={"date-box "+(group.events.length>1?"date-box-fraction":"")}><b>{group.events.length>1?<><span>{String(first.eventDate).slice(8,10)}</span><i></i><span>{String(last.eventDate).slice(8,10)}</span></>:dayLabel}</b><span>{month}</span></div><div className="dashboard-event-copy"><b>{group.title}</b><span>{meta}</span></div></div>;
+     }):<p>Belum ada agenda.</p>}</div>
      </section>
    </div>
 
@@ -617,8 +634,8 @@ function CalendarPage(){
                 const first=group.events[0], last=group.events[group.events.length-1];
                 const timeLabel=(first.startTime?" · "+formatTime(first.startTime):"")+(first.endTime?"–"+formatTime(first.endTime):"");
                 return <div className="calendar-detail-item upcoming-school-item" key={String(first.id||first.eventDate)+"-"+i}>
-                  <div className="calendar-upcoming-date"><b>{String(first.eventDate||"").slice(8,10)||"—"}{group.events.length>1?"–"+String(last.eventDate||"").slice(8,10):""}</b><span>{String(first.eventDate||"").slice(5,7)?new Intl.DateTimeFormat("id-ID",{month:"short"}).format(new Date(String(first.eventDate).slice(0,10)+"T00:00:00")):""}</span></div>
-                  <div className="calendar-upcoming-copy"><b>{group.title}</b><small>{formatSchoolDateRange(group)}{timeLabel}</small>{first.description&&<small>{first.description}</small>}{group.events.length>1&&<div className="calendar-group-manage">{group.events.map(event=><span key={event.id||event.eventDate} className="calendar-group-date-actions"><small>{new Intl.DateTimeFormat("id-ID",{day:"numeric",month:"short"}).format(new Date(String(event.eventDate).slice(0,10)+"T00:00:00"))}</small><button className="secondary" type="button" onClick={()=>openEdit(event)} disabled={saving}>Edit</button><button className="secondary danger" type="button" onClick={()=>removeEvent(event)} disabled={saving}>Hapus</button></span>)}</div>}</div>
+                  <div className="calendar-upcoming-date"><div className={"calendar-date-number "+(group.events.length>1?"calendar-date-fraction":"")}>{group.events.length>1?<><b>{String(first.eventDate||"").slice(8,10)}</b><i></i><b>{String(last.eventDate||"").slice(8,10)}</b></>:<b>{String(first.eventDate||"").slice(8,10)||"—"}</>}</div><span>{String(first.eventDate||"").slice(5,7)?new Intl.DateTimeFormat("id-ID",{month:"short"}).format(new Date(String(first.eventDate).slice(0,10)+"T00:00:00")):""}</span>{group.events.length>1&&<div className="calendar-date-cell-actions">{group.events.map(event=><div key={event.id||event.eventDate} className="calendar-date-action-pair"><small>{String(event.eventDate).slice(8,10)}</small><button className="secondary" type="button" onClick={()=>openEdit(event)} disabled={saving}>Edit</button><button className="secondary danger" type="button" onClick={()=>removeEvent(event)} disabled={saving}>Hapus</button></div>)}</div>}</div>
+                  <div className="calendar-upcoming-copy"><b>{group.title}</b><small>{formatSchoolDateRange(group)}{timeLabel}</small>{first.description&&<small>{first.description}</small>}</div>
                   {group.events.length===1&&<div className="calendar-item-actions compact-actions"><button className="secondary" type="button" onClick={()=>openEdit(first)} disabled={saving}>Edit</button><button className="secondary danger" type="button" onClick={()=>removeEvent(first)} disabled={saving}>Hapus</button></div>}
                 </div>;
               }):<p className="calendar-empty-note">Belum ada agenda sekolah mendatang.</p>}
