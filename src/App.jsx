@@ -296,7 +296,6 @@ function Dashboard({todos,toggleTodo,schedule,allSchedule,events,academicCalenda
    return (priorityRank[a.priority]??99)-(priorityRank[b.priority]??99);
  });
  const runningMessages=[];
- if(substitutionNotifications.length)runningMessages.push("Ada "+substitutionNotifications.length+" permintaan guru pengganti yang perlu diperiksa.");
  const nowMinutes=now.getHours()*60+now.getMinutes();
  const scheduleTimeMinutes=v=>{const m=String(formatTime(v)||"").match(/^(\d{1,2}):(\d{2})$/);return m?Number(m[1])*60+Number(m[2]):NaN};
  const ongoingSchedule=activeSchedule.find(s=>{const start=scheduleTimeMinutes(s.startTime),end=scheduleTimeMinutes(s.endTime);return Number.isFinite(start)&&Number.isFinite(end)&&start<=nowMinutes&&nowMinutes<end;});
@@ -327,6 +326,7 @@ function Dashboard({todos,toggleTodo,schedule,allSchedule,events,academicCalenda
  const holidayItems=[...DEFAULT_ACADEMIC_CALENDAR_2026,...(academicCalendar||[])];
  const todayHolidays=[...new Map(holidayItems.filter(x=>normalizeCalendarDate(x.date||x.eventDate)===todayKey).map(x=>[String(x.title||x.name||""),x])).values()];
  todayHolidays.forEach(x=>runningMessages.push("Ges, hari ini bertepatan dengan "+(x.title||x.name||"hari besar")+"."));
+ if(substitutionNotifications.length)runningMessages.push("Ada "+substitutionNotifications.length+" permintaan guru pengganti yang perlu diperiksa.");
  runningMessages.push("Matematika Pelajaranku, GenIUS sekolahku, KASIH PAHAM 👊");
  const days=["Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
  const slots=["08:00-08:40","08:40-09:20","09:20-10:00","10:00-10:15","10:15-10:55","10:55-11:35","11:35-12:15","12:15-13:00","13:00-13:40","13:40-14:20","14:20-15:00","15:00-15:40","15:40-16:20","16:20-17:00"];
