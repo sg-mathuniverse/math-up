@@ -246,7 +246,8 @@ function Dashboard({todos,toggleTodo,schedule,allSchedule,events,user,substituti
  const currentDay=weekdayMap[new Intl.DateTimeFormat("en-US",{weekday:"long"}).format(now)]||"";
  const activeSchedule=(schedule||[]).filter(s=>String(s.day||"").trim().toLowerCase()===currentDay.toLowerCase()).slice().sort((a,b)=>String(a.startTime).localeCompare(String(b.startTime)));
  const weeklySchedule=(allSchedule||[]).filter(x=>String(x.teacherEmail||"").toLowerCase()===String(user?.email||"").toLowerCase());
- const activeEvents=(events||[]).slice().sort((a,b)=>String(a.eventDate).localeCompare(String(b.eventDate))).slice(0,3);
+ const todayKey=normalizeCalendarDate(now).slice(0,10);
+ const activeEvents=(events||[]).filter(x=>normalizeCalendarDate(x.eventDate).slice(0,10)>=todayKey).slice().sort((a,b)=>normalizeCalendarDate(a.eventDate).localeCompare(normalizeCalendarDate(b.eventDate))).slice(0,3);
  const priorityRank={Tinggi:0,Sedang:1,Rendah:2};
  const activeTodos=(todos||[]).filter(t=>!t.done).slice().sort((a,b)=>{
    const ad=todoDueTimestamp(a),bd=todoDueTimestamp(b);
@@ -522,7 +523,7 @@ function CalendarPage(){
     .slice(0,4);
   const upcomingCalendarItems=Object.entries(byDate)
     .flatMap(([date,items])=>items.map((item,index)=>({date,item,key:`${date}-${item.id||item.title||"event"}-${index}`})))
-    .filter(x=>x.date>=todayKey)
+    .filter(x=>x.date>=todayKey&&x.item.kind!=="school")
     .sort((a,b)=>a.date.localeCompare(b.date)||String(a.item.startTime||"").localeCompare(String(b.item.startTime||"")));
   return <div className="content">
     <section className="page-title">
@@ -578,11 +579,11 @@ function CalendarPage(){
           <section className="card calendar-side-card">
             <div className="card-head"><div><h2>{selectedDate?formatDate(selectedDate):"Agenda & hari penting"}</h2><p>{selectedDate?"Kegiatan pada tanggal yang dipilih":"Agenda dan hari penting yang akan datang."}</p></div></div>
             <div className="calendar-list">
-              {selectedDate ? (selectedItems.length?selectedItems.map((x,i)=><div className="calendar-detail-item" key={x.id||String(x.title)+"-"+i}>
+              {selectedDate ? (selectedItems.filter(x=>x.kind!=="school").length?selectedItems.filter(x=>x.kind!=="school").map((x,i)=><div className="calendar-detail-item" key={x.id||String(x.title)+"-"+i}>
                 <span className={"calendar-badge "+x.kind}>{x.kind==="holiday"?"Libur nasional":x.kind==="important"?"Hari besar":"Agenda sekolah"}</span>
                 <div className="calendar-upcoming-copy"><b>{x.title}</b><small>{x.description||((x.startTime?formatTime(x.startTime):"")+(x.endTime?"–"+formatTime(x.endTime):""))||"Tanpa keterangan tambahan"}</small></div>
                 {x.kind==="school"&&<div className="calendar-item-actions compact-actions"><button className="secondary" type="button" onClick={()=>openEdit(x)} disabled={saving}>Edit</button><button className="secondary danger" type="button" onClick={()=>removeEvent(x)} disabled={saving}>Hapus</button></div>}
-              </div>):<p className="calendar-empty-note">Tidak ada agenda atau hari penting pada tanggal ini.</p>) : (upcomingCalendarItems.length?upcomingCalendarItems.slice(0,5).map(({date,item,key})=><div className="calendar-detail-item" key={key}>
+              </div>):<p className="calendar-empty-note">Tidak ada hari penting pada tanggal ini.</p>) : (upcomingCalendarItems.length?upcomingCalendarItems.slice(0,5).map(({date,item,key})=><div className="calendar-detail-item" key={key}>
                 <div className="calendar-upcoming-date"><b>{date.slice(8,10)}</b><span>{new Intl.DateTimeFormat("id-ID",{month:"short"}).format(new Date(date+"T00:00:00"))}</span></div>
                 <span className={"calendar-badge "+item.kind}>{item.kind==="holiday"?"Libur nasional":item.kind==="important"?"Hari besar":"Agenda sekolah"}</span>
                 <div className="calendar-upcoming-copy"><b>{item.title}</b><small>{formatDate(date)}{item.startTime?" · "+formatTime(item.startTime):""}{item.endTime?"–"+formatTime(item.endTime):""}</small></div>
