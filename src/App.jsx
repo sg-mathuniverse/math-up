@@ -653,7 +653,6 @@ function CalendarPage(){
             </div>
           </section>
         </aside>
-      </section>
       {selectedDate&&<section className="card calendar-selected-details">
         <div className="card-head"><div><h2>Detail agenda · {formatDate(selectedDate)}</h2><p>Agenda dan kegiatan pada tanggal yang kamu pilih.</p></div><button className="secondary" type="button" onClick={()=>setSelectedDate("")}>Tutup detail</button></div>
         <div className="calendar-list">
@@ -663,7 +662,9 @@ function CalendarPage(){
             {x.kind==="school"&&<div className="calendar-item-actions compact-actions selected-date-actions"><button className="secondary" type="button" onClick={()=>openEdit(x)} disabled={saving}>Edit</button><button className="secondary danger" type="button" onClick={()=>removeEvent(x)} disabled={saving}>Hapus</button></div>}
           </div>):<p className="calendar-empty-note">Tidak ada agenda pada tanggal ini.</p>}
         </div>
-      </section>}
+      </section>
+      </section>
+}
     </>}
     {showAdd&&<div className="modal-backdrop">
       <div className="modal">
