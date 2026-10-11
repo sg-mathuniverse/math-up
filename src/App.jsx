@@ -548,7 +548,7 @@ function CalendarPage(){
     .slice()
     .sort((a,b)=>String(a.eventDate||"").slice(0,10).localeCompare(String(b.eventDate||"").slice(0,10))||String(a.startTime||"").localeCompare(String(b.startTime||"")));
   const upcomingSchoolGroups=[];
-  const schoolDayNumber=date=>{const m=String(date||"").slice(0,10).match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);return m?Date.UTC(Number(m[1]),Number(m[2])-1,Number(m[3]))/86400000:NaN};
+  const schoolDayNumber=date=>{const m=String(date||"").slice(0,10).match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?Date.UTC(Number(m[1]),Number(m[2])-1,Number(m[3]))/86400000:NaN};
   futureSchoolEvents.forEach(event=>{
     const date=String(event.eventDate||"").slice(0,10), title=String(event.title||"Agenda sekolah").trim();
     const matchingGroups=upcomingSchoolGroups.filter(group=>group.title.trim().toLocaleLowerCase("id-ID")===title.toLocaleLowerCase("id-ID"));
