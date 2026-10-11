@@ -221,3 +221,65 @@
 /* Make the lower summation index visible on the login equation. */
 .auth-card .login-math-logo .sum-part{height:64px!important;overflow:visible!important}
 .auth-card .login-math-logo .sum-lower{bottom:-7px!important;display:block!important}
+
+
+/* Academic calendar: compact two-column workspace */
+.calendar-layout{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(320px,.95fr);align-items:start;gap:18px}
+.calendar-layout>.calendar-card{margin-top:0;min-width:0}
+.calendar-layout .calendar-full{padding:18px}
+.calendar-layout .calendar-legend{gap:10px;margin:14px 0 8px;font-size:10px}
+.calendar-layout .weekdays,.calendar-layout .days{gap:5px}
+.calendar-layout .weekdays{margin:16px 0 7px}
+.calendar-layout .weekdays b{font-size:10px}
+.calendar-layout .days{grid-auto-rows:minmax(68px,auto)}
+.calendar-layout .calendar-day{height:auto;min-height:68px;padding:6px;display:flex;flex-direction:column;align-items:stretch}
+.calendar-layout .calendar-day>b{font-size:11px}
+.calendar-layout .day-items{gap:2px;margin-top:4px}
+.calendar-layout .calendar-event{font-size:8px;padding:2px 3px}
+.calendar-layout .more-events{font-size:8px}
+.calendar-sidebar{display:grid;gap:16px;min-width:0}
+.calendar-side-card{min-width:0;overflow:hidden}
+.calendar-side-card .card-head{padding:17px 18px 12px}
+.calendar-side-card .calendar-list{padding:0 18px 12px}
+.calendar-side-card .calendar-detail-item{gap:9px;padding:11px 0;min-width:0}
+.calendar-upcoming-date{flex:0 0 42px;width:42px;min-height:46px;border:1px solid #edf0f4;border-radius:8px;background:#fafbfc;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.calendar-upcoming-date b{font-size:16px;line-height:1.1;color:#344054}
+.calendar-upcoming-date span{font-size:10px;color:#667085;text-transform:capitalize;margin-top:3px}
+.calendar-upcoming-copy{min-width:0;flex:1}
+.calendar-upcoming-copy>b{display:block;font-size:11px;line-height:1.45;overflow-wrap:anywhere}
+.calendar-upcoming-copy>small{display:block;color:#667085;font-size:10px;line-height:1.45;margin-top:4px;overflow-wrap:anywhere}
+.calendar-side-card .calendar-badge{align-self:flex-start;white-space:nowrap;font-size:8px;padding:4px 6px}
+.calendar-item-actions.compact-actions{gap:4px;flex:none}
+.calendar-item-actions.compact-actions .secondary{padding:5px 7px;font-size:10px}
+.calendar-empty-note{font-size:11px;line-height:1.5;color:#667085;padding:0 0 8px;margin:0}
+@media(max-width:1100px){
+ .calendar-layout{grid-template-columns:minmax(0,1.15fr) minmax(285px,.9fr);gap:12px}
+ .calendar-layout .calendar-full{padding:13px}
+ .calendar-layout .calendar-legend{gap:7px;font-size:9px}
+ .calendar-layout .calendar-day{padding:4px;min-height:62px}
+ .calendar-layout .calendar-event{font-size:7px}
+ .calendar-side-card .card-head{padding:15px 14px 10px}
+ .calendar-side-card .calendar-list{padding:0 14px 10px}
+ .calendar-side-card .calendar-detail-item{gap:7px}
+ .calendar-side-card .calendar-item-actions.compact-actions{flex-direction:column}
+}
+@media(max-width:820px){
+ .calendar-layout{grid-template-columns:minmax(0,1fr)}
+ .calendar-sidebar{grid-template-columns:minmax(0,1fr)}
+ .calendar-layout .calendar-full{padding:18px}
+ .calendar-layout .calendar-day{min-height:76px;padding:7px}
+ .calendar-layout .calendar-event{font-size:9px;padding:3px 4px}
+ .calendar-side-card .calendar-item-actions.compact-actions{flex-direction:row}
+}
+@media(max-width:520px){
+ .calendar-layout .calendar-full{padding:10px}
+ .calendar-layout .calendar-legend{gap:8px;font-size:8px}
+ .calendar-layout .weekdays,.calendar-layout .days{gap:3px}
+ .calendar-layout .calendar-day{min-height:54px;padding:4px}
+ .calendar-layout .calendar-day>b{font-size:10px}
+ .calendar-layout .calendar-event{font-size:7px;padding:2px}
+ .calendar-layout .day-items{gap:2px;margin-top:3px}
+ .calendar-side-card .calendar-detail-item{flex-wrap:wrap}
+ .calendar-side-card .calendar-upcoming-copy{flex-basis:calc(100% - 60px)}
+ .calendar-side-card .calendar-item-actions.compact-actions{margin-left:51px}
+}
