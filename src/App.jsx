@@ -614,7 +614,7 @@ function CalendarPage(){
               {cells.map((date,i)=>{
                 if(!date)return <div className="day muted" key={"empty"+i}></div>;
                 const k=keyForDate(date), items=byDate[k]||[], isToday=k===keyForDate(today), isSelected=k===selectedDate;
-                return <button type="button" className={"day calendar-day "+(isToday?"today ":"")+(isSelected?"selected ":"")} key={k} onClick={()=>setSelectedDate(isSelected?"":k)} aria-pressed={isSelected}>
+                return <button type="button" className={"day calendar-day "+(date.getDay()===0?"sunday ":"")+(isToday?"today ":"")+(isSelected?"selected ":"")} key={k} onClick={()=>setSelectedDate(isSelected?"":k)} aria-pressed={isSelected}>
                   <b>{date.getDate()}</b>
                   <div className="day-items">
                     {items.slice(0,2).map((x,j)=><span key={x.id||j} className={"calendar-event "+x.kind} title={x.title}>{x.title}</span>)}
@@ -643,7 +643,7 @@ function CalendarPage(){
           </section>
 
           <section className="card calendar-side-card">
-            <div className="card-head"><div><h2>Agenda &amp; hari penting</h2><p>Agenda dan hari penting yang akan datang.</p></div></div>
+            <div className="card-head"><div><h2>Hari besar &amp; libur nasional</h2><p>Hari besar dan libur nasional yang akan datang.</p></div></div>
             <div className="calendar-list">
               {upcomingCalendarItems.length?upcomingCalendarItems.slice(0,5).map(({date,item,key})=><div className="calendar-detail-item" key={key}>
                 <div className="calendar-upcoming-date"><b>{date.slice(8,10)}</b><span>{new Intl.DateTimeFormat("id-ID",{month:"short"}).format(new Date(date+"T00:00:00"))}</span></div>
