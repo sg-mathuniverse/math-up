@@ -283,3 +283,29 @@
  .calendar-side-card .calendar-upcoming-copy{flex-basis:calc(100% - 60px)}
  .calendar-side-card .calendar-item-actions.compact-actions{margin-left:51px}
 }
+
+
+/* To-do page spacing and readable task cards */
+.todo-page-list{padding:0 24px 18px}
+.todo-page-list .todo-row{gap:14px;padding:18px 4px;align-items:flex-start}
+.todo-page-list .todo-copy{padding:1px 0;overflow-wrap:anywhere}
+.todo-page-list .todo-copy b{line-height:1.5;font-size:13px}
+.todo-page-list .todo-copy span{line-height:1.55;font-size:11px;overflow-wrap:anywhere}
+.todo-page-list .todo-copy small{line-height:1.5;font-size:10px;flex-wrap:wrap}
+.todo-page-list .priority{margin-top:1px}
+.todo-page-list .todo-actions{gap:7px}
+.todo-page-list .empty-state,.todo-page-list>p{padding:22px 4px;margin:0;line-height:1.6;color:#667085}
+.todo-page-card .section-head{padding:22px 24px 16px}
+.todo-page-card{overflow:hidden}
+.calendar-group-manage{display:flex;flex-direction:column;gap:6px;margin-top:10px;padding-top:8px;border-top:1px solid #edf0f4}
+.calendar-group-date-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.calendar-group-date-actions>small{min-width:48px;margin:0!important}
+.calendar-group-date-actions .secondary{padding:4px 7px;font-size:10px}
+@media(max-width:700px){
+ .todo-page-list{padding:0 16px 16px}
+ .todo-page-list .todo-row{gap:10px;flex-wrap:wrap;padding:16px 2px}
+ .todo-page-list .todo-copy{flex-basis:calc(100% - 38px)}
+ .todo-page-list .priority{margin-left:30px}
+ .todo-page-list .todo-actions{margin-left:30px}
+ .todo-page-card .section-head{padding:18px 16px 14px}
+}
