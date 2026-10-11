@@ -12,6 +12,46 @@ const schedule = [
   {time:"11:00", end:"12:20", className:"VII-C", topic:"Aritmetika Sosial", room:"R. 203"}
 ];
 
+
+const DEFAULT_ACADEMIC_CALENDAR_2026=[
+    ["2026-01-01","Tahun Baru 2026 Masehi","holiday","Libur nasional"],
+    ["2026-01-16","Isra Mikraj Nabi Muhammad SAW","holiday","Libur nasional"],
+    ["2026-02-16","Tahun Baru Imlek 2577 Kongzili","important","Cuti bersama"],
+    ["2026-02-17","Tahun Baru Imlek 2577 Kongzili","holiday","Libur nasional"],
+    ["2026-03-18","Hari Suci Nyepi (Tahun Baru Saka 1948)","important","Cuti bersama"],
+    ["2026-03-19","Hari Suci Nyepi (Tahun Baru Saka 1948)","holiday","Libur nasional"],
+    ["2026-03-20","Cuti bersama Idulfitri 1447 H","important","Cuti bersama"],
+    ["2026-03-21","Idulfitri 1447 H","holiday","Libur nasional"],
+    ["2026-03-22","Idulfitri 1447 H","holiday","Libur nasional"],
+    ["2026-03-23","Cuti bersama Idulfitri 1447 H","important","Cuti bersama"],
+    ["2026-03-24","Cuti bersama Idulfitri 1447 H","important","Cuti bersama"],
+    ["2026-04-03","Wafat Yesus Kristus","holiday","Libur nasional"],
+    ["2026-04-05","Kebangkitan Yesus Kristus (Paskah)","holiday","Libur nasional"],
+    ["2026-05-01","Hari Buruh Internasional","holiday","Libur nasional"],
+    ["2026-05-02","Hari Pendidikan Nasional","important","Hari besar nasional"],
+    ["2026-05-14","Kenaikan Yesus Kristus","holiday","Libur nasional"],
+    ["2026-05-15","Cuti bersama Kenaikan Yesus Kristus","important","Cuti bersama"],
+    ["2026-05-20","Hari Kebangkitan Nasional","important","Hari besar nasional"],
+    ["2026-05-27","Iduladha 1447 H","holiday","Libur nasional"],
+    ["2026-05-28","Cuti bersama Iduladha 1447 H","important","Cuti bersama"],
+    ["2026-05-31","Hari Raya Waisak 2570 BE","holiday","Libur nasional"],
+    ["2026-06-01","Hari Lahir Pancasila","holiday","Libur nasional"],
+    ["2026-06-16","1 Muharam / Tahun Baru Islam 1448 H","holiday","Libur nasional"],
+    ["2026-07-23","Hari Anak Nasional","important","Hari besar nasional"],
+    ["2026-08-14","Hari Pramuka","important","Hari besar nasional"],
+    ["2026-08-17","Hari Proklamasi Kemerdekaan Republik Indonesia","holiday","Libur nasional"],
+    ["2026-08-25","Maulid Nabi Muhammad SAW","holiday","Libur nasional"],
+    ["2026-09-24","Hari Tani Nasional","important","Hari besar nasional"],
+    ["2026-10-01","Hari Kesaktian Pancasila","important","Hari besar nasional"],
+    ["2026-10-02","Hari Batik Nasional","important","Hari besar nasional"],
+    ["2026-10-28","Hari Sumpah Pemuda","important","Hari besar nasional"],
+    ["2026-11-10","Hari Pahlawan","important","Hari besar nasional"],
+    ["2026-11-25","Hari Guru Nasional","important","Hari besar nasional"],
+    ["2026-12-22","Hari Ibu","important","Hari besar nasional"],
+    ["2026-12-24","Cuti bersama Kelahiran Yesus Kristus","important","Cuti bersama"],
+    ["2026-12-25","Kelahiran Yesus Kristus","holiday","Libur nasional"]
+  ].map(([date,title,kind,description],i)=>({id:"default-2026-"+i,date,title,description,isNationalHoliday:kind==="holiday"}));
+
 function App(){
   const [active,setActive]=useState("Dashboard");
   const [authChecked,setAuthChecked]=useState(false);
@@ -23,7 +63,7 @@ function App(){
   const [confirmTodo,setConfirmTodo]=useState(null);
   const [query,setQuery]=useState("");
   const [user,setUser]=useState(null);
-  const [dashboard,setDashboard]=useState({schedule:[],events:[],allSchedule:[]});
+  const [dashboard,setDashboard]=useState({schedule:[],events:[],allSchedule:[],academicCalendar:[]});
   const [loading,setLoading]=useState(true);
   const [apiError,setApiError]=useState("");
   const [todoActionLoading,setTodoActionLoading]=useState("");
@@ -47,7 +87,8 @@ function App(){
         setDashboard({
           schedule:d?.schedule||[],
           events:(d?.events||[]).map(x=>({...x,eventDate:normalizeCalendarDate(x.eventDate)})),
-          allSchedule:d?.allSchedule||[]
+          allSchedule:d?.allSchedule||[],
+          academicCalendar:d?.academicCalendar||[]
         });
 
         // Notifications are supplementary: their failure must not block
@@ -162,7 +203,7 @@ function App(){
         </div>
       </header>
 
-      {active==="Dashboard" ? <Dashboard todos={filteredTodos} toggleTodo={requestTodoToggle} todoActionLoading={todoActionLoading} schedule={dashboard.schedule} allSchedule={dashboard.allSchedule} events={dashboard.events} user={user} substitutionNotifications={substitutionNotifications} /> :
+      {active==="Dashboard" ? <Dashboard todos={filteredTodos} toggleTodo={requestTodoToggle} todoActionLoading={todoActionLoading} schedule={dashboard.schedule} allSchedule={dashboard.allSchedule} events={dashboard.events} academicCalendar={dashboard.academicCalendar} user={user} substitutionNotifications={substitutionNotifications} /> :
        active==="Jadwal Mengajar" ? <SchedulePage user={user} /> : active==="Guru Pengganti" ? <SubstitutePage user={user} onSubstitutionUpdated={refreshDashboard} /> :
        active==="Kalender Akademik" ? <CalendarPage /> :
        active==="Drive Materi" ? <DrivePage /> :
@@ -239,7 +280,7 @@ function InlineLoading({text="Memuat data..."}){return <div className="card load
 
 function Nav({icon,label,active,onClick,todoCount=0}){return <button className={active?"nav active":"nav"} onClick={onClick}>{icon}<span>{label}</span>{label==="To-Do"&&todoCount>0&&<em>{todoCount}</em>}</button>}
 
-function Dashboard({todos,toggleTodo,schedule,allSchedule,events,user,substitutionNotifications=[]}){
+function Dashboard({todos,toggleTodo,schedule,allSchedule,events,academicCalendar=[],user,substitutionNotifications=[]}){
  const [now,setNow]=useState(new Date());
  useEffect(()=>{const timer=setInterval(()=>setNow(new Date()),1000);return()=>clearInterval(timer)},[]);
  const weekdayMap={Sunday:"Minggu",Monday:"Senin",Tuesday:"Selasa",Wednesday:"Rabu",Thursday:"Kamis",Friday:"Jumat",Saturday:"Sabtu"};
@@ -256,14 +297,37 @@ function Dashboard({todos,toggleTodo,schedule,allSchedule,events,user,substituti
  });
  const runningMessages=[];
  if(substitutionNotifications.length)runningMessages.push("Ada "+substitutionNotifications.length+" permintaan guru pengganti yang perlu diperiksa.");
- const overdue=activeTodos.filter(t=>todoDueTimestamp(t)<Date.now());
- if(overdue.length)runningMessages.push(overdue.length+" To-Do List terlewat deadline.");
- const nearest=activeTodos.find(t=>Number.isFinite(todoDueTimestamp(t))&&todoDueTimestamp(t)>=Date.now());
- if(nearest){
-   const days=Math.ceil((todoDueTimestamp(nearest)-Date.now())/86400000);
-   runningMessages.push("Deadline To-Do List \""+nearest.title+"\" "+(days<=0?"hari ini":days+" hari lagi")+".");
+ const nowMinutes=now.getHours()*60+now.getMinutes();
+ const toMin=v=>{const m=String(formatTime(v)||"").match(/^(\\d{1,2}):(\\d{2})$/);return m?Number(m[1])*60+Number(m[2]):NaN};
+ const ongoingSchedule=activeSchedule.find(s=>{const start=toMin(s.startTime),end=toMin(s.endTime);return Number.isFinite(start)&&Number.isFinite(end)&&start<=nowMinutes&&nowMinutes<end;});
+ const nextSchedule=activeSchedule.find(s=>{const start=toMin(s.startTime);return Number.isFinite(start)&&start>nowMinutes;});
+ const currentOrNextSchedule=ongoingSchedule||nextSchedule;
+ runningMessages.push("Hallo Ges siap mengajar hari ini 💪?");
+ if(currentOrNextSchedule){
+   const verb=ongoingSchedule?"Semangat beraktifitas di":"Seharusnya kamu di";
+   runningMessages.push(verb+" "+(currentOrNextSchedule.className||"kelas yang dijadwalkan")+" untuk mengisi "+(currentOrNextSchedule.topic||"materi hari ini")+" pada pukul "+formatTime(currentOrNextSchedule.startTime)+".");
+ }else{
+   runningMessages.push("JANGAN Lupa Weekly Plan Ges, Refleksinya itu Lho");
  }
- if(!runningMessages.length)runningMessages.push("Tidak ada notifikasi penting. Semangat mengajar hari ini!");
+ const todayDate=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+ const dueDateOf=t=>{
+   const ts=todoDueTimestamp(t);
+   if(!Number.isFinite(ts)||ts===Number.MAX_SAFE_INTEGER)return null;
+   const d=new Date(ts);
+   return new Date(d.getFullYear(),d.getMonth(),d.getDate());
+ };
+ const overdue=activeTodos.filter(t=>{const d=dueDateOf(t);return d&&d<todayDate;});
+ overdue.forEach(t=>runningMessages.push("Loh e apa kau lupa "+t.title+" ?"));
+ activeTodos.forEach(t=>{
+   const d=dueDateOf(t);
+   if(!d||d<todayDate)return;
+   const daysLeft=Math.round((d-todayDate)/86400000);
+   if(daysLeft===3)runningMessages.push("Deadline To-do "+t.title+" tersisa 3 hari lagi"+(String(t.priority||"").toLowerCase()==="tinggi"?" — PENTING":"")+".");
+ });
+ const holidayItems=[...DEFAULT_ACADEMIC_CALENDAR_2026,...(academicCalendar||[])];
+ const todayHolidays=[...new Map(holidayItems.filter(x=>normalizeCalendarDate(x.date||x.eventDate)===todayKey).map(x=>[String(x.title||x.name||""),x])).values()];
+ todayHolidays.forEach(x=>runningMessages.push("Ges, hari ini bertepatan dengan "+(x.title||x.name||"hari besar")+"."));
+ runningMessages.push("Matematika Pelajaranku, GenIUS sekolahku, KASIH PAHAM 👊");
  const days=["Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
  const slots=["08:00-08:40","08:40-09:20","09:20-10:00","10:00-10:15","10:15-10:55","10:55-11:35","11:35-12:15","12:15-13:00","13:00-13:40","13:40-14:20","14:20-15:00","15:00-15:40","15:40-16:20","16:20-17:00"];
  const toMin=v=>{const m=String(v||"").match(/^(\d{1,2}):(\d{2})$/);return m?Number(m[1])*60+Number(m[2]):NaN};
@@ -408,44 +472,7 @@ function CalendarPage(){
   const [selectedDate,setSelectedDate]=useState("");
   const [form,setForm]=useState({title:"",description:"",eventDate:"",startTime:"",endTime:"",type:"Agenda sekolah"});
 
-  const defaultAcademicCalendar2026=[
-    ["2026-01-01","Tahun Baru 2026 Masehi","holiday","Libur nasional"],
-    ["2026-01-16","Isra Mikraj Nabi Muhammad SAW","holiday","Libur nasional"],
-    ["2026-02-16","Tahun Baru Imlek 2577 Kongzili","important","Cuti bersama"],
-    ["2026-02-17","Tahun Baru Imlek 2577 Kongzili","holiday","Libur nasional"],
-    ["2026-03-18","Hari Suci Nyepi (Tahun Baru Saka 1948)","important","Cuti bersama"],
-    ["2026-03-19","Hari Suci Nyepi (Tahun Baru Saka 1948)","holiday","Libur nasional"],
-    ["2026-03-20","Cuti bersama Idulfitri 1447 H","important","Cuti bersama"],
-    ["2026-03-21","Idulfitri 1447 H","holiday","Libur nasional"],
-    ["2026-03-22","Idulfitri 1447 H","holiday","Libur nasional"],
-    ["2026-03-23","Cuti bersama Idulfitri 1447 H","important","Cuti bersama"],
-    ["2026-03-24","Cuti bersama Idulfitri 1447 H","important","Cuti bersama"],
-    ["2026-04-03","Wafat Yesus Kristus","holiday","Libur nasional"],
-    ["2026-04-05","Kebangkitan Yesus Kristus (Paskah)","holiday","Libur nasional"],
-    ["2026-05-01","Hari Buruh Internasional","holiday","Libur nasional"],
-    ["2026-05-02","Hari Pendidikan Nasional","important","Hari besar nasional"],
-    ["2026-05-14","Kenaikan Yesus Kristus","holiday","Libur nasional"],
-    ["2026-05-15","Cuti bersama Kenaikan Yesus Kristus","important","Cuti bersama"],
-    ["2026-05-20","Hari Kebangkitan Nasional","important","Hari besar nasional"],
-    ["2026-05-27","Iduladha 1447 H","holiday","Libur nasional"],
-    ["2026-05-28","Cuti bersama Iduladha 1447 H","important","Cuti bersama"],
-    ["2026-05-31","Hari Raya Waisak 2570 BE","holiday","Libur nasional"],
-    ["2026-06-01","Hari Lahir Pancasila","holiday","Libur nasional"],
-    ["2026-06-16","1 Muharam / Tahun Baru Islam 1448 H","holiday","Libur nasional"],
-    ["2026-07-23","Hari Anak Nasional","important","Hari besar nasional"],
-    ["2026-08-14","Hari Pramuka","important","Hari besar nasional"],
-    ["2026-08-17","Hari Proklamasi Kemerdekaan Republik Indonesia","holiday","Libur nasional"],
-    ["2026-08-25","Maulid Nabi Muhammad SAW","holiday","Libur nasional"],
-    ["2026-09-24","Hari Tani Nasional","important","Hari besar nasional"],
-    ["2026-10-01","Hari Kesaktian Pancasila","important","Hari besar nasional"],
-    ["2026-10-02","Hari Batik Nasional","important","Hari besar nasional"],
-    ["2026-10-28","Hari Sumpah Pemuda","important","Hari besar nasional"],
-    ["2026-11-10","Hari Pahlawan","important","Hari besar nasional"],
-    ["2026-11-25","Hari Guru Nasional","important","Hari besar nasional"],
-    ["2026-12-22","Hari Ibu","important","Hari besar nasional"],
-    ["2026-12-24","Cuti bersama Kelahiran Yesus Kristus","important","Cuti bersama"],
-    ["2026-12-25","Kelahiran Yesus Kristus","holiday","Libur nasional"]
-  ].map(([date,title,kind,description],i)=>({id:"default-2026-"+i,date,title,description,isNationalHoliday:kind==="holiday"}));
+
 
   const load=()=>{
     setLoading(true); setError("");
@@ -480,7 +507,7 @@ function CalendarPage(){
   while(cells.length%7) cells.push(null);
 
   const byDate={};
-  [...defaultAcademicCalendar2026,...cal].forEach(x=>{const k=String(x.date||"").slice(0,10);if(k)(byDate[k]??=[]).push({...x,kind:x.isNationalHoliday?"holiday":"important"})});
+  [...DEFAULT_ACADEMIC_CALENDAR_2026,...cal].forEach(x=>{const k=String(x.date||"").slice(0,10);if(k)(byDate[k]??=[]).push({...x,kind:x.isNationalHoliday?"holiday":"important"})});
   events.forEach(x=>{const k=String(x.eventDate||"").slice(0,10);if(k)(byDate[k]??=[]).push({...x,kind:"school"})});
 
   const selectedItems=(byDate[selectedDate]||[]);
