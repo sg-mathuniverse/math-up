@@ -336,3 +336,5 @@
  .calendar-date-number>b{font-size:13px}
  .dashboard-grouped-event .date-box-fraction>b{font-size:12px}
 }
+
+/* Build verification after JSX fix */
