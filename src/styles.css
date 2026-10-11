@@ -312,7 +312,7 @@
 
 
 /* Fraction-style date ranges and date-cell actions */
-.calendar-upcoming-date{height:auto;align-self:stretch;justify-content:flex-start;gap:5px;padding:7px 4px;overflow:visible}
+.calendar-upcoming-date{flex:0 0 88px;width:88px;height:auto;align-self:stretch;justify-content:flex-start;gap:5px;padding:7px 4px;overflow:visible;box-sizing:border-box}
 .calendar-date-number{display:flex;align-items:center;justify-content:center;min-height:24px}
 .calendar-date-number>b{font-size:15px;line-height:1.1;font-weight:750}
 .calendar-date-number.calendar-date-fraction{flex-direction:column;gap:2px}
@@ -331,6 +331,7 @@
 .dashboard-event-copy>b{font-size:12px;line-height:1.45}
 .dashboard-event-copy>span{font-size:10px;line-height:1.45;color:#667085}
 @media(max-width:520px){
+ .calendar-upcoming-date{flex-basis:78px;width:78px;padding:6px 3px}
  .calendar-date-action-pair .secondary{font-size:8px;padding:4px 2px}
  .calendar-date-number>b{font-size:13px}
  .dashboard-grouped-event .date-box-fraction>b{font-size:12px}
