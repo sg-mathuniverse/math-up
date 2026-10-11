@@ -346,3 +346,18 @@
 .selected-date-actions{display:flex;gap:8px;width:100%;margin-top:4px;padding-top:10px;border-top:1px solid #edf0f4}
 .selected-date-actions .secondary{min-height:32px;padding:6px 12px}
 .calendar-date-cell-actions{display:none!important}
+
+
+/* Selected calendar date details sit below the calendar/sidebar row */
+.calendar-selected-details{margin-top:16px;overflow:hidden}
+.calendar-selected-details .card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 22px;border-bottom:1px solid #edf0f4}
+.calendar-selected-details .calendar-list{padding:4px 18px 14px}
+.calendar-selected-details .selected-date-detail{display:flex;align-items:flex-start;gap:12px;padding:14px 4px;border-bottom:1px solid #edf0f4}
+.calendar-selected-details .selected-date-detail:last-child{border-bottom:0}
+.calendar-selected-details .selected-date-actions{display:flex;gap:8px;width:auto;margin-top:0;margin-left:auto;padding-top:0;border-top:0;flex-shrink:0}
+@media(max-width:600px){
+ .calendar-selected-details .card-head{align-items:flex-start;padding:16px;flex-wrap:wrap}
+ .calendar-selected-details .calendar-list{padding:4px 14px 12px}
+ .calendar-selected-details .selected-date-detail{gap:8px}
+ .calendar-selected-details .selected-date-actions{width:100%;margin-left:0;padding-top:10px;border-top:1px solid #edf0f4}
+}
