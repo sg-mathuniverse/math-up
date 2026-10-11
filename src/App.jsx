@@ -298,9 +298,9 @@ function Dashboard({todos,toggleTodo,schedule,allSchedule,events,academicCalenda
  const runningMessages=[];
  if(substitutionNotifications.length)runningMessages.push("Ada "+substitutionNotifications.length+" permintaan guru pengganti yang perlu diperiksa.");
  const nowMinutes=now.getHours()*60+now.getMinutes();
- const toMin=v=>{const m=String(formatTime(v)||"").match(/^(\\d{1,2}):(\\d{2})$/);return m?Number(m[1])*60+Number(m[2]):NaN};
- const ongoingSchedule=activeSchedule.find(s=>{const start=toMin(s.startTime),end=toMin(s.endTime);return Number.isFinite(start)&&Number.isFinite(end)&&start<=nowMinutes&&nowMinutes<end;});
- const nextSchedule=activeSchedule.find(s=>{const start=toMin(s.startTime);return Number.isFinite(start)&&start>nowMinutes;});
+ const scheduleTimeMinutes=v=>{const m=String(formatTime(v)||"").match(/^(\d{1,2}):(\d{2})$/);return m?Number(m[1])*60+Number(m[2]):NaN};
+ const ongoingSchedule=activeSchedule.find(s=>{const start=scheduleTimeMinutes(s.startTime),end=scheduleTimeMinutes(s.endTime);return Number.isFinite(start)&&Number.isFinite(end)&&start<=nowMinutes&&nowMinutes<end;});
+ const nextSchedule=activeSchedule.find(s=>{const start=scheduleTimeMinutes(s.startTime);return Number.isFinite(start)&&start>nowMinutes;});
  const currentOrNextSchedule=ongoingSchedule||nextSchedule;
  runningMessages.push("Hallo Ges siap mengajar hari ini 💪?");
  if(currentOrNextSchedule){
