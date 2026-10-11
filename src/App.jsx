@@ -551,13 +551,15 @@ function CalendarPage(){
   const schoolDayNumber=date=>{const m=String(date||"").slice(0,10).match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);return m?Date.UTC(Number(m[1]),Number(m[2])-1,Number(m[3]))/86400000:NaN};
   futureSchoolEvents.forEach(event=>{
     const date=String(event.eventDate||"").slice(0,10), title=String(event.title||"Agenda sekolah").trim();
-    const last=upcomingSchoolGroups[upcomingSchoolGroups.length-1];
-    if(last&&last.title.trim().toLocaleLowerCase("id-ID")===title.toLocaleLowerCase("id-ID")&&schoolDayNumber(date)-schoolDayNumber(last.events[last.events.length-1].eventDate)===1){
-      last.events.push(event);
+    const matchingGroups=upcomingSchoolGroups.filter(group=>group.title.trim().toLocaleLowerCase("id-ID")===title.toLocaleLowerCase("id-ID"));
+    const lastMatching=matchingGroups[matchingGroups.length-1];
+    if(lastMatching&&schoolDayNumber(date)-schoolDayNumber(lastMatching.events[lastMatching.events.length-1].eventDate)===1){
+      lastMatching.events.push(event);
     }else{
       upcomingSchoolGroups.push({title,events:[event]});
     }
   });
+  upcomingSchoolGroups.sort((a,b)=>String(a.events[0].eventDate||"").localeCompare(String(b.events[0].eventDate||""))||a.title.localeCompare(b.title,"id-ID"));
   const upcomingSchoolEvents=upcomingSchoolGroups.slice(0,4);
   const formatSchoolDateRange=group=>{
     const first=String(group.events[0].eventDate||"").slice(0,10), last=String(group.events[group.events.length-1].eventDate||"").slice(0,10);
