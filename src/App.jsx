@@ -513,6 +513,17 @@ function CalendarPage(){
     finally{setSaving(false)}
   };
 
+
+  const todayKey=keyForDate(today);
+  const upcomingSchoolEvents=events
+    .filter(x=>String(x.eventDate||"").slice(0,10)>=todayKey)
+    .slice()
+    .sort((a,b)=>String(a.eventDate||"").localeCompare(String(b.eventDate||""))||String(a.startTime||"").localeCompare(String(b.startTime||"")))
+    .slice(0,4);
+  const upcomingCalendarItems=Object.entries(byDate)
+    .flatMap(([date,items])=>items.map((item,index)=>({date,item,key:`${date}-${item.id||item.title||"event"}-${index}`})))
+    .filter(x=>x.date>=todayKey)
+    .sort((a,b)=>a.date.localeCompare(b.date)||String(a.item.startTime||"").localeCompare(String(b.item.startTime||"")));
   return <div className="content">
     <section className="page-title">
       <div><div className="eyebrow">Akademik</div><h1>Kalender Akademik</h1><p>Libur nasional, hari besar, dan agenda sekolah dalam satu kalender bersama.</p></div>
@@ -522,49 +533,65 @@ function CalendarPage(){
     {message&&<div className="card" style={{marginBottom:16}}>{message}</div>}
 
     {loading?<InlineLoading text="Memuat kalender akademik..."/>:<>
-      <section className="card calendar-card">
-        <div className="calendar-full">
-          <div className="month-head">
-            <button className="secondary" onClick={()=>setMonth(new Date(month.getFullYear(),month.getMonth()-1,1))}>‹</button>
-            <h2>{monthName}</h2>
-            <button className="secondary" onClick={()=>setMonth(new Date(month.getFullYear(),month.getMonth()+1,1))}>›</button>
+      <section className="calendar-layout">
+        <section className="card calendar-card">
+          <div className="calendar-full">
+            <div className="month-head">
+              <button className="secondary" aria-label="Bulan sebelumnya" onClick={()=>setMonth(new Date(month.getFullYear(),month.getMonth()-1,1))}>‹</button>
+              <h2>{monthName}</h2>
+              <button className="secondary" aria-label="Bulan berikutnya" onClick={()=>setMonth(new Date(month.getFullYear(),month.getMonth()+1,1))}>›</button>
+            </div>
+            <div className="calendar-legend">
+              <span><i className="legend-dot holiday-dot"></i> Libur nasional</span>
+              <span><i className="legend-dot important-dot"></i> Hari besar</span>
+              <span><i className="legend-dot school-dot"></i> Agenda sekolah</span>
+            </div>
+            <div className="weekdays">{["Sen","Sel","Rab","Kam","Jum","Sab","Min"].map(x=><b key={x}>{x}</b>)}</div>
+            <div className="days">
+              {cells.map((date,i)=>{
+                if(!date)return <div className="day muted" key={"empty"+i}></div>;
+                const k=keyForDate(date), items=byDate[k]||[], isToday=k===keyForDate(today), isSelected=k===selectedDate;
+                return <button type="button" className={"day calendar-day "+(isToday?"today ":"")+(isSelected?"selected ":"")} key={k} onClick={()=>setSelectedDate(isSelected?"":k)} aria-pressed={isSelected}>
+                  <b>{date.getDate()}</b>
+                  <div className="day-items">
+                    {items.slice(0,2).map((x,j)=><span key={x.id||j} className={"calendar-event "+x.kind} title={x.title}>{x.title}</span>)}
+                    {items.length>2&&<span className="more-events">+{items.length-2} lainnya</span>}
+                  </div>
+                </button>
+              })}
+            </div>
           </div>
-          <div className="calendar-legend">
-            <span><i className="legend-dot holiday-dot"></i> Libur nasional</span>
-            <span><i className="legend-dot important-dot"></i> Hari besar</span>
-            <span><i className="legend-dot school-dot"></i> Agenda sekolah</span>
-          </div>
-          <div className="weekdays">{["Sen","Sel","Rab","Kam","Jum","Sab","Min"].map(x=><b key={x}>{x}</b>)}</div>
-          <div className="days">
-            {cells.map((date,i)=>{
-              if(!date)return <div className="day muted" key={"empty"+i}></div>;
-              const k=keyForDate(date), items=byDate[k]||[], isToday=k===keyForDate(today), isSelected=k===selectedDate;
-              return <button type="button" className={"day calendar-day "+(isToday?"today ":"")+(isSelected?"selected ":"")} key={k} onClick={()=>setSelectedDate(isSelected?"":k)}>
-                <b>{date.getDate()}</b>
-                <div className="day-items">
-                  {items.slice(0,3).map((x,j)=><span key={x.id||j} className={"calendar-event "+x.kind} title={x.title}>{x.title}</span>)}
-                  {items.length>3&&<span className="more-events">+{items.length-3} lainnya</span>}
-                </div>
-              </button>
-            })}
-          </div>
-        </div>
-      </section>
+        </section>
 
-      <section className="calendar-details">
-        <section className="card">
-          <div className="card-head"><div><h2>{selectedDate?formatDate(selectedDate):"Agenda & hari penting"}</h2><p>{selectedDate?"Kegiatan pada tanggal yang dipilih":"Klik tanggal pada kalender untuk melihat detail."}</p></div></div>
-          <div className="calendar-list">
-            {selectedDate ? (selectedItems.length?selectedItems.map(x=><div className="calendar-detail-item" key={x.id}><span className={"calendar-badge "+x.kind}>{x.kind==="holiday"?"Libur nasional":x.kind==="important"?"Hari besar":"Agenda sekolah"}</span><div><b>{x.title}</b><small>{x.description||((x.startTime?formatTime(x.startTime):"")+(x.endTime?"–"+formatTime(x.endTime):""))||"Tanpa keterangan tambahan"}</small></div>{x.kind==="school"&&<div className="calendar-item-actions"><button className="secondary" type="button" onClick={()=>openEdit(x)} disabled={saving}>Edit</button><button className="secondary danger" type="button" onClick={()=>removeEvent(x)} disabled={saving}>Hapus</button></div>}</div>):<p>Tidak ada agenda atau hari penting pada tanggal ini.</p>) : <p>Pilih tanggal untuk melihat detail agenda.</p>}
-          </div>
-        </section>
-        <section className="card">
-          <div className="card-head"><div><h2>Tambah agenda sekolah</h2><p>Agenda yang dibuat akan terlihat oleh semua guru.</p></div></div>
-          <div className="calendar-add-box"><button className="primary" onClick={()=>openAddFor(selectedDate)}>Tambah agenda sekolah</button></div>
-        </section>
+        <aside className="calendar-sidebar">
+          <section className="card calendar-side-card">
+            <div className="card-head"><div><h2>Agenda sekolah terdekat</h2><p>Agenda sekolah berikutnya berdasarkan tanggal.</p></div></div>
+            <div className="calendar-list">
+              {upcomingSchoolEvents.length?upcomingSchoolEvents.map((x,i)=><div className="calendar-detail-item upcoming-school-item" key={x.id||String(x.eventDate)+"-"+i}>
+                <div className="calendar-upcoming-date"><b>{String(x.eventDate||"").slice(8,10)||"—"}</b><span>{String(x.eventDate||"").slice(5,7)?new Intl.DateTimeFormat("id-ID",{month:"short"}).format(new Date(String(x.eventDate).slice(0,10)+"T00:00:00")):""}</span></div>
+                <div className="calendar-upcoming-copy"><b>{x.title||"Agenda sekolah"}</b><small>{formatDate(x.eventDate)}{x.startTime?" · "+formatTime(x.startTime):""}{x.endTime?"–"+formatTime(x.endTime):""}</small>{x.description&&<small>{x.description}</small>}</div>
+                <div className="calendar-item-actions compact-actions"><button className="secondary" type="button" onClick={()=>openEdit(x)} disabled={saving}>Edit</button><button className="secondary danger" type="button" onClick={()=>removeEvent(x)} disabled={saving}>Hapus</button></div>
+              </div>):<p className="calendar-empty-note">Belum ada agenda sekolah mendatang.</p>}
+            </div>
+          </section>
+
+          <section className="card calendar-side-card">
+            <div className="card-head"><div><h2>{selectedDate?formatDate(selectedDate):"Agenda & hari penting"}</h2><p>{selectedDate?"Kegiatan pada tanggal yang dipilih":"Agenda dan hari penting yang akan datang."}</p></div></div>
+            <div className="calendar-list">
+              {selectedDate ? (selectedItems.length?selectedItems.map((x,i)=><div className="calendar-detail-item" key={x.id||String(x.title)+"-"+i}>
+                <span className={"calendar-badge "+x.kind}>{x.kind==="holiday"?"Libur nasional":x.kind==="important"?"Hari besar":"Agenda sekolah"}</span>
+                <div className="calendar-upcoming-copy"><b>{x.title}</b><small>{x.description||((x.startTime?formatTime(x.startTime):"")+(x.endTime?"–"+formatTime(x.endTime):""))||"Tanpa keterangan tambahan"}</small></div>
+                {x.kind==="school"&&<div className="calendar-item-actions compact-actions"><button className="secondary" type="button" onClick={()=>openEdit(x)} disabled={saving}>Edit</button><button className="secondary danger" type="button" onClick={()=>removeEvent(x)} disabled={saving}>Hapus</button></div>}
+              </div>):<p className="calendar-empty-note">Tidak ada agenda atau hari penting pada tanggal ini.</p>) : (upcomingCalendarItems.length?upcomingCalendarItems.slice(0,5).map(({date,item,key})=><div className="calendar-detail-item" key={key}>
+                <div className="calendar-upcoming-date"><b>{date.slice(8,10)}</b><span>{new Intl.DateTimeFormat("id-ID",{month:"short"}).format(new Date(date+"T00:00:00"))}</span></div>
+                <span className={"calendar-badge "+item.kind}>{item.kind==="holiday"?"Libur nasional":item.kind==="important"?"Hari besar":"Agenda sekolah"}</span>
+                <div className="calendar-upcoming-copy"><b>{item.title}</b><small>{formatDate(date)}{item.startTime?" · "+formatTime(item.startTime):""}{item.endTime?"–"+formatTime(item.endTime):""}</small></div>
+              </div>):<p className="calendar-empty-note">Belum ada agenda atau hari penting mendatang.</p>)}
+            </div>
+          </section>
+        </aside>
       </section>
     </>}
-
     {showAdd&&<div className="modal-backdrop">
       <div className="modal">
         <div className="modal-head"><div><h2>{editingEvent?"Edit agenda sekolah":"Tambah agenda sekolah"}</h2><p>Agenda tersimpan di kalender bersama untuk semua guru.</p></div><button className="icon-btn" onClick={()=>{if(!saving)setShowAdd(false)}} disabled={saving}><X/></button></div>
