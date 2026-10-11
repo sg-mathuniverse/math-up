@@ -309,3 +309,29 @@
  .todo-page-list .todo-actions{margin-left:30px}
  .todo-page-card .section-head{padding:18px 16px 14px}
 }
+
+
+/* Fraction-style date ranges and date-cell actions */
+.calendar-upcoming-date{height:auto;align-self:stretch;justify-content:flex-start;gap:5px;padding:7px 4px;overflow:visible}
+.calendar-date-number{display:flex;align-items:center;justify-content:center;min-height:24px}
+.calendar-date-number>b{font-size:15px;line-height:1.1;font-weight:750}
+.calendar-date-number.calendar-date-fraction{flex-direction:column;gap:2px}
+.calendar-date-fraction i{display:block;width:22px;border-top:1.5px solid #667085}
+.calendar-date-cell-actions{display:flex;flex-direction:column;gap:5px;width:100%;margin-top:7px}
+.calendar-date-action-pair{display:grid;grid-template-columns:1fr 1fr;gap:3px;align-items:center;width:100%}
+.calendar-date-action-pair>small{grid-column:1/-1;text-align:center;font-size:9px;color:#667085;line-height:1.2}
+.calendar-date-action-pair .secondary{padding:4px 3px;min-width:0;font-size:9px;line-height:1.2}
+.calendar-group-manage{display:none!important}
+.dashboard-grouped-event{align-items:flex-start}
+.dashboard-grouped-event .date-box{height:auto;min-height:52px;align-self:flex-start;padding:7px 6px;box-sizing:border-box}
+.dashboard-grouped-event .date-box-fraction{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
+.dashboard-grouped-event .date-box-fraction>b{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:14px;line-height:1.05}
+.dashboard-grouped-event .date-box-fraction i{display:block;width:20px;border-top:1.5px solid currentColor}
+.dashboard-event-copy{min-width:0;flex:1;display:flex;flex-direction:column;gap:5px;overflow-wrap:anywhere}
+.dashboard-event-copy>b{font-size:12px;line-height:1.45}
+.dashboard-event-copy>span{font-size:10px;line-height:1.45;color:#667085}
+@media(max-width:520px){
+ .calendar-date-action-pair .secondary{font-size:8px;padding:4px 2px}
+ .calendar-date-number>b{font-size:13px}
+ .dashboard-grouped-event .date-box-fraction>b{font-size:12px}
+}
