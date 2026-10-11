@@ -543,11 +543,27 @@ function CalendarPage(){
 
 
   const todayKey=keyForDate(today);
-  const upcomingSchoolEvents=events
+  const futureSchoolEvents=events
     .filter(x=>String(x.eventDate||"").slice(0,10)>=todayKey)
     .slice()
-    .sort((a,b)=>String(a.eventDate||"").localeCompare(String(b.eventDate||""))||String(a.startTime||"").localeCompare(String(b.startTime||"")))
-    .slice(0,4);
+    .sort((a,b)=>String(a.eventDate||"").slice(0,10).localeCompare(String(b.eventDate||"").slice(0,10))||String(a.startTime||"").localeCompare(String(b.startTime||"")));
+  const upcomingSchoolGroups=[];
+  const schoolDayNumber=date=>{const m=String(date||"").slice(0,10).match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);return m?Date.UTC(Number(m[1]),Number(m[2])-1,Number(m[3]))/86400000:NaN};
+  futureSchoolEvents.forEach(event=>{
+    const date=String(event.eventDate||"").slice(0,10), title=String(event.title||"Agenda sekolah").trim();
+    const last=upcomingSchoolGroups[upcomingSchoolGroups.length-1];
+    if(last&&last.title.trim().toLocaleLowerCase("id-ID")===title.toLocaleLowerCase("id-ID")&&schoolDayNumber(date)-schoolDayNumber(last.events[last.events.length-1].eventDate)===1){
+      last.events.push(event);
+    }else{
+      upcomingSchoolGroups.push({title,events:[event]});
+    }
+  });
+  const upcomingSchoolEvents=upcomingSchoolGroups.slice(0,4);
+  const formatSchoolDateRange=group=>{
+    const first=String(group.events[0].eventDate||"").slice(0,10), last=String(group.events[group.events.length-1].eventDate||"").slice(0,10);
+    const fmt=date=>new Intl.DateTimeFormat("id-ID",{day:"numeric",month:"short"}).format(new Date(date+"T00:00:00"));
+    return first===last?fmt(first):fmt(first)+" – "+fmt(last);
+  };
   const upcomingCalendarItems=Object.entries(byDate)
     .flatMap(([date,items])=>items.map((item,index)=>({date,item,key:`${date}-${item.id||item.title||"event"}-${index}`})))
     .filter(x=>x.date>=todayKey&&x.item.kind!=="school")
@@ -595,11 +611,15 @@ function CalendarPage(){
           <section className="card calendar-side-card">
             <div className="card-head"><div><h2>Agenda sekolah terdekat</h2><p>Agenda sekolah berikutnya berdasarkan tanggal.</p></div></div>
             <div className="calendar-list">
-              {upcomingSchoolEvents.length?upcomingSchoolEvents.map((x,i)=><div className="calendar-detail-item upcoming-school-item" key={x.id||String(x.eventDate)+"-"+i}>
-                <div className="calendar-upcoming-date"><b>{String(x.eventDate||"").slice(8,10)||"—"}</b><span>{String(x.eventDate||"").slice(5,7)?new Intl.DateTimeFormat("id-ID",{month:"short"}).format(new Date(String(x.eventDate).slice(0,10)+"T00:00:00")):""}</span></div>
-                <div className="calendar-upcoming-copy"><b>{x.title||"Agenda sekolah"}</b><small>{formatDate(x.eventDate)}{x.startTime?" · "+formatTime(x.startTime):""}{x.endTime?"–"+formatTime(x.endTime):""}</small>{x.description&&<small>{x.description}</small>}</div>
-                <div className="calendar-item-actions compact-actions"><button className="secondary" type="button" onClick={()=>openEdit(x)} disabled={saving}>Edit</button><button className="secondary danger" type="button" onClick={()=>removeEvent(x)} disabled={saving}>Hapus</button></div>
-              </div>):<p className="calendar-empty-note">Belum ada agenda sekolah mendatang.</p>}
+              {upcomingSchoolEvents.length?upcomingSchoolEvents.map((group,i)=>{
+                const first=group.events[0], last=group.events[group.events.length-1];
+                const timeLabel=(first.startTime?" · "+formatTime(first.startTime):"")+(first.endTime?"–"+formatTime(first.endTime):"");
+                return <div className="calendar-detail-item upcoming-school-item" key={String(first.id||first.eventDate)+"-"+i}>
+                  <div className="calendar-upcoming-date"><b>{String(first.eventDate||"").slice(8,10)||"—"}{group.events.length>1?"–"+String(last.eventDate||"").slice(8,10):""}</b><span>{String(first.eventDate||"").slice(5,7)?new Intl.DateTimeFormat("id-ID",{month:"short"}).format(new Date(String(first.eventDate).slice(0,10)+"T00:00:00")):""}</span></div>
+                  <div className="calendar-upcoming-copy"><b>{group.title}</b><small>{formatSchoolDateRange(group)}{timeLabel}</small>{first.description&&<small>{first.description}</small>}{group.events.length>1&&<div className="calendar-group-manage">{group.events.map(event=><span key={event.id||event.eventDate} className="calendar-group-date-actions"><small>{new Intl.DateTimeFormat("id-ID",{day:"numeric",month:"short"}).format(new Date(String(event.eventDate).slice(0,10)+"T00:00:00"))}</small><button className="secondary" type="button" onClick={()=>openEdit(event)} disabled={saving}>Edit</button><button className="secondary danger" type="button" onClick={()=>removeEvent(event)} disabled={saving}>Hapus</button></span>)}</div>}</div>
+                  {group.events.length===1&&<div className="calendar-item-actions compact-actions"><button className="secondary" type="button" onClick={()=>openEdit(first)} disabled={saving}>Edit</button><button className="secondary danger" type="button" onClick={()=>removeEvent(first)} disabled={saving}>Hapus</button></div>}
+                </div>;
+              }):<p className="calendar-empty-note">Belum ada agenda sekolah mendatang.</p>}
             </div>
           </section>
 
