@@ -364,7 +364,7 @@ function findSubstituteCandidates(request) {
   const events=readRows_(SHEET_NAMES.EVENTS).filter(e=>String(e.eventDate||'').trim()===date);
   const subs=readRows_(SHEET_NAMES.SUBSTITUTIONS).filter(s=>String(s.date||'').trim()===date&&String(s.status||'Diajukan').trim().toLowerCase()!=='ditolak');
   const teachers=readRows_(SHEET_NAMES.TEACHERS).filter(t=>String(t.status||'Aktif').trim().toLowerCase()!=='nonaktif'&&String(t.email||'').trim());
-  const agenda=events.map(e=>{const a=String(e.startTime||'').trim(),b=String(e.endTime||'').trim();if(!a&&!b)return {start:0,end:1440};const x=timeToMinutes_(a),y=timeToMinutes_(b);if(!Number.isFinite(x)||!Number.isFinite(y)||x>=y)return {start:0,end:1440};return {start:x,end:y};});
+  const agenda=events.map(e=>{const a=String(e.startTime||'').trim(),b=String(e.endTime||'').trim();if(!a&&!b)return null;const x=timeToMinutes_(a),y=timeToMinutes_(b);if(!a||!b||!Number.isFinite(x)||!Number.isFinite(y)||x>=y)return {start:0,end:1440};return {start:x,end:y};}).filter(Boolean);
   function merge(xs){const sorted=xs.filter(x=>Number.isFinite(x.start)&&Number.isFinite(x.end)&&x.start<x.end).map(x=>({start:Math.max(0,x.start),end:Math.min(1440,x.end)})).filter(x=>x.start<x.end).sort((a,b)=>a.start-b.start);const out=[];sorted.forEach(x=>{const last=out[out.length-1];if(last&&x.start<=last.end)last.end=Math.max(last.end,x.end);else out.push({...x});});return out;}
   function gaps(xs){let cursor=rs;const out=[];merge(xs).forEach(x=>{if(x.end<=rs||x.start>=re)return;const a=Math.max(rs,x.start),b=Math.min(re,x.end);if(a>cursor)out.push({start:cursor,end:a});cursor=Math.max(cursor,b);});if(cursor<re)out.push({start:cursor,end:re});return out;}
   return teachers.filter(t=>String(t.email||'').trim().toLowerCase()!==absent).map(t=>{
@@ -391,7 +391,7 @@ function isTeacherAvailableForInterval_(teacherEmail,date,startTime,endTime,excl
   const day=dayNameId_(date), schedules=readRows_(SHEET_NAMES.SCHEDULE);
   if(schedules.some(s=>String(s.teacherEmail||'').trim().toLowerCase()===email&&String(s.day||'').trim().toLowerCase()===String(day).toLowerCase()&&overlaps_(s.startTime,s.endTime,startTime,endTime)))return false;
   const events=readRows_(SHEET_NAMES.EVENTS);
-  if(events.some(e=>{if(String(e.eventDate||'').trim()!==String(date).trim())return false;const a=String(e.startTime||'').trim(),b=String(e.endTime||'').trim();if(!a&&!b)return true;if(!a||!b||!Number.isFinite(timeToMinutes_(a))||!Number.isFinite(timeToMinutes_(b))||timeToMinutes_(a)>=timeToMinutes_(b))return true;return overlaps_(a,b,startTime,endTime);}))return false;
+  if(events.some(e=>{if(String(e.eventDate||'').trim()!==String(date).trim())return false;const a=String(e.startTime||'').trim(),b=String(e.endTime||'').trim();if(!a&&!b)return false;if(!a||!b||!Number.isFinite(timeToMinutes_(a))||!Number.isFinite(timeToMinutes_(b))||timeToMinutes_(a)>=timeToMinutes_(b))return true;return overlaps_(a,b,startTime,endTime);}))return false;
   const subs=readRows_(SHEET_NAMES.SUBSTITUTIONS);
   if(subs.some(s=>{if(String(s.substituteTeacherEmail||'').trim().toLowerCase()!==email||String(s.date||'').trim()!==String(date).trim())return false;if(excludeSubstitutionId&&String(s.id)===String(excludeSubstitutionId))return false;if(String(s.status||'Diajukan').trim().toLowerCase()==='ditolak')return false;return overlaps_(s.startTime,s.endTime,startTime,endTime);}))return false;
   return true;
