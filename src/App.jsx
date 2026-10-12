@@ -3,7 +3,7 @@ import { api } from "./api";
 import {
   Bell, CalendarDays, CheckCircle2, ChevronDown, CirclePlus, Clock3,
   FileText, LayoutDashboard, ListTodo, Menu, MoreHorizontal, Search,
-  Settings, Users, UserRoundCheck, X, BookOpen, Sparkles, Mail, HardDrive
+  Settings, Users, UserRoundCheck, X, BookOpen, Sparkles, Mail, HardDrive, History
 } from "lucide-react";
 
 const schedule = [
@@ -183,6 +183,7 @@ function App(){
         <Nav icon={<CalendarDays size={19}/>} label="Kalender Akademik" active={active==="Kalender Akademik"} onClick={()=>setActive("Kalender Akademik")}/>
         <Nav icon={<FileText size={19}/>} label="Drive Materi" active={active==="Drive Materi"} onClick={()=>setActive("Drive Materi")}/>
         <Nav icon={<Users size={19}/>} label="Guru Matematika" active={active==="Guru Matematika"} onClick={()=>setActive("Guru Matematika")}/>
+        <Nav icon={<History size={19}/>} label="Patch Note" active={active==="Patch Note"} onClick={()=>setActive("Patch Note")}/>
       </nav>
       <div className="sidebar-bottom">
         <Nav icon={<Settings size={19}/>} label="Pengaturan" active={active==="Pengaturan"} onClick={()=>setActive("Pengaturan")}/>
@@ -193,7 +194,7 @@ function App(){
     <main className="main" onClick={()=>{if(menuOpen)setMenuOpen(false)}}>
       <header className="topbar">
         <button className="icon-btn mobile-menu" onClick={()=>setMenuOpen(v=>!v)}><Menu size={20}/></button>
-        <div className="crumb"><span>Workspace</span><b>/</b><strong>{active}</strong></div>
+        <div className="crumb"><strong>RMU 2.0</strong></div>
         <div className="top-actions">
           <form className="search google-search" action="https://www.google.com/search" method="get" target="_blank"><Search size={17}/><input name="q" placeholder="Cari di Google..." aria-label="Cari di Google" /></form>
           <a className="icon-btn top-link" href="https://mail.google.com/" target="_blank" rel="noreferrer" title="Buka Gmail" aria-label="Buka Gmail"><Mail size={19}/></a>
@@ -210,7 +211,7 @@ function App(){
        active==="Guru Matematika" ? <TeachersPage user={user} onUserUpdated={setUser} /> :
        active==="Pengaturan" ? <SettingsPage /> :
        active==="To-Do" ? <TodoPage todos={filteredTodos} toggleTodo={requestTodoToggle} actionLoading={todoActionLoading} onAdd={()=>{if(todoActionLoading)return;setEditingTodo(null);setShowTodo(true)}} onEdit={t=>{if(todoActionLoading)return;setEditingTodo(t);setShowTodo(true)}} onDelete={async t=>{if(!window.confirm("Hapus tugas ini?"))return;setTodoActionLoading("delete:"+String(t.id));setApiError("");try{await api.deleteTodo(t.id);setTodos(ts=>ts.filter(x=>x.id!==t.id));}catch(e){setApiError(e.message||String(e));}finally{setTodoActionLoading("");}}} /> :
-       <Placeholder title={active} />}
+       active==="Patch Note" ? <PatchNotesPage /> : <Placeholder title={active} />}
 
       {apiError && <div className="card" style={{margin:"16px"}}>{apiError}</div>}
       {confirmTodo&&<div className="modal-backdrop"><div className="modal confirm-modal"><div className="modal-head"><div><h2>{confirmTodo.done?"Buka kembali tugas?":"Konfirmasi tugas selesai"}</h2><p>{confirmTodo.done?"Tugas ini akan dikembalikan ke daftar tugas aktif.":"Pastikan tugas ini benar-benar sudah selesai dikerjakan."}</p></div><button className="icon-btn" onClick={()=>{if(!todoActionLoading)setConfirmTodo(null)}} disabled={!!todoActionLoading}><X/></button></div><div className="confirm-task"><b>{confirmTodo.title}</b><span>{confirmTodo.description||confirmTodo.desc||"Tanpa deskripsi"}</span></div><div className="modal-actions"><button className="secondary" onClick={()=>setConfirmTodo(null)} disabled={!!todoActionLoading}>Batal</button><button className="primary" onClick={confirmTodoToggle} disabled={!!todoActionLoading}>{todoActionLoading?<><span className="button-spinner"></span>Memproses...</>:confirmTodo.done?"Buka kembali":"Ya, sudah selesai"}</button></div></div></div>}
@@ -1046,6 +1047,43 @@ function SchedulePage({user}){
     </div></div>}
   </div>
 }
+
+function PatchNotesPage(){
+  const patches=[{
+    version:"RMU 2.0",
+    status:"Rilis saat ini",
+    title:"Workspace guru terintegrasi",
+    summary:"Ruang kerja digital untuk membantu guru mengelola jadwal, tugas, agenda, dan koordinasi guru pengganti.",
+    groups:[
+      {title:"Dashboard Guru",items:["Ringkasan jadwal mengajar, To-Do, agenda, dan informasi guru pengganti."]},
+      {title:"Jadwal Mengajar",items:["Pengelolaan jadwal berdasarkan hari, jam, kelas, materi, dan ruangan.","Jadwal efektif dapat mengikuti pertukaran guru yang telah disetujui."]},
+      {title:"Guru Pengganti",items:["Pencarian kandidat dengan mempertimbangkan bentrok jadwal dan agenda sekolah.","Alur pengajuan, respons, dan persetujuan penggantian guru.","Indikator notifikasi permintaan guru pengganti di aplikasi."]},
+      {title:"To-Do dan Pengingat",items:["Membuat, mengedit, menghapus, dan menandai tugas selesai.","Pengaturan deadline dan prioritas tugas.","Pengingat deadline melalui teks berjalan, termasuk penanda untuk tugas prioritas tinggi."]},
+      {title:"Kalender Akademik",items:["Tampilan kalender akademik, hari libur, cuti bersama, dan hari penting.","Pengelolaan agenda sekolah beserta tanggal dan waktu.","Detail agenda pada tanggal yang dipilih."]},
+      {title:"Akun dan Navigasi",items:["Masuk menggunakan akun Google.","Sidebar navigasi dan tampilan yang menyesuaikan ukuran layar.","Akses cepat ke Gmail dan Google Drive.","Menu Guru Matematika untuk informasi/profil guru."]}
+    ],
+    note:"Drive Materi belum dicatat sebagai fitur aktif karena koneksinya belum dipastikan berfungsi."
+  }];
+  return <div className="content patch-page">
+    <section className="page-title patch-page-title">
+      <div><div className="eyebrow"><History size={14}/> Riwayat pembaruan</div><h1>Patch Note</h1><p>Catatan versi Ruang Math Up, dengan rilis terbaru ditampilkan terlebih dahulu.</p></div>
+    </section>
+    <div className="patch-timeline">
+      {patches.map((patch,index)=><article className="card patch-card" key={patch.version}>
+        <div className="patch-card-head">
+          <div className="patch-version-icon"><History size={21}/></div>
+          <div className="patch-version-copy"><div className="patch-version-line"><h2>{patch.version}</h2><span className="patch-current">{patch.status}</span></div><p>{patch.title}</p></div>
+        </div>
+        <p className="patch-summary">{patch.summary}</p>
+        <div className="patch-groups">
+          {patch.groups.map(group=><section className="patch-group" key={group.title}><h3>{group.title}</h3><ul>{group.items.map(item=><li key={item}>{item}</li>)}</ul></section>)}
+        </div>
+        <div className="patch-note"><strong>Catatan:</strong> {patch.note}</div>
+      </article>)}
+    </div>
+  </div>;
+}
+
 function Placeholder({title}){return <div className="content"><section className="empty card"><div className="empty-icon"><CalendarDays size={28}/></div><h1>{title}</h1><p>Modul ini sudah disiapkan di Math Up dan akan kita sambungkan ke data Google Sheets/Drive pada tahap berikutnya.</p><button className="primary">Siapkan modul</button></section></div>}
 function TodoModal({onClose,onSave,initial,saving}){const [title,setTitle]=useState(initial?.title||"");const [desc,setDesc]=useState(initial?.description||initial?.desc||"");const initialDue=String(initial?.dueAt||initial?.due||"");const [dueDate,setDueDate]=useState(initialDue.match(/^(\\d{4}-\\d{2}-\\d{2})/)?.[1]||"");const [dueTime,setDueTime]=useState(initialDue.match(/T(\\d{2}:\\d{2})/)?.[1]||"");const [priority,setPriority]=useState(initial?.priority||"Sedang");const save=()=>{const due=dueDate&&dueTime?dueDate+"T"+dueTime:"";onSave({title,desc,due,priority});};return <div className="modal-backdrop"><div className="modal"><div className="modal-head"><div><h2>{initial?"Edit tugas":"Tugas baru"}</h2><p>Tambahkan pekerjaan yang perlu diselesaikan.</p></div><button className="icon-btn" onClick={onClose}><X/></button></div><label>Nama tugas<input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Contoh: Siapkan soal..." /></label><label>Deskripsi<textarea value={desc} onChange={e=>setDesc(e.target.value)} placeholder="Detail tugas..." /></label><div className="two"><label>Tanggal deadline<input type="date" value={dueDate} onChange={e=>setDueDate(e.target.value)}/></label><label>Jam berakhir<input type="time" value={dueTime} onChange={e=>setDueTime(e.target.value)}/></label></div><label>Prioritas<select value={priority} onChange={e=>setPriority(e.target.value)}><option>Rendah</option><option>Sedang</option><option>Tinggi</option></select></label><div className="modal-actions"><button className="secondary" onClick={onClose}>Batal</button><button className="primary" disabled={!title.trim()||!dueDate||!dueTime||saving} onClick={save}>{saving?<><span className="button-spinner"></span>Menyimpan...</>:initial?"Simpan perubahan":"Simpan tugas"}</button></div></div></div>}
 
