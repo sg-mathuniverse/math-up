@@ -662,9 +662,8 @@ function CalendarPage(){
             {x.kind==="school"&&<div className="calendar-item-actions compact-actions selected-date-actions"><button className="secondary" type="button" onClick={()=>openEdit(x)} disabled={saving}>Edit</button><button className="secondary danger" type="button" onClick={()=>removeEvent(x)} disabled={saving}>Hapus</button></div>}
           </div>):<p className="calendar-empty-note">Tidak ada agenda pada tanggal ini.</p>}
         </div>
+      </section>}
       </section>
-      </section>
-}
     </>}
     {showAdd&&<div className="modal-backdrop">
       <div className="modal">
