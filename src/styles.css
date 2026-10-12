@@ -385,3 +385,26 @@
 .calendar-card>.calendar-selected-details{width:100%;max-width:none;margin:0;border:0;border-top:1px solid #e8ecf2;border-radius:0;box-shadow:none}
 .calendar-card>.calendar-selected-details .card-head{padding:18px 20px 14px}
 .calendar-card>.calendar-selected-details .calendar-list{padding:0 20px 16px}
+
+
+/* Patch Note — riwayat rilis RMU */
+.crumb{gap:0}
+.patch-page-title{align-items:flex-start}
+.patch-timeline{max-width:980px;position:relative;padding-left:25px}
+.patch-timeline:before{content:"";position:absolute;left:7px;top:18px;bottom:22px;width:2px;background:#e4e7ec}
+.patch-card{position:relative;padding:24px;margin-bottom:22px;overflow:hidden}
+.patch-card:before{content:"";position:absolute;left:-23px;top:32px;width:12px;height:12px;border-radius:50%;background:#172033;border:3px solid #f6f8fb;box-shadow:0 0 0 1px #d0d5dd}
+.patch-card-head{display:flex;align-items:center;gap:14px}
+.patch-version-icon{width:46px;height:46px;border-radius:12px;background:#f2f4f7;color:#344054;display:grid;place-items:center;flex:none}
+.patch-version-copy{min-width:0}
+.patch-version-line{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.patch-version-line h2{margin:0;font:800 21px 'Plus Jakarta Sans';letter-spacing:-.5px;color:#172033}
+.patch-current{font-size:10px;font-weight:700;padding:5px 8px;border-radius:999px;background:#ecfdf3;color:#027a48}
+.patch-version-copy>p{margin:5px 0 0;color:#667085;font-size:12px}
+.patch-summary{font-size:13px;line-height:1.7;color:#475467;margin:20px 0;padding-bottom:18px;border-bottom:1px solid #eef1f5}
+.patch-groups{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 24px}
+.patch-group h3{font:700 13px 'Plus Jakarta Sans';margin:0 0 8px;color:#172033}
+.patch-group ul{padding-left:18px;margin:0;color:#667085;font-size:11px;line-height:1.75}
+.patch-group li{padding-left:2px;margin:3px 0}
+.patch-note{margin-top:22px;padding:13px 15px;border-radius:9px;background:#fffaeb;color:#92400e;font-size:11px;line-height:1.6}
+@media(max-width:700px){.patch-timeline{padding-left:19px}.patch-card{padding:17px}.patch-card:before{left:-18px}.patch-groups{grid-template-columns:1fr;gap:16px}.patch-version-line h2{font-size:19px}}
