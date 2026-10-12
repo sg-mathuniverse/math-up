@@ -332,7 +332,14 @@ function Dashboard({todos,toggleTodo,schedule,allSchedule,events,academicCalenda
    const d=dueDateOf(t);
    if(!d||d<todayDate)return;
    const daysLeft=Math.round((d-todayDate)/86400000);
-   if(daysLeft===3)runningMessages.push("Deadline To-do "+t.title+" tersisa 3 hari lagi"+(String(t.priority||"").toLowerCase()==="tinggi"?" — PENTING":"")+".");
+   const important=String(t.priority||"").trim().toLowerCase()==="tinggi";
+   const title=String(t.title||"To-Do").trim();
+   let reminder="";
+   if(daysLeft===3)reminder="Deadline To-do "+title+" tersisa 3 hari lagi.";
+   else if(daysLeft===2)reminder="Ges, deadline "+title+" tersisa 2 hari lagi.";
+   else if(daysLeft===1)reminder="Ayo ges Besok deadline "+title+" looh!!";
+   else if(daysLeft===0)reminder="INGAT, hari ini deadline "+title+" ya ges.";
+   if(reminder)runningMessages.push((important?"PENTING! ":"")+reminder);
  });
  const holidayItems=[...DEFAULT_ACADEMIC_CALENDAR_2026,...(academicCalendar||[])];
  const todayHolidays=[...new Map(holidayItems.filter(x=>normalizeCalendarDate(x.date||x.eventDate)===todayKey).map(x=>[String(x.title||x.name||""),x])).values()];
