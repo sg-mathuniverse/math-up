@@ -374,3 +374,8 @@
 @media(max-width:900px){
  .calendar-layout>.calendar-selected-details{grid-column:1;width:100%}
 }
+
+
+/* Remove vertical spacing between calendar row and its details panel */
+.calendar-layout{row-gap:0}
+.calendar-layout>.calendar-selected-details{margin-top:0}
