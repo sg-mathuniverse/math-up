@@ -379,3 +379,9 @@
 /* Remove vertical spacing between calendar row and its details panel */
 .calendar-layout{row-gap:0}
 .calendar-layout>.calendar-selected-details{margin-top:0}
+
+
+/* Treat selected agenda details as an integrated section of the calendar card */
+.calendar-card>.calendar-selected-details{width:100%;max-width:none;margin:0;border:0;border-top:1px solid #e8ecf2;border-radius:0;box-shadow:none}
+.calendar-card>.calendar-selected-details .card-head{padding:18px 20px 14px}
+.calendar-card>.calendar-selected-details .calendar-list{padding:0 20px 16px}
