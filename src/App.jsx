@@ -1043,6 +1043,7 @@ function SchedulePage({user}){
       <label>Kelas<input value={form.className} onChange={e=>setForm({...form,className:e.target.value})} placeholder="VIII-A"/></label>
       <label>Materi / Topik<input value={form.topic} onChange={e=>setForm({...form,topic:e.target.value})} placeholder="Persamaan Linear"/></label>
       <label>Ruangan<input value={form.room} onChange={e=>setForm({...form,room:e.target.value})} placeholder="R. 201"/></label>
+      {error&&<div className="schedule-modal-error" role="alert">{error}</div>}
       <div className="modal-actions"><button className="secondary" type="button" onClick={()=>{if(!saving){setShow(false);setEditing(null);}}} disabled={saving}>Batal</button><button className="primary" type="button" disabled={saving||!form.className.trim()} onClick={save}>{saving?<><span className="button-spinner"></span>{editing?"Menyimpan perubahan...":"Menyimpan jadwal..."}</>:editing?"Simpan perubahan":"Simpan jadwal"}</button></div>
     </div></div>}
   </div>
