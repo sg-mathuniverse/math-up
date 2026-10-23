@@ -695,39 +695,59 @@ function saveSubstitution(item) {
 function retrySubstitutionEmail(id) {
   const user = requireUser_();
   setupSheets();
-  const row = findRow_(SHEET_NAMES.SUBSTITUTIONS, String(id || '').trim());
-  if (!row) throw new Error('Permintaan guru pengganti tidak ditemukan.');
-  const data = row.data;
-  if (String(data.absentTeacherEmail || '').trim().toLowerCase() !== user.email) {
-    throw new Error('Hanya guru pengaju yang dapat mengirim ulang notifikasi ini.');
-  }
-  if (String(data.status || '').trim() !== 'Diajukan') {
-    throw new Error('Notifikasi hanya dapat dikirim ulang saat permintaan masih diajukan.');
-  }
-  const emailStatus = String(data.emailStatus || 'Menunggu').trim();
-  if (emailStatus === 'Terkirim' || data.emailSentAt) {
-    throw new Error('Email notifikasi sudah tercatat terkirim; pengiriman ulang dibatalkan agar tidak duplikat.');
-  }
-  if (!['Gagal','Menunggu',''].includes(emailStatus)) {
-    throw new Error('Status email tidak mengizinkan pengiriman ulang.');
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) throw new Error('Sistem sedang memproses permintaan lain. Silakan coba lagi.');
+
+  let row;
+  let data;
+  let teacher;
+  let requester;
+  try {
+    row = findRow_(SHEET_NAMES.SUBSTITUTIONS, String(id || '').trim());
+    if (!row) throw new Error('Permintaan guru pengganti tidak ditemukan.');
+    data = row.data;
+    if (String(data.absentTeacherEmail || '').trim().toLowerCase() !== user.email) {
+      throw new Error('Hanya guru pengaju yang dapat mengirim ulang notifikasi ini.');
+    }
+    if (String(data.status || '').trim() !== 'Diajukan') {
+      throw new Error('Notifikasi hanya dapat dikirim ulang saat permintaan masih diajukan.');
+    }
+    const emailStatus = String(data.emailStatus || 'Menunggu').trim();
+    if (emailStatus === 'Terkirim' || data.emailSentAt) {
+      throw new Error('Email notifikasi sudah tercatat terkirim; pengiriman ulang dibatalkan agar tidak duplikat.');
+    }
+    if (!['Gagal','Menunggu',''].includes(emailStatus)) {
+      throw new Error('Status email sedang diproses atau tidak mengizinkan pengiriman ulang.');
+    }
+
+    const substitute = String(data.substituteTeacherEmail || '').trim().toLowerCase();
+    const domain = user.email.split('@').pop();
+    if (!substitute || substitute.split('@').pop() !== domain) {
+      throw new Error('Alamat guru pengganti tidak valid untuk domain sekolah.');
+    }
+    const teachers = readRows_(SHEET_NAMES.TEACHERS);
+    teacher = teachers.find(t =>
+      String(t.email || '').trim().toLowerCase() === substitute &&
+      String(t.status || 'Aktif').trim().toLowerCase() === 'aktif' &&
+      String(t.subject || '').trim().toLowerCase() === 'matematika'
+    );
+    if (!teacher) throw new Error('Guru pengganti tidak lagi terdaftar sebagai guru Matematika aktif.');
+    requester = teachers.find(t =>
+      String(t.email || '').trim().toLowerCase() === user.email
+    );
+
+    // Status "Mengirim" mencegah klik ganda atau dua permintaan bersamaan.
+    updateRow_(SHEET_NAMES.SUBSTITUTIONS, row.rowNumber, {
+      ...data,
+      emailStatus:'Mengirim',
+      emailError:'',
+      updatedAt:new Date().toISOString()
+    });
+  } finally {
+    lock.releaseLock();
   }
 
   const substitute = String(data.substituteTeacherEmail || '').trim().toLowerCase();
-  const domain = user.email.split('@').pop();
-  if (!substitute || substitute.split('@').pop() !== domain) {
-    throw new Error('Alamat guru pengganti tidak valid untuk domain sekolah.');
-  }
-  const teachers = readRows_(SHEET_NAMES.TEACHERS);
-  const teacher = teachers.find(t =>
-    String(t.email || '').trim().toLowerCase() === substitute &&
-    String(t.status || 'Aktif').trim().toLowerCase() === 'aktif' &&
-    String(t.subject || '').trim().toLowerCase() === 'matematika'
-  );
-  if (!teacher) throw new Error('Guru pengganti tidak lagi terdaftar sebagai guru Matematika aktif.');
-
-  const requester = teachers.find(t =>
-    String(t.email || '').trim().toLowerCase() === user.email
-  );
   let nextStatus = 'Terkirim';
   let sentAt = new Date().toISOString();
   let errorMessage = '';
@@ -756,8 +776,10 @@ function retrySubstitutionEmail(id) {
     errorMessage = String(emailException && emailException.message ? emailException.message : emailException).slice(0,500);
   }
 
-  const updated = updateRow_(SHEET_NAMES.SUBSTITUTIONS, row.rowNumber, {
-    ...data,
+  const savedRow = findRow_(SHEET_NAMES.SUBSTITUTIONS, String(id || '').trim());
+  if (!savedRow) throw new Error('Permintaan tidak ditemukan saat memperbarui status email.');
+  const updated = updateRow_(SHEET_NAMES.SUBSTITUTIONS, savedRow.rowNumber, {
+    ...savedRow.data,
     emailStatus:nextStatus,
     emailSentAt:sentAt,
     emailError:errorMessage,
