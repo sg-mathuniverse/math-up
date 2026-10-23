@@ -190,7 +190,7 @@ function App(){
       </div>
     </aside>
 
-    <main className="main" onClick={()=>{if(menuOpen)setMenuOpen(false)}}>
+    <main className="main" onClick={()=>{if(menuOpen)setMenuOpen(false);if(profileMenuOpen)setProfileMenuOpen(false)}}>
       <header className="topbar">
         <button className="icon-btn mobile-menu" onClick={()=>setMenuOpen(v=>!v)}><Menu size={20}/></button>
         <div className="crumb"><strong>RMU 3.0</strong></div>
@@ -199,7 +199,7 @@ function App(){
           <a className="icon-btn top-link" href="https://mail.google.com/" target="_blank" rel="noreferrer" title="Buka Gmail" aria-label="Buka Gmail"><Mail size={19}/></a>
           <a className="icon-btn top-link" href="https://drive.google.com/" target="_blank" rel="noreferrer" title="Buka Google Drive" aria-label="Buka Google Drive"><HardDrive size={19}/></a>
           <button className="icon-btn notification-btn" onClick={()=>setActive("Guru Pengganti")} title="Notifikasi guru pengganti" aria-label="Notifikasi guru pengganti"><Bell size={19}/>{substitutionNotifications.length>0&&<i></i>}{substitutionNotifications.length>0&&<em>{substitutionNotifications.length>9?"9+":substitutionNotifications.length}</em>}</button>
-          <div className="profile-menu-wrap">
+          <div className="profile-menu-wrap" onClick={e=>e.stopPropagation()}>
             <button className="user-chip" aria-haspopup="menu" aria-expanded={profileMenuOpen} onClick={()=>setProfileMenuOpen(v=>!v)}><div className="avatar small">{user?.photoUrl?<img src={user.photoUrl} alt={user.name||"Profil"} />:initials(user?.name||user?.email||"?")}</div><ChevronDown size={15}/></button>
             {profileMenuOpen&&<div className="profile-dropdown" role="menu">
               <div className="profile-dropdown-user"><div className="avatar">{user?.photoUrl?<img src={user.photoUrl} alt={user.name||"Profil"} />:initials(user?.name||user?.email||"?")}</div><div><b>{user?.name||"Guru"}</b><span>{user?.email||""}</span></div></div>
