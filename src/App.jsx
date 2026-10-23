@@ -913,6 +913,18 @@ function SubstitutePage({user,onSubstitutionUpdated}){
  const [loading,setLoading]=useState(false);
  const [initialLoading,setInitialLoading]=useState(true);
  const [message,setMessage]=useState("");
+ const [retryingEmailId,setRetryingEmailId]=useState("");
+
+ const retryEmail=async(id)=>{
+   setRetryingEmailId(id);
+   setMessage("");
+   try{
+     const result=await api.retrySubstitutionEmail(id);
+     setMessage(result?.emailStatus==="Terkirim"?"Email notifikasi berhasil dikirim ulang.":"Pengiriman ulang gagal: "+(result?.emailError||"periksa konfigurasi email Apps Script."));
+     await refresh();
+   }catch(e){setMessage(e.message||String(e));}
+   finally{setRetryingEmailId("");}
+ };
 
  const refresh=async()=>{
    const [incoming,all]=await Promise.all([api.getSubstitutionRequests(),api.getBootstrap()]);
@@ -1071,7 +1083,7 @@ function SubstitutePage({user,onSubstitutionUpdated}){
    <section className="card">
      <div className="card-head"><div><h2>Riwayat permintaan saya</h2><p>Pengajuan pengganti yang Anda buat.</p></div></div>
      {history.length?history.slice().sort((a,b)=>String(b.createdAt||"").localeCompare(String(a.createdAt||""))).map(x=><div className="todo-row" key={x.id}>
-       <div className="todo-copy"><b>{x.className} · {formatDate(x.date)}</b><span>{formatTime(x.startTime)}–{formatTime(x.endTime)} · {x.substituteTeacherEmail||"Belum dipilih"}</span><small>{x.topic||"Tanpa materi"}{x.reason?" · "+x.reason:""}</small><small>Notifikasi email: {x.emailStatus||"Belum tercatat"}{x.emailStatus==="Gagal"&&x.emailError?" — "+x.emailError:""}</small></div>
+       <div className="todo-copy"><b>{x.className} · {formatDate(x.date)}</b><span>{formatTime(x.startTime)}–{formatTime(x.endTime)} · {x.substituteTeacherEmail||"Belum dipilih"}</span><small>{x.topic||"Tanpa materi"}{x.reason?" · "+x.reason:""}</small><small>Notifikasi email: {x.emailStatus||"Belum tercatat"}{x.emailStatus==="Gagal"&&x.emailError?" — "+x.emailError:""}</small>{["Gagal","Menunggu"].includes(x.emailStatus||"Menunggu")&&x.status==="Diajukan"&&<button className="secondary" style={{marginTop:8}} disabled={retryingEmailId===x.id} onClick={()=>retryEmail(x.id)}>{retryingEmailId===x.id?"Mengirim ulang…":"Kirim ulang notifikasi"}</button>}</div>
        <span className="priority sedang">{x.status}</span>
      </div>):<p>Belum ada pengajuan.</p>}
    </section>
