@@ -44,6 +44,8 @@ jobs:
           assert.ok(api.includes("'@' + user.email.split('@').pop()"), 'Bootstrap must restrict teacher records to the signed-in email domain.');
           assert.ok(api.includes("String(t.subject||'').trim().toLowerCase()==='matematika'"), 'Substitute candidates must be math teachers only.');
           assert.ok(api.includes("String(t.status||'Aktif').trim().toLowerCase()==='aktif'"), 'Substitute candidates must be active teachers only.');
+          assert.ok(api.includes("String(r.absentTeacherEmail || '').trim().toLowerCase() === user.email"), 'Bootstrap substitution history must include only requests involving the signed-in user.');
+          assert.ok(api.includes("String(r.substituteTeacherEmail || '').trim().toLowerCase() === user.email"), 'Bootstrap substitution history must include requests assigned to the signed-in user.');
           assert.ok(api.includes("String(t.subject || '').trim().toLowerCase() === 'matematika'"), 'Saved substitute must be a math teacher.');
           assert.ok(api.includes('function authorizeEmailNotifications()'), 'MailApp authorization helper must exist.');
           assert.ok(!api.includes("String(profile?.photoUrl || '')"), 'Legacy profile URLs must not be exposed as profile photos.');
