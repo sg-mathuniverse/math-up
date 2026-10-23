@@ -1061,7 +1061,7 @@ function SubstitutePage({user,onSubstitutionUpdated}){
    <section className="card">
      <div className="card-head"><div><h2>Riwayat permintaan saya</h2><p>Pengajuan pengganti yang Anda buat.</p></div></div>
      {history.length?history.slice().sort((a,b)=>String(b.createdAt||"").localeCompare(String(a.createdAt||""))).map(x=><div className="todo-row" key={x.id}>
-       <div className="todo-copy"><b>{x.className} · {formatDate(x.date)}</b><span>{formatTime(x.startTime)}–{formatTime(x.endTime)} · {x.substituteTeacherEmail||"Belum dipilih"}</span><small>{x.topic||"Tanpa materi"}{x.reason?" · "+x.reason:""}</small></div>
+       <div className="todo-copy"><b>{x.className} · {formatDate(x.date)}</b><span>{formatTime(x.startTime)}–{formatTime(x.endTime)} · {x.substituteTeacherEmail||"Belum dipilih"}</span><small>{x.topic||"Tanpa materi"}{x.reason?" · "+x.reason:""}</small><small>Notifikasi email: {x.emailStatus||"Belum tercatat"}{x.emailStatus==="Gagal"&&x.emailError?" — "+x.emailError:""}</small></div>
        <span className="priority sedang">{x.status}</span>
      </div>):<p>Belum ada pengajuan.</p>}
    </section>
