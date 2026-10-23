@@ -8,8 +8,8 @@ const SHEET_NAMES = {
   SUBSTITUTIONS: 'Substitutions'
 };
 const HEADERS = {
-  Users: ['id', 'email', 'name', 'photoUrl', 'role', 'createdAt', 'updatedAt'],
-  Teachers: ['id', 'email', 'name', 'subject', 'status', 'createdAt', 'updatedAt'],
+  Users: ['id', 'email', 'name', 'photoUrl', 'role', 'createdAt', 'updatedAt', 'photoFileId'],
+  Teachers: ['id', 'email', 'name', 'subject', 'status', 'createdAt', 'updatedAt', 'phone'],
   Schedule: ['id', 'teacherEmail', 'day', 'startTime', 'endTime', 'className', 'topic', 'room', 'createdAt', 'updatedAt'],
   Todo: ['id', 'teacherEmail', 'title', 'description', 'dueAt', 'priority', 'done', 'createdAt', 'updatedAt'],
   Events: ['id', 'title', 'description', 'eventDate', 'startTime', 'endTime', 'type', 'createdBy', 'createdAt', 'updatedAt'],
@@ -109,7 +109,22 @@ function setupSheets() {
       sheet.getRange(1, 1, 1, HEADERS[name].length)
         .setValues([HEADERS[name]]);
       sheet.setFrozenRows(1);
+      return;
     }
+
+    // Migrasi aman: kolom baru ditambahkan di sebelah kanan tanpa
+    // mengubah urutan kolom lama atau menimpa data yang sudah ada.
+    const lastColumn = Math.max(sheet.getLastColumn(), 1);
+    const currentHeaders = sheet.getRange(1, 1, 1, lastColumn)
+      .getDisplayValues()[0]
+      .map(value => String(value || '').trim());
+    const missingHeaders = HEADERS[name]
+      .filter(header => !currentHeaders.includes(header));
+    if (missingHeaders.length) {
+      sheet.getRange(1, lastColumn + 1, 1, missingHeaders.length)
+        .setValues([missingHeaders]);
+    }
+    sheet.setFrozenRows(1);
   });
   return {ok:true,sheets:Object.keys(HEADERS)};
 }
@@ -199,6 +214,7 @@ function deleteTodo(id) {
 // ============================================================
 function saveTeacher(teacher) {
   const user = requireUser_();
+  teacher = teacher || {};
   const email = String(teacher.email || '').trim().toLowerCase();
   if (email !== user.email) {
     throw new Error('Guru hanya dapat memperbarui profilnya sendiri.');
@@ -211,8 +227,9 @@ function saveTeacher(teacher) {
     id:existing?.id || teacher.id || Utilities.getUuid(),
     email:user.email,
     name:String(teacher.name || '').trim(),
-    subject:String(teacher.subject || 'Matematika').trim(),
-    status:teacher.status || 'Aktif',
+    subject:String(teacher.subject || existing?.subject || 'Matematika').trim(),
+    status:teacher.status || existing?.status || 'Aktif',
+    phone:String(teacher.phone !== undefined ? teacher.phone : (existing?.phone || '')).trim(),
     createdAt:existing?.createdAt || teacher.createdAt || now,
     updatedAt:now
   };
@@ -563,10 +580,16 @@ function getCurrentUser() {
   const user = requireUser_();
   setupSheets();
   const teacher = readRows_(SHEET_NAMES.TEACHERS)
-    .find(r => String(r.email || '').toLowerCase() === user.email);
+    .find(r => String(r.email || '').trim().toLowerCase() === user.email);
+  const profile = readRows_(SHEET_NAMES.USERS)
+    .find(r => String(r.email || '').trim().toLowerCase() === user.email);
   if (teacher && String(teacher.name || '').trim()) {
     user.name = String(teacher.name).trim();
+  } else if (profile && String(profile.name || '').trim()) {
+    user.name = String(profile.name).trim();
   }
+  user.phone = String(teacher?.phone || '');
+  user.photoFileId = String(profile?.photoFileId || '');
   return user;
 }
 function requireUser_() {
@@ -584,25 +607,34 @@ function requireUser_() {
   };
 }
 function upsertUser_(user) {
-  const existing = readRows_(SHEET_NAMES.USERS)
-    .find(r => r.email === user.email);
+  const users = readRows_(SHEET_NAMES.USERS);
+  const teachers = readRows_(SHEET_NAMES.TEACHERS);
+  const existing = users.find(r =>
+    String(r.email || '').trim().toLowerCase() === user.email
+  );
+  const teacher = teachers.find(r =>
+    String(r.email || '').trim().toLowerCase() === user.email
+  );
   const now = new Date().toISOString();
   upsertRow_(SHEET_NAMES.USERS, {
     id:existing ? existing.id : Utilities.getUuid(),
     email:user.email,
-    name:user.name,
-    photoUrl:'',
+    name:String(teacher?.name || existing?.name || user.name || ''),
+    // Pertahankan referensi foto yang tersimpan; jangan kosongkan saat bootstrap.
+    photoUrl:existing?.photoUrl || '',
+    photoFileId:existing?.photoFileId || '',
     role:existing ? existing.role : 'Guru',
     createdAt:existing ? existing.createdAt : now,
     updatedAt:now
   });
-  if (!readRows_(SHEET_NAMES.TEACHERS).some(r => r.email === user.email)) {
+  if (!teacher) {
     upsertRow_(SHEET_NAMES.TEACHERS, {
       id:Utilities.getUuid(),
       email:user.email,
       name:user.name,
       subject:'Matematika',
       status:'Aktif',
+      phone:'',
       createdAt:now,
       updatedAt:now
     });
