@@ -939,13 +939,17 @@ function getProfilePhotoFolder_() {
 // Fungsi ini tidak diekspos sebagai endpoint API publik.
 function setupProfilePhotoFolder() {
   const folder = getProfilePhotoFolder_();
-  return {
+  const result = {
     ok:true,
     folderName:folder.getName(),
     folderId:folder.getId(),
     folderUrl:folder.getUrl(),
-    sharingAccess:String(folder.getSharingAccess())
+    sharingAccess:String(folder.getSharingAccess()),
+    note:'Folder foto profil dibuat di Drive utama pemilik Apps Script agar tetap terpisah dari folder bersama.'
   };
+  console.log('setupProfilePhotoFolder RESULT: ' + JSON.stringify(result));
+  Logger.log('setupProfilePhotoFolder RESULT: ' + JSON.stringify(result));
+  return result;
 }
 
 function getProfilePhotoDataUrl_(fileId) {
