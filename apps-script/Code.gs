@@ -525,7 +525,12 @@ function saveSubstitution(item) {
   }
   const start = timeToMinutes_(startTime);
   const end = timeToMinutes_(endTime);
-  if (!date || !Number.isFinite(start) || !Number.isFinite(end) || start >= end) {
+  const parsedDate = /^\d{4}-\d{2}-\d{2}$/.test(date)
+    ? new Date(date + 'T00:00:00Z')
+    : null;
+  const validDate = parsedDate && !Number.isNaN(parsedDate.getTime()) &&
+    parsedDate.toISOString().slice(0,10) === date;
+  if (!validDate || !Number.isFinite(start) || !Number.isFinite(end) || start >= end) {
     throw new Error('Tanggal dan rentang jam pengganti tidak valid.');
   }
 
