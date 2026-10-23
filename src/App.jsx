@@ -494,6 +494,7 @@ function ProfilePage({user,onUserUpdated}) {
   const [form,setForm]=useState({name:user?.name||"",phone:user?.phone||""});
   const [loading,setLoading]=useState(true);
   const [saving,setSaving]=useState(false);
+  const [photoUploading,setPhotoUploading]=useState(false);
   const [error,setError]=useState("");
   const [message,setMessage]=useState("");
 
@@ -520,6 +521,60 @@ function ProfilePage({user,onUserUpdated}) {
     finally{setSaving(false);}
   };
 
+  const uploadPhoto=async event=>{
+    const file=event.target.files?.[0];
+    event.target.value="";
+    if(!file)return;
+    if(!["image/jpeg","image/png","image/webp"].includes(file.type)){
+      setError("Pilih foto berformat JPG, PNG, atau WebP.");return;
+    }
+    if(file.size>8*1024*1024){
+      setError("Ukuran file sumber maksimal 8 MB.");return;
+    }
+    setPhotoUploading(true);setError("");setMessage("");
+    try{
+      const bitmap=await createImageBitmap(file);
+      let maxDimension=900,quality=0.82,blob=null;
+      for(let attempt=0;attempt<6;attempt++){
+        const scale=Math.min(1,maxDimension/Math.max(bitmap.width,bitmap.height));
+        const canvas=document.createElement("canvas");
+        canvas.width=Math.max(1,Math.round(bitmap.width*scale));
+        canvas.height=Math.max(1,Math.round(bitmap.height*scale));
+        const context=canvas.getContext("2d");
+        if(!context)throw new Error("Browser tidak dapat memproses foto ini.");
+        context.drawImage(bitmap,0,0,canvas.width,canvas.height);
+        blob=await new Promise(resolve=>canvas.toBlob(resolve,"image/jpeg",quality));
+        if(blob&&blob.size<=512*1024)break;
+        maxDimension=Math.round(maxDimension*0.82);
+        quality=Math.max(0.48,quality-0.07);
+      }
+      bitmap.close?.();
+      if(!blob||blob.size>512*1024)throw new Error("Foto masih terlalu besar. Pilih foto lain dengan ukuran lebih kecil.");
+      const dataUrl=await new Promise((resolve,reject)=>{
+        const reader=new FileReader();
+        reader.onload=()=>resolve(String(reader.result||""));
+        reader.onerror=()=>reject(new Error("Foto gagal dibaca."));
+        reader.readAsDataURL(blob);
+      });
+      const base64=dataUrl.split(",")[1]||"";
+      const chunkSize=18000;
+      const totalChunks=Math.ceil(base64.length/chunkSize);
+      const uploadId=window.crypto?.randomUUID?.()||("upload_"+Date.now()+"_"+Math.random().toString(36).slice(2));
+      let result=null;
+      for(let index=0;index<totalChunks;index++){
+        result=await api.uploadProfilePhotoChunk(
+          uploadId,index,totalChunks,
+          base64.slice(index*chunkSize,(index+1)*chunkSize),
+          "image/jpeg"
+        );
+      }
+      if(!result?.complete||!result?.user)throw new Error("Unggahan foto belum selesai. Silakan coba lagi.");
+      onUserUpdated?.(result.user);
+      setMessage("Foto profil berhasil diperbarui. Foto disimpan secara privat.");
+    }catch(e){setError(e.message||String(e));}
+    finally{setPhotoUploading(false);}
+  };
+
   return <div className="content">
     <section className="page-title"><div><div className="eyebrow">Akun dan identitas</div><h1>Profil Saya</h1><p>Perbarui informasi yang digunakan oleh guru matematika di Ruang Math Up.</p></div></section>
     {error&&<div className="card profile-message error" role="alert">{error}</div>}
@@ -527,14 +582,14 @@ function ProfilePage({user,onUserUpdated}) {
     <section className="card profile-card rmu-profile-card">
       <div className="profile-hero-row">
         <div className="avatar profile-large">{user?.photoUrl?<img src={user.photoUrl} alt={user?.name||"Profil"} />:initials(form.name||user?.email||"?")}</div>
-        <div><h2>{form.name||"Nama guru"}</h2><p>Foto profil akan diaktifkan setelah mekanisme penyimpanan privat siap.</p></div>
+        <div className="profile-photo-copy"><h2>{form.name||"Nama guru"}</h2><p>JPG, PNG, atau WebP. Foto diproses di browser dan disimpan di folder Drive privat.</p><label className={"profile-photo-upload"+(photoUploading?" uploading":"")}><input type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadPhoto} disabled={loading||saving||photoUploading}/><span>{photoUploading?"Mengunggah foto...":"Ganti foto profil"}</span></label></div>
       </div>
       <div className="form-grid">
-        <label>Nama guru<input value={form.name} onChange={e=>setForm({...form,name:e.target.value})} maxLength={120} placeholder="Nama lengkap" disabled={loading||saving}/></label>
+        <label>Nama guru<input value={form.name} onChange={e=>setForm({...form,name:e.target.value})} maxLength={120} placeholder="Nama lengkap" disabled={loading||saving||photoUploading}/></label>
         <label>Email sekolah<input value={user?.email||""} disabled readOnly/><small>Email diambil dari akun Google yang sedang login dan tidak dapat diubah.</small></label>
-        <label>Nomor HP<input value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} maxLength={30} placeholder="Contoh: 08xxxxxxxxxx" disabled={loading||saving}/></label>
+        <label>Nomor HP<input value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} maxLength={30} placeholder="Contoh: 08xxxxxxxxxx" disabled={loading||saving||photoUploading}/></label>
       </div>
-      <div className="profile-form-actions"><button className="primary" onClick={save} disabled={loading||saving}>{loading?"Memuat profil...":saving?"Menyimpan...":"Simpan perubahan"}</button></div>
+      <div className="profile-form-actions"><button className="primary" onClick={save} disabled={loading||saving||photoUploading}>{loading?"Memuat profil...":saving?"Menyimpan...":"Simpan perubahan"}</button></div>
     </section>
   </div>;
 }
