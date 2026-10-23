@@ -927,7 +927,25 @@ function getProfilePhotoFolder_() {
 
 function getProfilePhotoDataUrl_(fileId) {
   try {
-    const file = DriveApp.getFileById(String(fileId || ''));
+    const id = String(fileId || '').trim();
+    if (!id) return '';
+
+    // Hanya sajikan foto yang tetap berada di folder khusus RMU dan
+    // tidak dibagikan secara publik. Jangan mempercayai file ID dari Sheet saja.
+    const folder = getProfilePhotoFolder_();
+    const file = DriveApp.getFileById(id);
+    if (file.getSharingAccess() !== DriveApp.Access.PRIVATE) return '';
+
+    const parents = file.getParents();
+    let belongsToPrivatePhotoFolder = false;
+    while (parents.hasNext()) {
+      if (parents.next().getId() === folder.getId()) {
+        belongsToPrivatePhotoFolder = true;
+        break;
+      }
+    }
+    if (!belongsToPrivatePhotoFolder) return '';
+
     const blob = file.getBlob();
     const mimeType = String(blob.getContentType() || file.getMimeType());
     if (!['image/jpeg','image/png','image/webp'].includes(mimeType)) return '';
