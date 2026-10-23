@@ -79,6 +79,13 @@ jobs:
           assert.ok(api.includes("email:user.email,\n    name,\n    photoUrl:''"), 'Profile updates must bind the account email to the authenticated user rather than client input.');
           assert.ok(api.includes(".map(t => ({\n      id:String(t.id || ''),\n      name:String(t.name || ''),\n      email:String(t.email || ''),\n      phone:String(t.phone || ''),\n      subject:String(t.subject || 'Matematika'),\n      status:String(t.status || 'Aktif')\n    }))"), 'Teacher directory must return only the intended public directory fields.');
           assert.ok(api.includes("String(t.email || '').trim().toLowerCase().endsWith('@' + schoolDomain)"), 'Teacher directory must filter to the signed-in school email domain.');
+          assert.ok(api.includes("subject:String(existingTeacher?.subject || 'Matematika')"), 'Profile saves must preserve the teacher subject instead of trusting client input.');
+          assert.ok(api.includes("status:String(existingTeacher?.status || 'Aktif')"), 'Profile saves must preserve the teacher status instead of trusting client input.');
+          assert.ok(api.includes("role:existingUser?.role || 'Guru'"), 'Profile saves must preserve the server-stored user role.');
+          assert.ok(api.includes("const userKey = Utilities.base64EncodeWebSafe("), 'Photo upload storage keys must be scoped to the authenticated user.');
+          assert.ok(api.includes("const prefix = 'rmu_photo_' + userKey + '_' + id + '_'"), 'Photo upload chunks must be namespaced by user and upload ID.');
+          assert.ok(api.includes("if (existing?.photoFileId && existing.photoFileId !== file.getId())"), 'Replacing a profile photo must clean up the previous file reference.');
+          assert.ok(api.includes("file.setTrashed(true)"), 'Failed profile-photo database writes must remove the newly uploaded orphan file.');
           assert.ok(api.includes("if (action !== 'terima' && action !== 'tolak')"), 'Substitution responses must be limited to accept or reject.');
             assert.ok(api.includes("if (substituteEmail !== user.email)"), 'Only the designated substitute may respond to a request.');
             assert.ok(api.includes("String(data.status || 'Diajukan').trim().toLowerCase() !== 'diajukan'"), 'A substitution request already processed must not be processed again.');
