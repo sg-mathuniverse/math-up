@@ -383,7 +383,8 @@ function findSubstituteCandidates(request) {
   const schedules=readRows_(SHEET_NAMES.SCHEDULE);
   const events=readRows_(SHEET_NAMES.EVENTS).filter(e=>String(e.eventDate||'').trim()===date);
   const subs=readRows_(SHEET_NAMES.SUBSTITUTIONS).filter(s=>String(s.date||'').trim()===date&&String(s.status||'Diajukan').trim().toLowerCase()!=='ditolak');
-  const teachers=readRows_(SHEET_NAMES.TEACHERS).filter(t=>String(t.status||'Aktif').trim().toLowerCase()!=='nonaktif'&&String(t.email||'').trim());
+  const schoolDomain=user.email.split('@').pop();
+  const teachers=readRows_(SHEET_NAMES.TEACHERS).filter(t=>String(t.status||'Aktif').trim().toLowerCase()!=='nonaktif'&&String(t.email||'').trim().toLowerCase().endsWith('@'+schoolDomain));
   const agenda=events.map(e=>{const a=String(e.startTime||'').trim(),b=String(e.endTime||'').trim();if(!a&&!b)return null;const x=timeToMinutes_(a),y=timeToMinutes_(b);if(!a||!b||!Number.isFinite(x)||!Number.isFinite(y)||x>=y)return {start:0,end:1440};return {start:x,end:y};}).filter(Boolean);
   function merge(xs){const sorted=xs.filter(x=>Number.isFinite(x.start)&&Number.isFinite(x.end)&&x.start<x.end).map(x=>({start:Math.max(0,x.start),end:Math.min(1440,x.end)})).filter(x=>x.start<x.end).sort((a,b)=>a.start-b.start);const out=[];sorted.forEach(x=>{const last=out[out.length-1];if(last&&x.start<=last.end)last.end=Math.max(last.end,x.end);else out.push({...x});});return out;}
   function gaps(xs){let cursor=rs;const out=[];merge(xs).forEach(x=>{if(x.end<=rs||x.start>=re)return;const a=Math.max(rs,x.start),b=Math.min(re,x.end);if(a>cursor)out.push({start:cursor,end:a});cursor=Math.max(cursor,b);});if(cursor<re)out.push({start:cursor,end:re});return out;}
@@ -425,6 +426,7 @@ function saveSubstitution(item) {
   const date=String(item.date||'').trim(), startTime=String(item.startTime||'').trim(), endTime=String(item.endTime||'').trim();
   if(absent!==user.email)throw new Error('Pengajuan hanya dapat dibuat oleh guru yang izin.');
   if(!substitute||substitute===absent)throw new Error('Guru pengganti tidak valid.');
+  if(substitute.split('@').pop()!==user.email.split('@').pop())throw new Error('Guru pengganti harus menggunakan email dari domain sekolah yang sama.');
   const start=timeToMinutes_(startTime),end=timeToMinutes_(endTime);
   if(!date||!Number.isFinite(start)||!Number.isFinite(end)||start>=end)throw new Error('Tanggal dan rentang jam pengganti tidak valid.');
   const lock=LockService.getScriptLock();if(!lock.tryLock(10000))throw new Error('Sistem sedang memproses pengajuan lain. Silakan coba lagi.');
@@ -693,12 +695,14 @@ function saveMyProfile(profile) {
 }
 
 function getActiveTeachers() {
-  requireUser_();
+  const user = requireUser_();
+  const schoolDomain = user.email.split('@').pop();
   setupSheets();
   return readRows_(SHEET_NAMES.TEACHERS)
     .filter(t =>
       String(t.status || 'Aktif').trim().toLowerCase() === 'aktif' &&
-      String(t.subject || '').trim().toLowerCase() === 'matematika'
+      String(t.subject || '').trim().toLowerCase() === 'matematika' &&
+      String(t.email || '').trim().toLowerCase().endsWith('@' + schoolDomain)
     )
     .map(t => ({
       id:String(t.id || ''),
