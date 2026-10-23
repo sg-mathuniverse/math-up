@@ -164,7 +164,12 @@ function getBootstrap() {
       .filter(r => String(r.teacherEmail).toLowerCase() === user.email),
     allSchedule,
     events:readRows_(SHEET_NAMES.EVENTS),
-    teachers:readRows_(SHEET_NAMES.TEACHERS),
+    // Jangan kirim record guru dari domain lain ke klien RMU.
+    teachers:readRows_(SHEET_NAMES.TEACHERS).filter(t =>
+      String(t.email || '').trim().toLowerCase().endsWith(
+        '@' + user.email.split('@').pop()
+      )
+    ),
     academicCalendar:readRows_(SHEET_NAMES.CALENDAR),
     substitutions:readRows_(SHEET_NAMES.SUBSTITUTIONS)
       .filter(r => String(r.status || 'Diajukan') !== 'Ditolak')
