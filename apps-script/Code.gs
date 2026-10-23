@@ -198,17 +198,35 @@ function getBootstrap() {
 function saveTodo(todo) {
   const user = requireUser_();
   setupSheets();
-  return upsertRow_(SHEET_NAMES.TODO, {
-    id:todo.id || Utilities.getUuid(),
+  todo = todo || {};
+  const requestedId = String(todo.id || '').trim();
+  let existingRow = null;
+  if (requestedId) {
+    existingRow = findRow_(SHEET_NAMES.TODO, requestedId);
+    if (!existingRow ||
+        String(existingRow.data.teacherEmail || '').trim().toLowerCase() !== user.email) {
+      throw new Error('Tugas tidak ditemukan atau bukan milik akun Anda.');
+    }
+  }
+  const now = new Date().toISOString();
+  const data = {
+    id:requestedId || Utilities.getUuid(),
     teacherEmail:user.email,
     title:String(todo.title || '').trim(),
     description:String(todo.description || ''),
     dueAt:String(todo.dueAt || ''),
     priority:todo.priority || 'Sedang',
     done:Boolean(todo.done),
-    createdAt:todo.createdAt || new Date().toISOString(),
-    updatedAt:new Date().toISOString()
-  });
+    createdAt:existingRow?.data.createdAt || now,
+    updatedAt:now
+  };
+  if (existingRow) {
+    return updateRow_(SHEET_NAMES.TODO, existingRow.rowNumber, {
+      ...existingRow.data,
+      ...data
+    });
+  }
+  return upsertRow_(SHEET_NAMES.TODO, data);
 }
 function updateTodo(todo) {
   return saveTodo(todo);
