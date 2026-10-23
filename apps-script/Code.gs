@@ -653,7 +653,6 @@ function saveSubstitution(item) {
 
   const savedRow = findRow_(SHEET_NAMES.SUBSTITUTIONS,id);
   const updated = updateRow_(SHEET_NAMES.SUBSTITUTIONS,savedRow.rowNumber,{
-    ...savedData,
     emailStatus,
     emailSentAt,
     emailError,
