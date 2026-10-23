@@ -54,6 +54,8 @@ jobs:
           assert.ok(api.includes('function authorizeEmailNotifications()'), 'MailApp authorization helper must exist.');
           assert.ok(api.includes("subject:String(existing?.subject || 'Matematika').trim()"), 'Teacher self-service updates must preserve the existing subject.');
           assert.ok(api.includes("status:String(existing?.status || 'Aktif').trim()"), 'Teacher self-service updates must preserve the existing active status.');
+          assert.ok(api.includes("String(existingRow.data.teacherEmail || '').trim().toLowerCase() !== user.email"), 'Todo updates must reject IDs owned by another user.');
+          assert.ok(api.includes("if (existingRow) {\n    return updateRow_(SHEET_NAMES.TODO, existingRow.rowNumber"), 'Todo updates must update only the verified owner row.');
           assert.ok(!api.includes("String(profile?.photoUrl || '')"), 'Legacy profile URLs must not be exposed as profile photos.');
           assert.ok(api.includes("photoUrl:''"), 'Legacy profile URLs must be cleared when saving profile data.');
           assert.ok(api.includes("function upsertRow_(sheetName,data)"), 'Header-aware insert helper must exist.');
