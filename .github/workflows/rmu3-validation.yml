@@ -93,6 +93,16 @@ jobs:
           assert.ok(api.includes("String(existing.data.teacherEmail || '').trim().toLowerCase() !== user.email"), 'Schedule saves must reject IDs owned by another teacher.');
           assert.ok(api.includes("String(existing.data.createdBy || '').trim().toLowerCase() !== user.email"), 'Event saves must reject IDs owned by another creator.');
           assert.ok(api.includes("const overlapsExisting = readRows_(SHEET_NAMES.SCHEDULE).some(s =>"), 'Regular schedule saves must check for same-teacher overlaps.');
+          assert.ok(api.includes("if (!isValidSchoolDay_(day) || !Number.isFinite(start) || !Number.isFinite(end) || start >= end)"), 'Schedule creation must reject invalid day names on the server.');
+                    assert.ok(api.includes("if (!isValidSchoolDay_(item.day) || !Number.isFinite(start) || !Number.isFinite(end) || start >= end)"), 'Schedule edits must reject invalid day names on the server.');
+                    assert.ok(api.includes("if (!String(item.className || '').trim())"), 'Schedule creation and edits must require a class name.');
+                    const dayHelperStart = api.indexOf('function isValidSchoolDay_(value) {');
+                    const dayHelperEnd = api.indexOf('function saveSchedule(item) {', dayHelperStart);
+                    assert.ok(dayHelperStart >= 0 && dayHelperEnd > dayHelperStart, 'School-day validation helper must exist.');
+                    const isValidSchoolDay = new Function('value', api.slice(dayHelperStart, dayHelperEnd) + '\\nreturn isValidSchoolDay_(value);');
+                    assert.equal(isValidSchoolDay('Senin'), true, 'Valid Indonesian weekday names must pass.');
+                    assert.equal(isValidSchoolDay('senin'), true, 'Weekday validation must be case-insensitive.');
+                    assert.equal(isValidSchoolDay('Hari libur'), false, 'Unknown day names must fail.');
           assert.ok(api.includes("throw new Error('Jadwal bertumpang tindih dengan jadwal Anda yang sudah ada.')"), 'Overlapping regular schedules must be rejected.');
           assert.ok(api.includes("String(s.day || '').trim().toLowerCase() === String(item.day).trim().toLowerCase()"), 'Schedule edits must check overlaps on the new day as well.');
           assert.ok(api.includes("String(s.id || '') !== String(item.id)"), 'Schedule overlap checks must exclude the row being edited.');
