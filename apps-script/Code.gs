@@ -294,6 +294,10 @@ function saveTeacher(teacher) {
 // ============================================================
 // JADWAL REGULER
 // ============================================================
+function isValidSchoolDay_(value) {
+  return ['senin','selasa','rabu','kamis','jumat','sabtu','minggu']
+    .includes(String(value || '').trim().toLowerCase());
+}
 function saveSchedule(item) {
   const user = requireUser_();
   setupSheets();
@@ -310,8 +314,11 @@ function saveSchedule(item) {
   const endTime = String(item.endTime || '').trim();
   const start = timeToMinutes_(startTime);
   const end = timeToMinutes_(endTime);
-  if (!day || !Number.isFinite(start) || !Number.isFinite(end) || start >= end) {
+  if (!isValidSchoolDay_(day) || !Number.isFinite(start) || !Number.isFinite(end) || start >= end) {
     throw new Error('Hari dan rentang jam jadwal tidak valid.');
+  }
+  if (!String(item.className || '').trim()) {
+    throw new Error('Nama kelas wajib diisi.');
   }
   const overlapsExisting = readRows_(SHEET_NAMES.SCHEDULE).some(s =>
     String(s.teacherEmail || '').trim().toLowerCase() === user.email &&
@@ -340,8 +347,11 @@ function updateSchedule(item) {
   const endTime = String(item.endTime || '').trim();
   const start = timeToMinutes_(startTime);
   const end = timeToMinutes_(endTime);
-  if (!item.day || !Number.isFinite(start) || !Number.isFinite(end) || start >= end) {
+  if (!isValidSchoolDay_(item.day) || !Number.isFinite(start) || !Number.isFinite(end) || start >= end) {
     throw new Error('Hari dan jam jadwal tidak valid.');
+  }
+  if (!String(item.className || '').trim()) {
+    throw new Error('Nama kelas wajib diisi.');
   }
   const overlapsExisting = readRows_(SHEET_NAMES.SCHEDULE).some(s =>
     String(s.teacherEmail || '').trim().toLowerCase() === user.email &&
