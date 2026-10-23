@@ -26,3 +26,16 @@ jobs:
         run: |
           cp apps-script/Code.gs /tmp/Code.js
           node --check /tmp/Code.js
+      - name: Check profile upload and JSONP safeguards
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const assert = require('node:assert/strict');
+          const app = fs.readFileSync('src/App.jsx', 'utf8');
+          const api = fs.readFileSync('apps-script/Code.gs', 'utf8');
+          assert.ok(app.includes('const chunkSize=6000;'), 'Frontend photo chunk size must be 6000 characters.');
+          assert.ok(api.includes('data.length > 6000'), 'Backend must enforce the same chunk size.');
+          assert.ok(api.includes('total > 120'), 'Backend must accept enough chunks for a 512 KB photo.');
+          assert.ok(api.includes('const callback = /^[A-Za-z_$][0-9A-Za-z_$]{0,100}$/.test(callbackInput)'), 'JSONP callback must be restricted to a JavaScript identifier.');
+          console.log('Profile upload chunk contract and JSONP callback guard passed.');
+          NODE
