@@ -256,8 +256,9 @@ function saveTeacher(teacher) {
     id:existing?.id || teacher.id || Utilities.getUuid(),
     email:user.email,
     name:String(teacher.name || '').trim(),
-    subject:String(teacher.subject || existing?.subject || 'Matematika').trim(),
-    status:teacher.status || existing?.status || 'Aktif',
+    // Bidang dan status bukan data yang dapat diubah sendiri oleh guru.
+    subject:String(existing?.subject || 'Matematika').trim(),
+    status:String(existing?.status || 'Aktif').trim(),
     phone:String(teacher.phone !== undefined ? teacher.phone : (existing?.phone || '')).trim(),
     createdAt:existing?.createdAt || teacher.createdAt || now,
     updatedAt:now
