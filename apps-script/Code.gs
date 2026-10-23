@@ -34,7 +34,11 @@ function doPost(e) {
 }
 function handleApi_(e) {
   const action = String((e.parameter && e.parameter.action) || '');
-  const callback = String((e.parameter && e.parameter.callback) || '');
+  const callbackInput = String((e.parameter && e.parameter.callback) || '');
+  // Callback JSONP wajib berupa identifier JavaScript, bukan ekspresi bebas.
+  const callback = /^[A-Za-z_$][0-9A-Za-z_$]{0,100}$/.test(callbackInput)
+    ? callbackInput
+    : '';
   let args = [];
   try {
     const raw = e.parameter && e.parameter.payload;
