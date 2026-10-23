@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { api } from "./api";
 import {
-  Bell, CalendarDays, CheckCircle2, ChevronDown, CirclePlus, Clock3,
-  FileText, LayoutDashboard, ListTodo, Menu, MoreHorizontal, Search,
-  Settings, Users, UserRoundCheck, X, BookOpen, Sparkles, Mail, HardDrive, History
+  Bell, CalendarDays, CalendarClock, CheckCircle2, ChevronDown, CirclePlus, Clock3,
+  FileText, LayoutDashboard, ListTodo, Menu, Search,
+  Settings, Users, UserRoundCheck, UserRound, X, BookOpen, Sparkles, Mail, HardDrive, History
 } from "lucide-react";
 
 const schedule = [
@@ -58,6 +58,7 @@ function App(){
   const [authUser,setAuthUser]=useState(null);
   const [todos,setTodos]=useState([]);
   const [menuOpen,setMenuOpen]=useState(false);
+  const [profileMenuOpen,setProfileMenuOpen]=useState(false);
   const [showTodo,setShowTodo]=useState(false);
   const [editingTodo,setEditingTodo]=useState(null);
   const [confirmTodo,setConfirmTodo]=useState(null);
@@ -177,30 +178,35 @@ function App(){
       <div className="brand" role="button" tabIndex={0} aria-label={menuOpen?"Tutup menu":"Buka menu"} onClick={()=>setMenuOpen(v=>!v)} onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();setMenuOpen(v=>!v)}}}><div className="brand-mark sidebar-math-logo" aria-label="pi integral a sampai b f kuadrat x dx"><span className="pi">π</span><span className="integral-wrap"><span className="integral">∫</span><span className="limits"><sup>b</sup><sub>a</sub></span></span><span className="formula">f²(x) dx</span></div><div className="brand-name"><strong>Ruang</strong><strong>Math Up</strong></div></div>
       <nav>
         <Nav icon={<LayoutDashboard size={19}/>} label="Dashboard" active={active==="Dashboard"} onClick={()=>setActive("Dashboard")}/>
-        <Nav icon={<CalendarDays size={19}/>} label="Jadwal Mengajar" active={active==="Jadwal Mengajar"} onClick={()=>setActive("Jadwal Mengajar")}/>
+        <Nav icon={<CalendarClock size={19}/>} label="Jadwal Mengajar" active={active==="Jadwal Mengajar"} onClick={()=>setActive("Jadwal Mengajar")}/>
         <Nav icon={<UserRoundCheck size={19}/>} label="Guru Pengganti" active={active==="Guru Pengganti"} onClick={()=>setActive("Guru Pengganti")}/>
         <Nav icon={<ListTodo size={19}/>} label="To-Do" active={active==="To-Do"} onClick={()=>setActive("To-Do")} todoCount={todos.filter(t=>!t.done).length}/>
         <Nav icon={<CalendarDays size={19}/>} label="Kalender Akademik" active={active==="Kalender Akademik"} onClick={()=>setActive("Kalender Akademik")}/>
         <Nav icon={<FileText size={19}/>} label="Drive Materi" active={active==="Drive Materi"} onClick={()=>setActive("Drive Materi")}/>
-        <Nav icon={<Users size={19}/>} label="Guru Matematika" active={active==="Guru Matematika"} onClick={()=>setActive("Guru Matematika")}/>
         <Nav icon={<History size={19}/>} label="Patch Note" active={active==="Patch Note"} onClick={()=>setActive("Patch Note")}/>
       </nav>
       <div className="sidebar-bottom">
         <Nav icon={<Settings size={19}/>} label="Pengaturan" active={active==="Pengaturan"} onClick={()=>setActive("Pengaturan")}/>
-        <div className="profile-mini"><div className="avatar">{user?.photoUrl?<img src={user.photoUrl} alt={user.name||"Profil"} />:initials(user?.name||user?.email||"?")}</div><div><b>{user?.name||"Memuat profil..."}</b><span>{user?.email||"Akun Google"}</span></div><MoreHorizontal size={17}/></div>
       </div>
     </aside>
 
-    <main className="main" onClick={()=>{if(menuOpen)setMenuOpen(false)}}>
+    <main className="main" onClick={()=>{if(menuOpen)setMenuOpen(false);if(profileMenuOpen)setProfileMenuOpen(false)}}>
       <header className="topbar">
         <button className="icon-btn mobile-menu" onClick={()=>setMenuOpen(v=>!v)}><Menu size={20}/></button>
-        <div className="crumb"><strong>RMU 2.0</strong></div>
+        <div className="crumb"><strong>RMU 3.0</strong></div>
         <div className="top-actions">
           <form className="search google-search" action="https://www.google.com/search" method="get" target="_blank"><Search size={17}/><input name="q" placeholder="Cari di Google..." aria-label="Cari di Google" /></form>
           <a className="icon-btn top-link" href="https://mail.google.com/" target="_blank" rel="noreferrer" title="Buka Gmail" aria-label="Buka Gmail"><Mail size={19}/></a>
           <a className="icon-btn top-link" href="https://drive.google.com/" target="_blank" rel="noreferrer" title="Buka Google Drive" aria-label="Buka Google Drive"><HardDrive size={19}/></a>
           <button className="icon-btn notification-btn" onClick={()=>setActive("Guru Pengganti")} title="Notifikasi guru pengganti" aria-label="Notifikasi guru pengganti"><Bell size={19}/>{substitutionNotifications.length>0&&<i></i>}{substitutionNotifications.length>0&&<em>{substitutionNotifications.length>9?"9+":substitutionNotifications.length}</em>}</button>
-          <button className="user-chip" onClick={()=>setMenuOpen(v=>v)}><div className="avatar small">{user?.photoUrl?<img src={user.photoUrl} alt={user.name||"Profil"} />:initials(user?.name||user?.email||"?")}</div><ChevronDown size={15}/></button>
+          <div className="profile-menu-wrap" onClick={e=>e.stopPropagation()}>
+            <button className="user-chip" aria-haspopup="menu" aria-expanded={profileMenuOpen} onClick={()=>setProfileMenuOpen(v=>!v)}><div className="avatar small">{user?.photoUrl?<img src={user.photoUrl} alt={user.name||"Profil"} />:initials(user?.name||user?.email||"?")}</div><ChevronDown size={15}/></button>
+            {profileMenuOpen&&<div className="profile-dropdown" role="menu">
+              <div className="profile-dropdown-user"><div className="avatar">{user?.photoUrl?<img src={user.photoUrl} alt={user.name||"Profil"} />:initials(user?.name||user?.email||"?")}</div><div><b>{user?.name||"Guru"}</b><span>{user?.email||""}</span></div></div>
+              <button role="menuitem" onClick={()=>{setActive("Profil Saya");setProfileMenuOpen(false)}}><UserRound size={17}/> Profil Saya</button>
+              <button role="menuitem" onClick={()=>{setActive("Daftar Guru Aktif");setProfileMenuOpen(false)}}><Users size={17}/> Daftar Guru Aktif</button>
+            </div>}
+          </div>
         </div>
       </header>
 
@@ -208,7 +214,8 @@ function App(){
        active==="Jadwal Mengajar" ? <SchedulePage user={user} /> : active==="Guru Pengganti" ? <SubstitutePage user={user} onSubstitutionUpdated={refreshDashboard} /> :
        active==="Kalender Akademik" ? <CalendarPage /> :
        active==="Drive Materi" ? <DrivePage /> :
-       active==="Guru Matematika" ? <TeachersPage user={user} onUserUpdated={setUser} /> :
+       active==="Profil Saya" ? <ProfilePage user={user} onUserUpdated={setUser} /> :
+       active==="Daftar Guru Aktif" ? <ActiveTeachersPage /> :
        active==="Pengaturan" ? <SettingsPage /> :
        active==="To-Do" ? <TodoPage todos={filteredTodos} toggleTodo={requestTodoToggle} actionLoading={todoActionLoading} onAdd={()=>{if(todoActionLoading)return;setEditingTodo(null);setShowTodo(true)}} onEdit={t=>{if(todoActionLoading)return;setEditingTodo(t);setShowTodo(true)}} onDelete={async t=>{if(!window.confirm("Hapus tugas ini?"))return;setTodoActionLoading("delete:"+String(t.id));setApiError("");try{await api.deleteTodo(t.id);setTodos(ts=>ts.filter(x=>x.id!==t.id));}catch(e){setApiError(e.message||String(e));}finally{setTodoActionLoading("");}}} /> :
        active==="Patch Note" ? <PatchNotesPage /> : <Placeholder title={active} />}
@@ -479,6 +486,139 @@ function TeachersPage({user,onUserUpdated}){
           <span className="priority sedang">{t.status||"Aktif"}</span>
         </div>;
       }):<p>Belum ada guru yang terdaftar. Simpan profil Anda untuk memulai.</p>}
+    </section>
+  </div>;
+}
+
+function ProfilePage({user,onUserUpdated}) {
+  const [form,setForm]=useState({name:user?.name||"",phone:user?.phone||""});
+  const [loading,setLoading]=useState(true);
+  const [saving,setSaving]=useState(false);
+  const [photoUploading,setPhotoUploading]=useState(false);
+  const [error,setError]=useState("");
+  const [message,setMessage]=useState("");
+
+  useEffect(()=>{
+    let cancelled=false;
+    api.getCurrentUser().then(fresh=>{
+      if(cancelled)return;
+      onUserUpdated?.(fresh);
+      setForm({name:fresh?.name||"",phone:fresh?.phone||""});
+    }).catch(e=>{if(!cancelled)setError(e.message||String(e))})
+      .finally(()=>{if(!cancelled)setLoading(false)});
+    return()=>{cancelled=true};
+  },[]);
+
+  const save=async()=>{
+    if(!form.name.trim()){setError("Nama guru wajib diisi.");return;}
+    setSaving(true);setError("");setMessage("");
+    try{
+      const fresh=await api.saveMyProfile({name:form.name.trim(),phone:form.phone.trim()});
+      onUserUpdated?.(fresh);
+      setForm({name:fresh?.name||"",phone:fresh?.phone||""});
+      setMessage("Profil berhasil disimpan.");
+    }catch(e){setError(e.message||String(e));}
+    finally{setSaving(false);}
+  };
+
+  const uploadPhoto=async event=>{
+    const file=event.target.files?.[0];
+    event.target.value="";
+    if(!file)return;
+    if(!["image/jpeg","image/png","image/webp"].includes(file.type)){
+      setError("Pilih foto berformat JPG, PNG, atau WebP.");return;
+    }
+    if(file.size>8*1024*1024){
+      setError("Ukuran file sumber maksimal 8 MB.");return;
+    }
+    setPhotoUploading(true);setError("");setMessage("");
+    try{
+      const bitmap=await createImageBitmap(file);
+      let maxDimension=900,quality=0.82,blob=null;
+      for(let attempt=0;attempt<6;attempt++){
+        const scale=Math.min(1,maxDimension/Math.max(bitmap.width,bitmap.height));
+        const canvas=document.createElement("canvas");
+        canvas.width=Math.max(1,Math.round(bitmap.width*scale));
+        canvas.height=Math.max(1,Math.round(bitmap.height*scale));
+        const context=canvas.getContext("2d");
+        if(!context)throw new Error("Browser tidak dapat memproses foto ini.");
+        context.drawImage(bitmap,0,0,canvas.width,canvas.height);
+        blob=await new Promise(resolve=>canvas.toBlob(resolve,"image/jpeg",quality));
+        if(blob&&blob.size<=512*1024)break;
+        maxDimension=Math.round(maxDimension*0.82);
+        quality=Math.max(0.48,quality-0.07);
+      }
+      bitmap.close?.();
+      if(!blob||blob.size>512*1024)throw new Error("Foto masih terlalu besar. Pilih foto lain dengan ukuran lebih kecil.");
+      const dataUrl=await new Promise((resolve,reject)=>{
+        const reader=new FileReader();
+        reader.onload=()=>resolve(String(reader.result||""));
+        reader.onerror=()=>reject(new Error("Foto gagal dibaca."));
+        reader.readAsDataURL(blob);
+      });
+      const base64=dataUrl.split(",")[1]||"";
+      const chunkSize=6000;
+      const totalChunks=Math.ceil(base64.length/chunkSize);
+      const uploadId=window.crypto?.randomUUID?.()||("upload_"+Date.now()+"_"+Math.random().toString(36).slice(2));
+      let result=null;
+      for(let index=0;index<totalChunks;index++){
+        result=await api.uploadProfilePhotoChunk(
+          uploadId,index,totalChunks,
+          base64.slice(index*chunkSize,(index+1)*chunkSize),
+          "image/jpeg"
+        );
+      }
+      if(!result?.complete||!result?.user)throw new Error("Unggahan foto belum selesai. Silakan coba lagi.");
+      onUserUpdated?.(result.user);
+      setMessage("Foto profil berhasil diperbarui. Foto disimpan secara privat.");
+    }catch(e){setError(e.message||String(e));}
+    finally{setPhotoUploading(false);}
+  };
+
+  return <div className="content">
+    <section className="page-title"><div><div className="eyebrow">Akun dan identitas</div><h1>Profil Saya</h1><p>Perbarui informasi yang digunakan oleh guru matematika di Ruang Math Up.</p></div></section>
+    {error&&<div className="card profile-message error" role="alert">{error}</div>}
+    {message&&<div className="card profile-message success" role="status">{message}</div>}
+    <section className="card profile-card rmu-profile-card">
+      <div className="profile-hero-row">
+        <div className="avatar profile-large">{user?.photoUrl?<img src={user.photoUrl} alt={user?.name||"Profil"} />:initials(form.name||user?.email||"?")}</div>
+        <div className="profile-photo-copy"><h2>{form.name||"Nama guru"}</h2><p>JPG, PNG, atau WebP. Foto diproses di browser dan disimpan di folder Drive privat.</p><label className={"profile-photo-upload"+(photoUploading?" uploading":"")}><input type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadPhoto} disabled={loading||saving||photoUploading}/><span>{photoUploading?"Mengunggah foto...":"Ganti foto profil"}</span></label></div>
+      </div>
+      <div className="form-grid">
+        <label>Nama guru<input value={form.name} onChange={e=>setForm({...form,name:e.target.value})} maxLength={120} placeholder="Nama lengkap" disabled={loading||saving||photoUploading}/></label>
+        <label>Email sekolah<input value={user?.email||""} disabled readOnly/><small>Email diambil dari akun Google yang sedang login dan tidak dapat diubah.</small></label>
+        <label>Nomor HP<input value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} maxLength={30} placeholder="Contoh: 08xxxxxxxxxx" disabled={loading||saving||photoUploading}/></label>
+      </div>
+      <div className="profile-form-actions"><button className="primary" onClick={save} disabled={loading||saving||photoUploading}>{loading?"Memuat profil...":saving?"Menyimpan...":"Simpan perubahan"}</button></div>
+    </section>
+  </div>;
+}
+
+function ActiveTeachersPage(){
+  const [teachers,setTeachers]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [error,setError]=useState("");
+  const [query,setQuery]=useState("");
+
+  useEffect(()=>{
+    let cancelled=false;
+    api.getActiveTeachers().then(data=>{if(!cancelled)setTeachers(Array.isArray(data)?data:[])})
+      .catch(e=>{if(!cancelled)setError(e.message||String(e))})
+      .finally(()=>{if(!cancelled)setLoading(false)});
+    return()=>{cancelled=true};
+  },[]);
+
+  const filtered=teachers.filter(t=>
+    [t.name,t.email,t.phone].some(value=>String(value||"").toLowerCase().includes(query.toLowerCase()))
+  );
+
+  return <div className="content">
+    <section className="page-title"><div><div className="eyebrow">Kolaborasi internal</div><h1>Daftar Guru Aktif</h1><p>Direktori guru matematika yang terdaftar aktif di Ruang Math Up.</p></div></section>
+    <section className="card active-teachers-card">
+      <div className="card-head active-teachers-head"><div><h2>Guru Matematika</h2><p>{loading?"Memuat daftar guru...":teachers.length+" guru aktif"}</p></div><label className="active-teachers-search"><Search size={16}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Cari nama, email, atau HP" aria-label="Cari guru aktif"/></label></div>
+      {error&&<p className="profile-message error" role="alert">{error}</p>}
+      {loading?<div className="loading-placeholder"><span className="loading-bar"></span><span className="loading-bar short"></span><span className="loading-bar"></span></div>:
+       filtered.length?<div className="active-teachers-table-wrap"><table className="active-teachers-table"><thead><tr><th>Nama guru</th><th>Email sekolah</th><th>Nomor HP</th></tr></thead><tbody>{filtered.map(t=><tr key={t.id||t.email}><td><div className="directory-name"><div className="avatar small">{initials(t.name||t.email)}</div><b>{t.name||"Nama belum diisi"}</b></div></td><td>{t.email}</td><td>{t.phone||"Belum diisi"}</td></tr>)}</tbody></table></div>:<div className="empty-state">{query?"Tidak ada guru yang cocok dengan pencarian.":"Belum ada guru matematika aktif yang terdaftar."}</div>}
     </section>
   </div>;
 }
@@ -810,26 +950,40 @@ function SubstitutePage({user,onSubstitutionUpdated}){
    if(!plan||!plan.length)return;
    setLoading(true);
    setMessage("");
+   let savedCount=0;
    try{
+     let emailFailures=0;
      for(const segment of plan){
-       await api.saveSubstitution({
+       const saved=await api.saveSubstitution({
          ...form,
          startTime:segment.startTime,
          endTime:segment.endTime,
          substituteTeacherEmail:segment.email
        });
+       savedCount++;
+       if(saved?.emailStatus!=="Terkirim")emailFailures++;
      }
-     setMessage(
-       plan.length===1
-         ? "Permintaan guru pengganti berhasil dikirim."
-         : "Rencana pengganti terbagi menjadi "+plan.length+" permintaan dan berhasil dikirim."
+     const requestMessage=plan.length===1
+       ? "Permintaan guru pengganti berhasil disimpan."
+       : "Rencana pengganti terbagi menjadi "+plan.length+" permintaan dan berhasil disimpan.";
+     setMessage(emailFailures
+       ? requestMessage+" Namun, "+emailFailures+" email pemberitahuan gagal dikirim. Status tercatat; silakan hubungi guru yang dipilih secara langsung."
+       : requestMessage+" Email pemberitahuan berhasil dikirim kepada guru yang dipilih."
      );
      setPlan(null);
      setCandidates([]);
      await refresh();
      await onSubstitutionUpdated?.();
    }catch(e){
-     setMessage(e.message||String(e));
+     const detail=e.message||String(e);
+     setMessage(savedCount>0
+       ? "Baru "+savedCount+" dari "+plan.length+" permintaan berhasil disimpan sebelum terjadi kendala. Periksa riwayat permintaan sebelum mencoba lagi. Detail: "+detail
+       : detail
+     );
+     if(savedCount>0){
+       await refresh().catch(()=>{});
+       await onSubstitutionUpdated?.();
+     }
    }finally{
      setLoading(false);
    }
@@ -917,7 +1071,7 @@ function SubstitutePage({user,onSubstitutionUpdated}){
    <section className="card">
      <div className="card-head"><div><h2>Riwayat permintaan saya</h2><p>Pengajuan pengganti yang Anda buat.</p></div></div>
      {history.length?history.slice().sort((a,b)=>String(b.createdAt||"").localeCompare(String(a.createdAt||""))).map(x=><div className="todo-row" key={x.id}>
-       <div className="todo-copy"><b>{x.className} · {formatDate(x.date)}</b><span>{formatTime(x.startTime)}–{formatTime(x.endTime)} · {x.substituteTeacherEmail||"Belum dipilih"}</span><small>{x.topic||"Tanpa materi"}{x.reason?" · "+x.reason:""}</small></div>
+       <div className="todo-copy"><b>{x.className} · {formatDate(x.date)}</b><span>{formatTime(x.startTime)}–{formatTime(x.endTime)} · {x.substituteTeacherEmail||"Belum dipilih"}</span><small>{x.topic||"Tanpa materi"}{x.reason?" · "+x.reason:""}</small><small>Notifikasi email: {x.emailStatus||"Belum tercatat"}{x.emailStatus==="Gagal"&&x.emailError?" — "+x.emailError:""}</small></div>
        <span className="priority sedang">{x.status}</span>
      </div>):<p>Belum ada pengajuan.</p>}
    </section>

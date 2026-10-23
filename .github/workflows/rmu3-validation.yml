@@ -1,0 +1,133 @@
+name: RMU 3.0 validation
+
+on:
+  push:
+    branches:
+      - feat/rmu-3.0-profil-guru
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install frontend dependencies
+        run: npm install
+      - name: Build frontend
+        run: npm run build
+      - name: Check Apps Script syntax
+        run: |
+          cp apps-script/Code.gs /tmp/Code.js
+          node --check /tmp/Code.js
+      - name: Test schema migration helpers
+        run: node tests/schema-migration.test.cjs
+      - name: Check profile upload and JSONP safeguards
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const assert = require('node:assert/strict');
+          const app = fs.readFileSync('src/App.jsx', 'utf8');
+          const api = fs.readFileSync('apps-script/Code.gs', 'utf8');
+          assert.ok(app.includes('const chunkSize=6000;'), 'Frontend photo chunk size must be 6000 characters.');
+          assert.ok(api.includes('data.length > 6000'), 'Backend must enforce the same chunk size.');
+          assert.ok(api.includes('total > 120'), 'Backend must accept enough chunks for a 512 KB photo.');
+          assert.ok(api.includes('const callback = /^[A-Za-z_$][0-9A-Za-z_$]{0,100}$/.test(callbackInput)'), 'JSONP callback must be restricted to a JavaScript identifier.');
+          assert.ok(api.includes('access !== DriveApp.Access.PRIVATE'), 'Profile photo folder must reject non-private sharing.');
+          assert.ok(api.includes("file.getSharingAccess() !== DriveApp.Access.PRIVATE"), 'Profile photo files must remain private individually, not only through their parent folder.');
+          assert.ok(api.includes("function getProfilePhotoDataUrl_(fileId)"), 'Private photo retrieval helper must exist.');
+          assert.ok(api.includes("if (!belongsToPrivatePhotoFolder) return ''"), 'Photo retrieval must reject files outside the dedicated RMU photo folder.');
+          assert.ok(api.includes("if (parents.next().getId() === folder.getId())"), 'Photo retrieval must verify parent-folder membership.');
+          assert.ok(api.includes("const teachers = readRows_(SHEET_NAMES.TEACHERS).filter(t =>"), 'Bootstrap teacher records must be filtered server-side.');
+          assert.ok(api.includes("'@' + user.email.split('@').pop()"), 'Bootstrap must restrict teacher records to the signed-in email domain.');
+          assert.ok(api.includes("String(t.subject||'').trim().toLowerCase()==='matematika'"), 'Substitute candidates must be math teachers only.');
+          assert.ok(api.includes("String(t.status||'Aktif').trim().toLowerCase()==='aktif'"), 'Substitute candidates must be active teachers only.');
+          assert.ok(api.includes("String(r.absentTeacherEmail || '').trim().toLowerCase() === user.email"), 'Bootstrap substitution history must include only requests involving the signed-in user.');
+          assert.ok(api.includes("String(r.substituteTeacherEmail || '').trim().toLowerCase() === user.email"), 'Bootstrap substitution history must include requests assigned to the signed-in user.');
+          assert.ok(api.includes("String(t.status || 'Aktif').trim().toLowerCase() === 'aktif'"), 'Bootstrap teacher records must exclude inactive teachers.');
+          assert.ok(api.includes("String(t.subject || '').trim().toLowerCase() === 'matematika'"), 'Bootstrap teacher records must be limited to math teachers.');
+          assert.ok(api.includes("const visibleTeacherEmails = new Set(teachers.map(t =>"), 'Bootstrap schedule list must be filtered by visible teacher identities.');
+          assert.ok(api.includes("visibleTeacherEmails.has(String(s.teacherEmail || '').trim().toLowerCase())"), 'Bootstrap must not expose schedules belonging to teachers outside the active math-teacher directory.');
+          assert.ok(api.includes("function getEffectiveSchedule(date) {\n  const user = requireUser_();"), 'Effective schedule endpoint must use the signed-in user for visibility checks.');
+          assert.ok(api.includes("const activeSubstitute = readRows_(SHEET_NAMES.TEACHERS).some(t =>"), 'Substitute requests must target a registered active math teacher.');
+          assert.ok(api.includes("Guru pengganti harus terdaftar sebagai guru Matematika aktif di RMU."), 'Inactive or unregistered substitute recipients must be rejected.');
+          assert.ok(api.includes("parsedDate.toISOString().slice(0,10) === date"), 'Substitution requests must reject impossible calendar dates.');
+          assert.ok(api.includes("function isValidIsoDate_(value) {"), 'Agenda dates must use strict calendar validation.');
+          assert.ok(api.includes("if(!isValidIsoDate_(date)||!startTime||!endTime)"), 'Substitute candidate search must reject impossible calendar dates.');
+          assert.ok(api.includes("if (!isValidIsoDate_(targetDate))"), 'Effective schedule lookup must reject impossible calendar dates.');
+          const helperStart = api.indexOf('function isValidIsoDate_(value) {');
+          const helperEnd = api.indexOf('function dayNameId_(dateString) {', helperStart);
+          assert.ok(helperStart >= 0 && helperEnd > helperStart, 'Date helper must be present and bounded.');
+          const helperSource = api.slice(helperStart, helperEnd);
+          const isValidIsoDate = new Function('value', helperSource + '\nreturn isValidIsoDate_(value);');
+          assert.equal(isValidIsoDate('2026-10-23'), true, 'A valid ISO calendar date must pass.');
+          assert.equal(isValidIsoDate('2026-02-31'), false, 'An impossible calendar date must fail.');
+          assert.equal(isValidIsoDate('23-10-2026'), false, 'A non-ISO date format must fail.');
+          assert.ok(api.includes("if (!isValidIsoDate_(eventDate)) throw new Error('Tanggal agenda tidak valid.');"), 'Event creation and editing must reject impossible dates.');
+          assert.ok(api.includes("Boolean(startTime) !== Boolean(endTime)"), 'Event times must be supplied together or both omitted.');
+          assert.ok(api.includes("return buildEffectiveSchedule_(schedules,approvedSubs,targetDate).filter(s =>"), 'Effective schedules must be filtered before returning to the client.');
+          assert.ok(api.includes("String(t.subject || '').trim().toLowerCase() === 'matematika'"), 'Saved substitute must be a math teacher.');
+          assert.ok(api.includes('function authorizeEmailNotifications()'), 'MailApp authorization helper must exist.');
+          assert.ok(api.includes("const updated = updateRow_(SHEET_NAMES.SUBSTITUTIONS,savedRow.rowNumber,{\n    emailStatus,\n    emailSentAt,\n    emailError,"), 'Email completion must update only notification fields to avoid overwriting a concurrent accept/reject status.');
+          assert.ok(api.includes("if (!allowed[action] || typeof this[allowed[action]] !== 'function')"), 'API dispatcher must reject actions outside the explicit allowlist.');
+          assert.ok(api.includes("email:user.email,\n    name,\n    photoUrl:''"), 'Profile updates must bind the account email to the authenticated user rather than client input.');
+          assert.ok(api.includes(".map(t => ({\n      id:String(t.id || ''),\n      name:String(t.name || ''),\n      email:String(t.email || ''),\n      phone:String(t.phone || ''),\n      subject:String(t.subject || 'Matematika'),\n      status:String(t.status || 'Aktif')\n    }))"), 'Teacher directory must return only the intended public directory fields.');
+          assert.ok(api.includes("String(t.email || '').trim().toLowerCase().endsWith('@' + schoolDomain)"), 'Teacher directory must filter to the signed-in school email domain.');
+          assert.ok(api.includes("subject:String(existingTeacher?.subject || 'Matematika')"), 'Profile saves must preserve the teacher subject instead of trusting client input.');
+          assert.ok(api.includes("status:String(existingTeacher?.status || 'Aktif')"), 'Profile saves must preserve the teacher status instead of trusting client input.');
+          assert.ok(api.includes("role:existingUser?.role || 'Guru'"), 'Profile saves must preserve the server-stored user role.');
+          assert.ok(api.includes("const userKey = Utilities.base64EncodeWebSafe("), 'Photo upload storage keys must be scoped to the authenticated user.');
+          assert.ok(api.includes("const prefix = 'rmu_photo_' + userKey + '_' + id + '_'"), 'Photo upload chunks must be namespaced by user and upload ID.');
+          assert.ok(api.includes("if (existing?.photoFileId && existing.photoFileId !== file.getId())"), 'Replacing a profile photo must clean up the previous file reference.');
+          assert.ok(api.includes("file.setTrashed(true)"), 'Failed profile-photo database writes must remove the newly uploaded orphan file.');
+          assert.ok(api.includes("if (action !== 'terima' && action !== 'tolak')"), 'Substitution responses must be limited to accept or reject.');
+            assert.ok(api.includes("if (substituteEmail !== user.email)"), 'Only the designated substitute may respond to a request.');
+            assert.ok(api.includes("String(data.status || 'Diajukan').trim().toLowerCase() !== 'diajukan'"), 'A substitution request already processed must not be processed again.');
+            assert.ok(api.includes("const lock = LockService.getScriptLock();") && api.includes("if (!lock.tryLock(10000))"), 'Substitution state changes must use a script lock to reduce concurrent processing races.');
+            assert.ok(api.includes("if (!available) {\n        throw new Error(\n          'Permintaan tidak dapat diterima karena jadwal, agenda, atau penugasan lain bertabrakan.'"), 'Acceptance must re-check schedule availability on the server.');
+            assert.ok(api.includes("emailStatus = 'Gagal'"), 'Mail delivery errors must be recorded as failed instead of silently succeeding.');
+          assert.ok(api.includes("subject:String(existing?.subject || 'Matematika').trim()"), 'Teacher self-service updates must preserve the existing subject.');
+          assert.ok(api.includes("status:String(existing?.status || 'Aktif').trim()"), 'Teacher self-service updates must preserve the existing active status.');
+          assert.ok(api.includes("String(existingRow.data.teacherEmail || '').trim().toLowerCase() !== user.email"), 'Todo updates must reject IDs owned by another user.');
+          assert.ok(api.includes("return updateRow_(SHEET_NAMES.TODO, existingRow.rowNumber"), 'Todo updates must update only the verified owner row.');
+          assert.ok(api.includes("String(row.data.teacherEmail || '').trim().toLowerCase() !== user.email"), 'Todo completion toggles must normalize and verify task ownership.');
+          assert.ok(api.includes("String(existing.data.teacherEmail || '').trim().toLowerCase() !== user.email"), 'Schedule saves must reject IDs owned by another teacher.');
+          assert.ok(api.includes("String(existing.data.createdBy || '').trim().toLowerCase() !== user.email"), 'Event saves must reject IDs owned by another creator.');
+          assert.ok(api.includes("const overlapsExisting = readRows_(SHEET_NAMES.SCHEDULE).some(s =>"), 'Regular schedule saves must check for same-teacher overlaps.');
+          assert.ok(api.includes("if (!isValidSchoolDay_(day) || !Number.isFinite(start) || !Number.isFinite(end) || start >= end)"), 'Schedule creation must reject invalid day names on the server.');
+                    assert.ok(api.includes("if (!isValidSchoolDay_(item.day) || !Number.isFinite(start) || !Number.isFinite(end) || start >= end)"), 'Schedule edits must reject invalid day names on the server.');
+                    assert.ok(api.includes("if (!String(item.className || '').trim())"), 'Schedule creation and edits must require a class name.');
+                    const dayHelperStart = api.indexOf('function isValidSchoolDay_(value) {');
+                    const dayHelperEnd = api.indexOf('function saveSchedule(item) {', dayHelperStart);
+                    assert.ok(dayHelperStart >= 0 && dayHelperEnd > dayHelperStart, 'School-day validation helper must exist.');
+                    const isValidSchoolDay = new Function('value', api.slice(dayHelperStart, dayHelperEnd) + '\nreturn isValidSchoolDay_(value);');
+                    assert.equal(isValidSchoolDay('Senin'), true, 'Valid Indonesian weekday names must pass.');
+                    assert.equal(isValidSchoolDay('senin'), true, 'Weekday validation must be case-insensitive.');
+                    assert.equal(isValidSchoolDay('Hari libur'), false, 'Unknown day names must fail.');
+          assert.ok(api.includes("throw new Error('Jadwal bertumpang tindih dengan jadwal Anda yang sudah ada.')"), 'Overlapping regular schedules must be rejected.');
+          assert.ok(api.includes("String(s.day || '').trim().toLowerCase() === String(item.day).trim().toLowerCase()"), 'Schedule edits must check overlaps on the new day as well.');
+          assert.ok(api.includes("String(s.id || '') !== String(item.id)"), 'Schedule overlap checks must exclude the row being edited.');
+          assert.ok(!api.includes("String(profile?.photoUrl || '')"), 'Legacy profile URLs must not be exposed as profile photos.');
+          assert.ok(api.includes("photoUrl:''"), 'Legacy profile URLs must be cleared when saving profile data.');
+          assert.ok(api.includes("function upsertRow_(sheetName,data)"), 'Header-aware insert helper must exist.');
+          assert.ok(api.includes("getDisplayValues()[0].map(value => String(value || '').trim())"), 'Writes must read actual sheet header order.');
+          assert.ok(api.includes("Object.prototype.hasOwnProperty.call(data,key)"), 'Updates must distinguish omitted fields from intentionally empty fields.');
+          assert.ok(api.includes(": currentValues[index]"), 'Updates must preserve values for omitted/extra columns.');
+          const client = fs.readFileSync('src/api.js', 'utf8');
+          const clientApiBlock = client.match(/export const api = \{([\s\S]*?)\n\};/);
+          const serverApiBlock = api.match(/const allowed = \{([\s\S]*?)\n  \};/);
+          assert.ok(clientApiBlock && serverApiBlock, 'Client and server API registries must be present.');
+          const clientActions = [...clientApiBlock[1].matchAll(/^\s*([A-Za-z_$][\w$]*)\s*:/gm)].map(m => m[1]);
+          const serverActions = [...serverApiBlock[1].matchAll(/^\s*([A-Za-z_$][\w$]*)\s*:/gm)].map(m => m[1]);
+          assert.deepEqual([...clientActions].sort(), [...serverActions].sort(), 'Frontend API actions and Apps Script allowlist must stay in sync.');
+          for (const action of clientActions) {
+            assert.ok(api.includes(`function ${action}(`), `Apps Script must implement the client action ${action}.`);
+          }
+          console.log('Profile upload, JSONP, private-folder, directory-scope, legacy-photo privacy, email authorization, and schema migration checks passed.');
+          NODE
