@@ -343,6 +343,15 @@ function updateSchedule(item) {
   if (!item.day || !Number.isFinite(start) || !Number.isFinite(end) || start >= end) {
     throw new Error('Hari dan jam jadwal tidak valid.');
   }
+  const overlapsExisting = readRows_(SHEET_NAMES.SCHEDULE).some(s =>
+    String(s.teacherEmail || '').trim().toLowerCase() === user.email &&
+    String(s.day || '').trim().toLowerCase() === String(item.day).trim().toLowerCase() &&
+    String(s.id || '') !== String(item.id) &&
+    overlaps_(s.startTime, s.endTime, startTime, endTime)
+  );
+  if (overlapsExisting) {
+    throw new Error('Jadwal bertumpang tindih dengan jadwal Anda yang sudah ada.');
+  }
   return updateRow_(SHEET_NAMES.SCHEDULE, row.rowNumber, {
     ...row.data,
     day: String(item.day),
