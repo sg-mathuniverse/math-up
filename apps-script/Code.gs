@@ -1171,24 +1171,66 @@ function createRMUAcademicYear(yearStart, yearEnd) {
   };
 }
 
-// Jalankan fungsi ini sekali dari editor Apps Script untuk menyiapkan
-// folder materi tahun ajaran 2026/2027. Tidak membuat folder duplikat
-// jika struktur dengan nama yang sama sudah ada.
+// Menyiapkan struktur materi RMU DI DALAM folder Drive tujuan yang ditentukan.
+// Fungsi ini sengaja tidak memakai root ID lama dari Script Properties,
+// agar folder tidak dibuat tanpa sengaja di lokasi yang sebelumnya tersimpan.
 function setupRMUDriveMaterials() {
-  // Folder induk yang ditentukan untuk seluruh struktur materi RMU.
   const parentFolderId = '1w6PdzpPR_nnqgb62SoCe5YleqtYt3SHe';
   const parent = DriveApp.getFolderById(parentFolderId);
 
-  // Buat atau gunakan folder RMU di dalam folder induk tersebut.
+  // Cari/buat root materi di dalam folder tujuan pengguna.
   const root = ensureRMUChildFolder_(parent, 'RMU — Drive Materi');
+  const yearFolder = ensureRMUChildFolder_(root, 'Tahun Ajaran 2026-2027');
+  const categories = ['Modul', 'Lembar Kerja Murid', 'Asesmen'];
+  let classCount = 0;
+  let categoryCount = 0;
+
+  for (let grade = 4; grade <= 12; grade++) {
+    const classFolder = ensureRMUChildFolder_(yearFolder, 'Kelas ' + grade);
+    classCount++;
+    categories.forEach(function(categoryName) {
+      ensureRMUChildFolder_(classFolder, categoryName);
+      categoryCount++;
+    });
+  }
+
+  // Simpan folder yang benar agar API materi menggunakan lokasi yang sama.
   const properties = PropertiesService.getScriptProperties();
   properties.setProperty('RMU_DRIVE_ROOT_ID', root.getId());
   properties.setProperty('DRIVE_FOLDER_ID', root.getId());
 
-  // Buat struktur tahun ajaran dan kelas di dalam folder RMU yang benar.
-  const result = createRMUAcademicYear(2026, 2027);
-  result.parentFolderName = parent.getName();
-  result.parentFolderUrl = parent.getUrl();
+  const result = {
+    ok: true,
+    parentFolderName: parent.getName(),
+    parentFolderUrl: parent.getUrl(),
+    rootName: root.getName(),
+    rootId: root.getId(),
+    rootUrl: root.getUrl(),
+    academicYearFolderName: yearFolder.getName(),
+    academicYearFolderUrl: yearFolder.getUrl(),
+    classesCreatedOrVerified: classCount,
+    categoryFoldersCreatedOrVerified: categoryCount
+  };
+
+  // Tampilkan hasil di Execution log dan simpan sebagai hasil fungsi.
+  console.log('setupRMUDriveMaterials RESULT: ' + JSON.stringify(result));
+  Logger.log('setupRMUDriveMaterials RESULT: ' + JSON.stringify(result));
+  return result;
+}
+
+// Pemeriksaan akses saja; tidak membuat folder tambahan.
+function cekFolderTujuanRMU() {
+  const id = '1w6PdzpPR_nnqgb62SoCe5YleqtYt3SHe';
+  const folder = DriveApp.getFolderById(id);
+  const result = {
+    ok: true,
+    folderName: folder.getName(),
+    folderId: folder.getId(),
+    folderUrl: folder.getUrl(),
+    canAccess: true
+  };
+  console.log('cekFolderTujuanRMU RESULT: ' + JSON.stringify(result));
+  Logger.log('cekFolderTujuanRMU RESULT: ' + JSON.stringify(result));
   return result;
 }
 
