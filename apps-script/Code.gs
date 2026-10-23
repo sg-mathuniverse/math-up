@@ -781,12 +781,19 @@ function getActiveTeachers() {
 function getProfilePhotoFolder_() {
   const properties = PropertiesService.getScriptProperties();
   const existingId = properties.getProperty('PROFILE_PHOTO_FOLDER_ID');
+  let folder = null;
   if (existingId) {
-    try { return DriveApp.getFolderById(existingId); } catch (e) {}
+    try { folder = DriveApp.getFolderById(existingId); } catch (e) {}
   }
-  // Folder dibuat privat di Drive pemilik script; tidak ada permission publik.
-  const folder = DriveApp.createFolder('RMU Profile Photos');
-  properties.setProperty('PROFILE_PHOTO_FOLDER_ID', folder.getId());
+  if (!folder) {
+    // Folder baru dibuat di Drive pemilik script dengan akses privat.
+    folder = DriveApp.createFolder('RMU Profile Photos');
+    properties.setProperty('PROFILE_PHOTO_FOLDER_ID', folder.getId());
+  }
+  const access = folder.getSharingAccess();
+  if (access === DriveApp.Access.ANYONE || access === DriveApp.Access.ANYONE_WITH_LINK) {
+    throw new Error('Folder foto profil memiliki akses publik. Ubah akses folder menjadi Terbatas sebelum mengunggah foto.');
+  }
   return folder;
 }
 
@@ -805,7 +812,6 @@ function getProfilePhotoDataUrl_(fileId) {
 
 function uploadProfilePhotoChunk(uploadId, chunkIndex, totalChunks, chunk, mimeType) {
   const user = requireUser_();
-  setupSheets();
   const id = String(uploadId || '');
   const index = Number(chunkIndex);
   const total = Number(totalChunks);
@@ -830,6 +836,7 @@ function uploadProfilePhotoChunk(uploadId, chunkIndex, totalChunks, chunk, mimeT
   cache.put(prefix + index, data, 600);
   if (index !== total - 1) return {complete:false,received:index + 1,totalChunks:total};
 
+  setupSheets();
   let combined = '';
   const keys = [];
   for (let i = 0; i < total; i++) {
