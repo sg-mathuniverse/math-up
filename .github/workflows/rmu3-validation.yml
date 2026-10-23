@@ -53,6 +53,7 @@ jobs:
           assert.ok(api.includes("function getEffectiveSchedule(date) {\n  const user = requireUser_();"), 'Effective schedule endpoint must use the signed-in user for visibility checks.');
           assert.ok(api.includes("const activeSubstitute = readRows_(SHEET_NAMES.TEACHERS).some(t =>"), 'Substitute requests must target a registered active math teacher.');
           assert.ok(api.includes("Guru pengganti harus terdaftar sebagai guru Matematika aktif di RMU."), 'Inactive or unregistered substitute recipients must be rejected.');
+          assert.ok(api.includes("parsedDate.toISOString().slice(0,10) === date"), 'Substitution requests must reject impossible calendar dates.');
           assert.ok(api.includes("return buildEffectiveSchedule_(schedules,approvedSubs,targetDate).filter(s =>"), 'Effective schedules must be filtered before returning to the client.');
           assert.ok(api.includes("String(t.subject || '').trim().toLowerCase() === 'matematika'"), 'Saved substitute must be a math teacher.');
           assert.ok(api.includes('function authorizeEmailNotifications()'), 'MailApp authorization helper must exist.');
