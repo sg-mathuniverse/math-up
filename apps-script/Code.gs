@@ -927,6 +927,13 @@ function setSpreadsheetId(id) {
     .setProperty('SPREADSHEET_ID',String(id).trim());
   return {ok:true};
 }
+
+// Jalankan satu kali oleh pemilik project di editor Apps Script untuk
+// memberikan izin pengiriman email sebelum fitur notifikasi dipakai.
+function authorizeEmailNotifications() {
+  const quota = MailApp.getRemainingDailyQuota();
+  return {authorized:true,remainingDailyRecipients:quota};
+}
 // ============================================================
 // UTILITAS TANGGAL DAN WAKTU
 // ============================================================
