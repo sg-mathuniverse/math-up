@@ -713,7 +713,7 @@ function getCurrentUser() {
   user.phone = String(teacher?.phone || '');
   user.photoUrl = profile?.photoFileId
     ? getProfilePhotoDataUrl_(String(profile.photoFileId))
-    : String(profile?.photoUrl || '');
+    : '';
   return user;
 }
 
@@ -757,7 +757,7 @@ function saveMyProfile(profile) {
     id:existingUser?.id || Utilities.getUuid(),
     email:user.email,
     name,
-    photoUrl:existingUser?.photoUrl || '',
+    photoUrl:'',
     photoFileId:existingUser?.photoFileId || '',
     role:existingUser?.role || 'Guru',
     createdAt:existingUser?.createdAt || now,
@@ -933,7 +933,7 @@ function upsertUser_(user) {
     email:user.email,
     name:String(teacher?.name || existing?.name || user.name || ''),
     // Pertahankan referensi foto yang tersimpan; jangan kosongkan saat bootstrap.
-    photoUrl:existing?.photoUrl || '',
+    photoUrl:'',
     photoFileId:existing?.photoFileId || '',
     role:existing ? existing.role : 'Guru',
     createdAt:existing ? existing.createdAt : now,
