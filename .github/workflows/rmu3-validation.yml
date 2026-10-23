@@ -1,0 +1,28 @@
+name: RMU 3.0 validation
+
+on:
+  push:
+    branches:
+      - feat/rmu-3.0-profil-guru
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install frontend dependencies
+        run: npm install
+      - name: Build frontend
+        run: npm run build
+      - name: Check Apps Script syntax
+        run: |
+          cp apps-script/Code.gs /tmp/Code.js
+          node --check /tmp/Code.js
