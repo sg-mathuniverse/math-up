@@ -474,7 +474,7 @@ function findSubstituteCandidates(request) {
   const user=requireUser_(); setupSheets(); request=request||{};
   const date=String(request.date||'').trim(), startTime=String(request.startTime||'').trim(), endTime=String(request.endTime||'').trim();
   const rs=timeToMinutes_(startTime), re=timeToMinutes_(endTime);
-  if(!date||!startTime||!endTime)throw new Error('Tanggal, jam mulai, dan jam selesai wajib diisi.');
+  if(!isValidIsoDate_(date)||!startTime||!endTime)throw new Error('Tanggal, jam mulai, dan jam selesai wajib diisi dengan format yang valid.');
   if(!Number.isFinite(rs)||!Number.isFinite(re)||rs>=re)throw new Error('Rentang waktu pengganti tidak valid.');
   const absent=String(request.absentTeacherEmail||user.email).trim().toLowerCase();
   if(absent!==user.email)throw new Error('Guru hanya dapat mencari pengganti untuk jadwalnya sendiri.');
@@ -724,8 +724,8 @@ function getEffectiveSchedule(date) {
   const user = requireUser_();
   setupSheets();
   const targetDate = String(date || '').trim();
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(targetDate)) {
-    throw new Error('Format tanggal tidak valid.');
+  if (!isValidIsoDate_(targetDate)) {
+    throw new Error('Tanggal tidak valid.');
   }
   const teachers = readRows_(SHEET_NAMES.TEACHERS).filter(t =>
     String(t.status || 'Aktif').trim().toLowerCase() === 'aktif' &&
