@@ -68,6 +68,7 @@ function handleApi_(e) {
     deleteEvent:'deleteEvent',
     findSubstituteCandidates:'findSubstituteCandidates',
     saveSubstitution:'saveSubstitution',
+    retrySubstitutionEmail:'retrySubstitutionEmail',
     respondSubstitution:'respondSubstitution'
   };
   try {
@@ -208,14 +209,32 @@ function saveTodo(todo) {
       throw new Error('Tugas tidak ditemukan atau bukan milik akun Anda.');
     }
   }
+  const title = String(todo.title || '').trim();
+  const description = String(todo.description || '');
+  const dueAt = String(todo.dueAt || '').trim();
+  const priority = String(todo.priority || 'Sedang').trim();
+  if (!title) throw new Error('Nama tugas wajib diisi.');
+  if (title.length > 200) throw new Error('Nama tugas maksimal 200 karakter.');
+  if (description.length > 5000) throw new Error('Deskripsi tugas maksimal 5000 karakter.');
+  if (!['Rendah','Sedang','Tinggi'].includes(priority)) {
+    throw new Error('Prioritas tugas tidak valid.');
+  }
+  if (dueAt) {
+    const match = dueAt.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})(?::(\d{2}))?$/);
+    if (!match || !isValidIsoDate_(match[1]) ||
+        !Number.isFinite(timeToMinutes_(match[2])) ||
+        (match[3] !== undefined && (!/^\d{2}$/.test(match[3]) || Number(match[3]) > 59))) {
+      throw new Error('Deadline tugas tidak valid.');
+    }
+  }
   const now = new Date().toISOString();
   const data = {
     id:requestedId || Utilities.getUuid(),
     teacherEmail:user.email,
-    title:String(todo.title || '').trim(),
-    description:String(todo.description || ''),
-    dueAt:String(todo.dueAt || ''),
-    priority:todo.priority || 'Sedang',
+    title,
+    description,
+    dueAt,
+    priority,
     done:Boolean(todo.done),
     createdAt:existingRow?.data.createdAt || now,
     updatedAt:now
@@ -669,6 +688,104 @@ function saveSubstitution(item) {
     updatedAt:new Date().toISOString()
   });
   return {...updated.data,emailStatus,emailError};
+}
+
+// Kirim ulang notifikasi hanya jika email sebelumnya gagal/tertunda.
+// Akses dibatasi ke guru pengaju; permintaan yang sudah terkirim tidak dapat dikirim ulang.
+function retrySubstitutionEmail(id) {
+  const user = requireUser_();
+  setupSheets();
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) throw new Error('Sistem sedang memproses permintaan lain. Silakan coba lagi.');
+
+  let row;
+  let data;
+  let teacher;
+  let requester;
+  try {
+    row = findRow_(SHEET_NAMES.SUBSTITUTIONS, String(id || '').trim());
+    if (!row) throw new Error('Permintaan guru pengganti tidak ditemukan.');
+    data = row.data;
+    if (String(data.absentTeacherEmail || '').trim().toLowerCase() !== user.email) {
+      throw new Error('Hanya guru pengaju yang dapat mengirim ulang notifikasi ini.');
+    }
+    if (String(data.status || '').trim() !== 'Diajukan') {
+      throw new Error('Notifikasi hanya dapat dikirim ulang saat permintaan masih diajukan.');
+    }
+    const emailStatus = String(data.emailStatus || 'Menunggu').trim();
+    if (emailStatus === 'Terkirim' || data.emailSentAt) {
+      throw new Error('Email notifikasi sudah tercatat terkirim; pengiriman ulang dibatalkan agar tidak duplikat.');
+    }
+    if (!['Gagal',''].includes(emailStatus)) {
+      throw new Error('Hanya notifikasi yang tercatat gagal yang dapat dikirim ulang. Status menunggu perlu diperiksa terlebih dahulu agar tidak terjadi email duplikat.');
+    }
+
+    const substitute = String(data.substituteTeacherEmail || '').trim().toLowerCase();
+    const domain = user.email.split('@').pop();
+    if (!substitute || substitute.split('@').pop() !== domain) {
+      throw new Error('Alamat guru pengganti tidak valid untuk domain sekolah.');
+    }
+    const teachers = readRows_(SHEET_NAMES.TEACHERS);
+    teacher = teachers.find(t =>
+      String(t.email || '').trim().toLowerCase() === substitute &&
+      String(t.status || 'Aktif').trim().toLowerCase() === 'aktif' &&
+      String(t.subject || '').trim().toLowerCase() === 'matematika'
+    );
+    if (!teacher) throw new Error('Guru pengganti tidak lagi terdaftar sebagai guru Matematika aktif.');
+    requester = teachers.find(t =>
+      String(t.email || '').trim().toLowerCase() === user.email
+    );
+
+    // Status "Mengirim" mencegah klik ganda atau dua permintaan bersamaan.
+    updateRow_(SHEET_NAMES.SUBSTITUTIONS, row.rowNumber, {
+      ...data,
+      emailStatus:'Mengirim',
+      emailError:'',
+      updatedAt:new Date().toISOString()
+    });
+  } finally {
+    lock.releaseLock();
+  }
+
+  const substitute = String(data.substituteTeacherEmail || '').trim().toLowerCase();
+  let nextStatus = 'Terkirim';
+  let sentAt = new Date().toISOString();
+  let errorMessage = '';
+  try {
+    const subject = 'Permintaan Guru Pengganti — ' +
+      String(data.className || '-') + ' (' + String(data.date || '-') + ')';
+    const body = [
+      'Halo ' + String(teacher.name || 'Guru') + ',',
+      '',
+      String(requester?.name || user.name || user.email) + ' mengajukan Anda sebagai guru pengganti.',
+      'Tanggal: ' + String(data.date || '-'),
+      'Waktu: ' + String(data.startTime || '-') + '–' + String(data.endTime || '-'),
+      'Kelas: ' + String(data.className || '-'),
+      'Topik: ' + String(data.topic || '-'),
+      'Ruangan: ' + String(data.room || '-'),
+      'Alasan: ' + String(data.reason || '-'),
+      '',
+      'Silakan buka Ruang Math Up menggunakan akun sekolah Anda untuk menerima atau menolak permintaan ini.',
+      '',
+      'Email ini dikirim otomatis oleh Ruang Math Up.'
+    ].join('\\n');
+    MailApp.sendEmail({to:substitute,subject,body,name:'Ruang Math Up'});
+  } catch (emailException) {
+    nextStatus = 'Gagal';
+    sentAt = '';
+    errorMessage = String(emailException && emailException.message ? emailException.message : emailException).slice(0,500);
+  }
+
+  const savedRow = findRow_(SHEET_NAMES.SUBSTITUTIONS, String(id || '').trim());
+  if (!savedRow) throw new Error('Permintaan tidak ditemukan saat memperbarui status email.');
+  const updated = updateRow_(SHEET_NAMES.SUBSTITUTIONS, savedRow.rowNumber, {
+    ...savedRow.data,
+    emailStatus:nextStatus,
+    emailSentAt:sentAt,
+    emailError:errorMessage,
+    updatedAt:new Date().toISOString()
+  });
+  return {...updated.data,emailStatus:nextStatus,emailError:errorMessage};
 }
 // ============================================================
 // JADWAL EFEKTIF

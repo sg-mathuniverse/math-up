@@ -83,6 +83,7 @@ export const api = {
   deleteSchedule: id => jsonp("deleteSchedule", [id]),
   findSubstituteCandidates: request => jsonp("findSubstituteCandidates", [request]),
   saveSubstitution: item => jsonp("saveSubstitution", [item]),
+  retrySubstitutionEmail: id => jsonp("retrySubstitutionEmail", [id]),
   respondSubstitution: (id, response) => jsonp("respondSubstitution", [id, response]),
   saveTeacher: teacher => jsonp("saveTeacher", [teacher]),
   saveEvent: event => jsonp("saveEvent", [event]),

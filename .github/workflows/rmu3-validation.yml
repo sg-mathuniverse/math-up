@@ -38,6 +38,13 @@ jobs:
           assert.ok(app.includes('const chunkSize=6000;'), 'Frontend photo chunk size must be 6000 characters.');
           assert.ok(api.includes('data.length > 6000'), 'Backend must enforce the same chunk size.');
           assert.ok(api.includes('total > 120'), 'Backend must accept enough chunks for a 512 KB photo.');
+          const appsScriptHtml = fs.readFileSync('apps-script/Index.html', 'utf8');
+          assert.ok(appsScriptHtml.includes('const chunkSize=6000,total=Math.ceil(base64.length/chunkSize)'), 'Apps Script HTML profile uploads must use the backend chunk limit.');
+          assert.ok(api.includes("if (!['Rendah','Sedang','Tinggi'].includes(priority))"), 'Todo priorities must be validated on the server.');
+          assert.ok(api.includes("if (!title) throw new Error('Nama tugas wajib diisi.')"), 'Todo titles must be required on the server.');
+          assert.ok(api.includes('if (description.length > 5000)'), 'Todo descriptions must have a server-side length limit.');
+          assert.ok(api.includes("if (!match || !isValidIsoDate_(match[1])"), 'Todo deadline must use a valid calendar date and time.');
+
           assert.ok(api.includes('const callback = /^[A-Za-z_$][0-9A-Za-z_$]{0,100}$/.test(callbackInput)'), 'JSONP callback must be restricted to a JavaScript identifier.');
           assert.ok(api.includes('access !== DriveApp.Access.PRIVATE'), 'Profile photo folder must reject non-private sharing.');
           assert.ok(api.includes("file.getSharingAccess() !== DriveApp.Access.PRIVATE"), 'Profile photo files must remain private individually, not only through their parent folder.');
@@ -92,6 +99,15 @@ jobs:
             assert.ok(api.includes("const lock = LockService.getScriptLock();") && api.includes("if (!lock.tryLock(10000))"), 'Substitution state changes must use a script lock to reduce concurrent processing races.');
             assert.ok(api.includes("if (!available) {\n        throw new Error(\n          'Permintaan tidak dapat diterima karena jadwal, agenda, atau penugasan lain bertabrakan.'"), 'Acceptance must re-check schedule availability on the server.');
             assert.ok(api.includes("emailStatus = 'Gagal'"), 'Mail delivery errors must be recorded as failed instead of silently succeeding.');
+          assert.ok(api.includes("retrySubstitutionEmail:'retrySubstitutionEmail'"), 'Retry action must be explicitly allowlisted.');
+          assert.ok(api.includes('function retrySubstitutionEmail(id) {'), 'Failed substitute notifications must have a retry endpoint.');
+          assert.ok(api.includes("emailStatus:'Mengirim'"), 'Retry must mark an email as in-flight to prevent concurrent duplicate sends.');
+          assert.ok(api.includes("Email notifikasi sudah tercatat terkirim; pengiriman ulang dibatalkan agar tidak duplikat."), 'Retry must refuse to resend emails already marked sent.');
+          assert.ok(api.includes("Hanya guru pengaju yang dapat mengirim ulang notifikasi ini."), 'Only the original requester may retry the email.');
+          const reactApi = fs.readFileSync('src/api.js', 'utf8');
+          assert.ok(reactApi.includes('retrySubstitutionEmail: id => jsonp("retrySubstitutionEmail", [id])'), 'Frontend must expose the email retry endpoint.');
+          assert.ok(app.includes('Kirim ulang notifikasi'), 'Requester must have a visible retry control for failed/pending notifications.');
+
           assert.ok(api.includes("subject:String(existing?.subject || 'Matematika').trim()"), 'Teacher self-service updates must preserve the existing subject.');
           assert.ok(api.includes("status:String(existing?.status || 'Aktif').trim()"), 'Teacher self-service updates must preserve the existing active status.');
           assert.ok(api.includes("String(existingRow.data.teacherEmail || '').trim().toLowerCase() !== user.email"), 'Todo updates must reject IDs owned by another user.');
