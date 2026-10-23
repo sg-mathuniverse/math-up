@@ -389,13 +389,29 @@ function saveEvent(event) {
       throw new Error('Anda hanya dapat menyimpan agenda yang Anda buat sendiri.');
     }
   }
+  const title = String(event.title || '').trim();
+  const eventDate = String(event.eventDate || '').trim();
+  const startTime = String(event.startTime || '').trim();
+  const endTime = String(event.endTime || '').trim();
+  if (!title) throw new Error('Nama agenda wajib diisi.');
+  if (!isValidIsoDate_(eventDate)) throw new Error('Tanggal agenda tidak valid.');
+  if (Boolean(startTime) !== Boolean(endTime)) {
+    throw new Error('Jam mulai dan jam selesai harus diisi bersama.');
+  }
+  if (startTime && (
+    !Number.isFinite(timeToMinutes_(startTime)) ||
+    !Number.isFinite(timeToMinutes_(endTime)) ||
+    timeToMinutes_(startTime) >= timeToMinutes_(endTime)
+  )) {
+    throw new Error('Rentang jam agenda tidak valid.');
+  }
   return upsertRow_(SHEET_NAMES.EVENTS, {
     id:event.id || Utilities.getUuid(),
-    title:String(event.title || '').trim(),
+    title,
     description:String(event.description || ''),
-    eventDate:String(event.eventDate || ''),
-    startTime:String(event.startTime || ''),
-    endTime:String(event.endTime || ''),
+    eventDate,
+    startTime,
+    endTime,
     type:event.type || 'Sekolah',
     createdBy:user.email,
     createdAt:event.createdAt || new Date().toISOString(),
@@ -416,13 +432,16 @@ function updateEvent(event) {
   const startTime = String(event.startTime || '').trim();
   const endTime = String(event.endTime || '').trim();
   if (!title) throw new Error('Nama agenda wajib diisi.');
-  if (!eventDate) throw new Error('Tanggal agenda wajib diisi.');
-  if (
-    startTime &&
-    endTime &&
+  if (!isValidIsoDate_(eventDate)) throw new Error('Tanggal agenda tidak valid.');
+  if (Boolean(startTime) !== Boolean(endTime)) {
+    throw new Error('Jam mulai dan jam selesai harus diisi bersama.');
+  }
+  if (startTime && (
+    !Number.isFinite(timeToMinutes_(startTime)) ||
+    !Number.isFinite(timeToMinutes_(endTime)) ||
     timeToMinutes_(startTime) >= timeToMinutes_(endTime)
-  ) {
-    throw new Error('Jam selesai harus lebih besar dari jam mulai.');
+  )) {
+    throw new Error('Rentang jam agenda tidak valid.');
   }
   return updateRow_(SHEET_NAMES.EVENTS, row.rowNumber, {
     ...row.data,
@@ -1120,6 +1139,13 @@ function authorizeEmailNotifications() {
 // ============================================================
 // UTILITAS TANGGAL DAN WAKTU
 // ============================================================
+function isValidIsoDate_(value) {
+  const date = String(value || '').trim();
+  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(date)) return false;
+  const parsed = new Date(date + 'T00:00:00Z');
+  return !Number.isNaN(parsed.getTime()) &&
+    parsed.toISOString().slice(0,10) === date;
+}
 function dayNameId_(dateString) {
   const parts = String(dateString).split('-').map(Number);
   if (parts.length !== 3 || parts.some(Number.isNaN)) {
