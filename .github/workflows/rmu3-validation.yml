@@ -145,5 +145,13 @@ jobs:
           for (const action of clientActions) {
             assert.ok(api.includes(`function ${action}(`), `Apps Script must implement the client action ${action}.`);
           }
-          console.log('Profile upload, JSONP, private-folder, directory-scope, legacy-photo privacy, email authorization, and schema migration checks passed.');
+          assert.ok(api.includes("const maxFiles = 500"), 'Drive materials listing must have a maximum file count.');
+          assert.ok(api.includes("const maxDepth = 8"), 'Drive materials listing must have a maximum folder depth.');
+          assert.ok(api.includes("if (f.isTrashed()) continue;"), 'Trashed Drive files must not be listed.');
+          assert.ok(api.includes("Folder Drive Materi tidak dapat diakses."), 'Drive access errors must explain the configuration to check.');
+          assert.ok(api.includes('visitedFolders'), 'Drive response must expose traversal metadata.');
+          const drivePage = app.slice(app.indexOf('function DrivePage()'), app.indexOf('function minutesToTime'));
+          assert.ok(drivePage.includes('x.folderPath?x.folderPath'), 'Drive UI must show the relative folder path for each file.');
+          assert.ok(drivePage.includes('data.truncated&&'), 'Drive UI must explain when listing limits are reached.');
+          console.log('Profile upload, JSONP, private-folder, directory-scope, legacy-photo privacy, email authorization, schema migration, and Drive listing checks passed.');
           NODE
