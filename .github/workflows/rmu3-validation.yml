@@ -99,6 +99,15 @@ jobs:
             assert.ok(api.includes("const lock = LockService.getScriptLock();") && api.includes("if (!lock.tryLock(10000))"), 'Substitution state changes must use a script lock to reduce concurrent processing races.');
             assert.ok(api.includes("if (!available) {\n        throw new Error(\n          'Permintaan tidak dapat diterima karena jadwal, agenda, atau penugasan lain bertabrakan.'"), 'Acceptance must re-check schedule availability on the server.');
             assert.ok(api.includes("emailStatus = 'Gagal'"), 'Mail delivery errors must be recorded as failed instead of silently succeeding.');
+          assert.ok(api.includes("retrySubstitutionEmail:'retrySubstitutionEmail'"), 'Retry action must be explicitly allowlisted.');
+          assert.ok(api.includes('function retrySubstitutionEmail(id) {'), 'Failed substitute notifications must have a retry endpoint.');
+          assert.ok(api.includes("emailStatus:'Mengirim'"), 'Retry must mark an email as in-flight to prevent concurrent duplicate sends.');
+          assert.ok(api.includes("Email notifikasi sudah tercatat terkirim; pengiriman ulang dibatalkan agar tidak duplikat."), 'Retry must refuse to resend emails already marked sent.');
+          assert.ok(api.includes("Hanya guru pengaju yang dapat mengirim ulang notifikasi ini."), 'Only the original requester may retry the email.');
+          const reactApi = fs.readFileSync('src/api.js', 'utf8');
+          assert.ok(reactApi.includes('retrySubstitutionEmail: id => jsonp("retrySubstitutionEmail", [id])'), 'Frontend must expose the email retry endpoint.');
+          assert.ok(app.includes('Kirim ulang notifikasi'), 'Requester must have a visible retry control for failed/pending notifications.');
+
           assert.ok(api.includes("subject:String(existing?.subject || 'Matematika').trim()"), 'Teacher self-service updates must preserve the existing subject.');
           assert.ok(api.includes("status:String(existing?.status || 'Aktif').trim()"), 'Teacher self-service updates must preserve the existing active status.');
           assert.ok(api.includes("String(existingRow.data.teacherEmail || '').trim().toLowerCase() !== user.email"), 'Todo updates must reject IDs owned by another user.');
