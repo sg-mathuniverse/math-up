@@ -546,7 +546,7 @@ function saveSubstitution(item) {
     emailError,
     updatedAt:new Date().toISOString()
   });
-  return {...updated,emailStatus,emailError};
+  return {...updated.data,emailStatus,emailError};
 }
 // ============================================================
 // JADWAL EFEKTIF
