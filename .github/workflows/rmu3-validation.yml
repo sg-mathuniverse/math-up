@@ -54,6 +54,9 @@ jobs:
           assert.ok(api.includes("const activeSubstitute = readRows_(SHEET_NAMES.TEACHERS).some(t =>"), 'Substitute requests must target a registered active math teacher.');
           assert.ok(api.includes("Guru pengganti harus terdaftar sebagai guru Matematika aktif di RMU."), 'Inactive or unregistered substitute recipients must be rejected.');
           assert.ok(api.includes("parsedDate.toISOString().slice(0,10) === date"), 'Substitution requests must reject impossible calendar dates.');
+          assert.ok(api.includes("function isValidIsoDate_(value) {"), 'Agenda dates must use strict calendar validation.');
+          assert.ok(api.includes("if (!isValidIsoDate_(eventDate)) throw new Error('Tanggal agenda tidak valid.');"), 'Event creation and editing must reject impossible dates.');
+          assert.ok(api.includes("Boolean(startTime) !== Boolean(endTime)"), 'Event times must be supplied together or both omitted.');
           assert.ok(api.includes("return buildEffectiveSchedule_(schedules,approvedSubs,targetDate).filter(s =>"), 'Effective schedules must be filtered before returning to the client.');
           assert.ok(api.includes("String(t.subject || '').trim().toLowerCase() === 'matematika'"), 'Saved substitute must be a math teacher.');
           assert.ok(api.includes('function authorizeEmailNotifications()'), 'MailApp authorization helper must exist.');
