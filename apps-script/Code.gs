@@ -716,8 +716,8 @@ function retrySubstitutionEmail(id) {
     if (emailStatus === 'Terkirim' || data.emailSentAt) {
       throw new Error('Email notifikasi sudah tercatat terkirim; pengiriman ulang dibatalkan agar tidak duplikat.');
     }
-    if (!['Gagal','Menunggu',''].includes(emailStatus)) {
-      throw new Error('Status email sedang diproses atau tidak mengizinkan pengiriman ulang.');
+    if (!['Gagal',''].includes(emailStatus)) {
+      throw new Error('Hanya notifikasi yang tercatat gagal yang dapat dikirim ulang. Status menunggu perlu diperiksa terlebih dahulu agar tidak terjadi email duplikat.');
     }
 
     const substitute = String(data.substituteTeacherEmail || '').trim().toLowerCase();
