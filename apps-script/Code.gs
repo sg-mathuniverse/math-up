@@ -818,13 +818,13 @@ function uploadProfilePhotoChunk(uploadId, chunkIndex, totalChunks, chunk, mimeT
   const data = String(chunk || '');
   const type = String(mimeType || '').toLowerCase();
   if (!/^[a-zA-Z0-9_-]{8,80}$/.test(id)) throw new Error('ID unggahan foto tidak valid.');
-  if (!Number.isInteger(index) || !Number.isInteger(total) || total < 1 || total > 45 || index < 0 || index >= total) {
+  if (!Number.isInteger(index) || !Number.isInteger(total) || total < 1 || total > 120 || index < 0 || index >= total) {
     throw new Error('Urutan unggahan foto tidak valid.');
   }
   if (!['image/jpeg','image/png','image/webp'].includes(type)) {
     throw new Error('Format foto harus JPG, PNG, atau WebP.');
   }
-  if (!data || data.length > 18000 || !/^[A-Za-z0-9+/=]+$/.test(data)) {
+  if (!data || data.length > 6000 || !/^[A-Za-z0-9+/=]+$/.test(data)) {
     throw new Error('Bagian data foto tidak valid.');
   }
 
