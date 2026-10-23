@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { api } from "./api";
 import {
-  Bell, CalendarDays, CheckCircle2, ChevronDown, CirclePlus, Clock3,
-  FileText, LayoutDashboard, ListTodo, Menu, MoreHorizontal, Search,
-  Settings, Users, UserRoundCheck, X, BookOpen, Sparkles, Mail, HardDrive, History
+  Bell, CalendarDays, CalendarClock, CheckCircle2, ChevronDown, CirclePlus, Clock3,
+  FileText, LayoutDashboard, ListTodo, Menu, Search,
+  Settings, Users, UserRoundCheck, UserRound, X, BookOpen, Sparkles, Mail, HardDrive, History
 } from "lucide-react";
 
 const schedule = [
@@ -58,6 +58,7 @@ function App(){
   const [authUser,setAuthUser]=useState(null);
   const [todos,setTodos]=useState([]);
   const [menuOpen,setMenuOpen]=useState(false);
+  const [profileMenuOpen,setProfileMenuOpen]=useState(false);
   const [showTodo,setShowTodo]=useState(false);
   const [editingTodo,setEditingTodo]=useState(null);
   const [confirmTodo,setConfirmTodo]=useState(null);
@@ -177,30 +178,35 @@ function App(){
       <div className="brand" role="button" tabIndex={0} aria-label={menuOpen?"Tutup menu":"Buka menu"} onClick={()=>setMenuOpen(v=>!v)} onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();setMenuOpen(v=>!v)}}}><div className="brand-mark sidebar-math-logo" aria-label="pi integral a sampai b f kuadrat x dx"><span className="pi">π</span><span className="integral-wrap"><span className="integral">∫</span><span className="limits"><sup>b</sup><sub>a</sub></span></span><span className="formula">f²(x) dx</span></div><div className="brand-name"><strong>Ruang</strong><strong>Math Up</strong></div></div>
       <nav>
         <Nav icon={<LayoutDashboard size={19}/>} label="Dashboard" active={active==="Dashboard"} onClick={()=>setActive("Dashboard")}/>
-        <Nav icon={<CalendarDays size={19}/>} label="Jadwal Mengajar" active={active==="Jadwal Mengajar"} onClick={()=>setActive("Jadwal Mengajar")}/>
+        <Nav icon={<CalendarClock size={19}/>} label="Jadwal Mengajar" active={active==="Jadwal Mengajar"} onClick={()=>setActive("Jadwal Mengajar")}/>
         <Nav icon={<UserRoundCheck size={19}/>} label="Guru Pengganti" active={active==="Guru Pengganti"} onClick={()=>setActive("Guru Pengganti")}/>
         <Nav icon={<ListTodo size={19}/>} label="To-Do" active={active==="To-Do"} onClick={()=>setActive("To-Do")} todoCount={todos.filter(t=>!t.done).length}/>
         <Nav icon={<CalendarDays size={19}/>} label="Kalender Akademik" active={active==="Kalender Akademik"} onClick={()=>setActive("Kalender Akademik")}/>
         <Nav icon={<FileText size={19}/>} label="Drive Materi" active={active==="Drive Materi"} onClick={()=>setActive("Drive Materi")}/>
-        <Nav icon={<Users size={19}/>} label="Guru Matematika" active={active==="Guru Matematika"} onClick={()=>setActive("Guru Matematika")}/>
         <Nav icon={<History size={19}/>} label="Patch Note" active={active==="Patch Note"} onClick={()=>setActive("Patch Note")}/>
       </nav>
       <div className="sidebar-bottom">
         <Nav icon={<Settings size={19}/>} label="Pengaturan" active={active==="Pengaturan"} onClick={()=>setActive("Pengaturan")}/>
-        <div className="profile-mini"><div className="avatar">{user?.photoUrl?<img src={user.photoUrl} alt={user.name||"Profil"} />:initials(user?.name||user?.email||"?")}</div><div><b>{user?.name||"Memuat profil..."}</b><span>{user?.email||"Akun Google"}</span></div><MoreHorizontal size={17}/></div>
       </div>
     </aside>
 
     <main className="main" onClick={()=>{if(menuOpen)setMenuOpen(false)}}>
       <header className="topbar">
         <button className="icon-btn mobile-menu" onClick={()=>setMenuOpen(v=>!v)}><Menu size={20}/></button>
-        <div className="crumb"><strong>RMU 2.0</strong></div>
+        <div className="crumb"><strong>RMU 3.0</strong></div>
         <div className="top-actions">
           <form className="search google-search" action="https://www.google.com/search" method="get" target="_blank"><Search size={17}/><input name="q" placeholder="Cari di Google..." aria-label="Cari di Google" /></form>
           <a className="icon-btn top-link" href="https://mail.google.com/" target="_blank" rel="noreferrer" title="Buka Gmail" aria-label="Buka Gmail"><Mail size={19}/></a>
           <a className="icon-btn top-link" href="https://drive.google.com/" target="_blank" rel="noreferrer" title="Buka Google Drive" aria-label="Buka Google Drive"><HardDrive size={19}/></a>
           <button className="icon-btn notification-btn" onClick={()=>setActive("Guru Pengganti")} title="Notifikasi guru pengganti" aria-label="Notifikasi guru pengganti"><Bell size={19}/>{substitutionNotifications.length>0&&<i></i>}{substitutionNotifications.length>0&&<em>{substitutionNotifications.length>9?"9+":substitutionNotifications.length}</em>}</button>
-          <button className="user-chip" onClick={()=>setMenuOpen(v=>v)}><div className="avatar small">{user?.photoUrl?<img src={user.photoUrl} alt={user.name||"Profil"} />:initials(user?.name||user?.email||"?")}</div><ChevronDown size={15}/></button>
+          <div className="profile-menu-wrap">
+            <button className="user-chip" aria-haspopup="menu" aria-expanded={profileMenuOpen} onClick={()=>setProfileMenuOpen(v=>!v)}><div className="avatar small">{user?.photoUrl?<img src={user.photoUrl} alt={user.name||"Profil"} />:initials(user?.name||user?.email||"?")}</div><ChevronDown size={15}/></button>
+            {profileMenuOpen&&<div className="profile-dropdown" role="menu">
+              <div className="profile-dropdown-user"><div className="avatar">{user?.photoUrl?<img src={user.photoUrl} alt={user.name||"Profil"} />:initials(user?.name||user?.email||"?")}</div><div><b>{user?.name||"Guru"}</b><span>{user?.email||""}</span></div></div>
+              <button role="menuitem" onClick={()=>{setActive("Profil Saya");setProfileMenuOpen(false)}}><UserRound size={17}/> Profil Saya</button>
+              <button role="menuitem" onClick={()=>{setActive("Daftar Guru Aktif");setProfileMenuOpen(false)}}><Users size={17}/> Daftar Guru Aktif</button>
+            </div>}
+          </div>
         </div>
       </header>
 
@@ -208,7 +214,8 @@ function App(){
        active==="Jadwal Mengajar" ? <SchedulePage user={user} /> : active==="Guru Pengganti" ? <SubstitutePage user={user} onSubstitutionUpdated={refreshDashboard} /> :
        active==="Kalender Akademik" ? <CalendarPage /> :
        active==="Drive Materi" ? <DrivePage /> :
-       active==="Guru Matematika" ? <TeachersPage user={user} onUserUpdated={setUser} /> :
+       active==="Profil Saya" ? <ProfilePage user={user} onUserUpdated={setUser} /> :
+       active==="Daftar Guru Aktif" ? <ActiveTeachersPage /> :
        active==="Pengaturan" ? <SettingsPage /> :
        active==="To-Do" ? <TodoPage todos={filteredTodos} toggleTodo={requestTodoToggle} actionLoading={todoActionLoading} onAdd={()=>{if(todoActionLoading)return;setEditingTodo(null);setShowTodo(true)}} onEdit={t=>{if(todoActionLoading)return;setEditingTodo(t);setShowTodo(true)}} onDelete={async t=>{if(!window.confirm("Hapus tugas ini?"))return;setTodoActionLoading("delete:"+String(t.id));setApiError("");try{await api.deleteTodo(t.id);setTodos(ts=>ts.filter(x=>x.id!==t.id));}catch(e){setApiError(e.message||String(e));}finally{setTodoActionLoading("");}}} /> :
        active==="Patch Note" ? <PatchNotesPage /> : <Placeholder title={active} />}
@@ -479,6 +486,84 @@ function TeachersPage({user,onUserUpdated}){
           <span className="priority sedang">{t.status||"Aktif"}</span>
         </div>;
       }):<p>Belum ada guru yang terdaftar. Simpan profil Anda untuk memulai.</p>}
+    </section>
+  </div>;
+}
+
+function ProfilePage({user,onUserUpdated}) {
+  const [form,setForm]=useState({name:user?.name||"",phone:user?.phone||""});
+  const [loading,setLoading]=useState(true);
+  const [saving,setSaving]=useState(false);
+  const [error,setError]=useState("");
+  const [message,setMessage]=useState("");
+
+  useEffect(()=>{
+    let cancelled=false;
+    api.getCurrentUser().then(fresh=>{
+      if(cancelled)return;
+      onUserUpdated?.(fresh);
+      setForm({name:fresh?.name||"",phone:fresh?.phone||""});
+    }).catch(e=>{if(!cancelled)setError(e.message||String(e))})
+      .finally(()=>{if(!cancelled)setLoading(false)});
+    return()=>{cancelled=true};
+  },[]);
+
+  const save=async()=>{
+    if(!form.name.trim()){setError("Nama guru wajib diisi.");return;}
+    setSaving(true);setError("");setMessage("");
+    try{
+      const fresh=await api.saveMyProfile({name:form.name.trim(),phone:form.phone.trim()});
+      onUserUpdated?.(fresh);
+      setForm({name:fresh?.name||"",phone:fresh?.phone||""});
+      setMessage("Profil berhasil disimpan.");
+    }catch(e){setError(e.message||String(e));}
+    finally{setSaving(false);}
+  };
+
+  return <div className="content">
+    <section className="page-title"><div><div className="eyebrow">Akun dan identitas</div><h1>Profil Saya</h1><p>Perbarui informasi yang digunakan oleh guru matematika di Ruang Math Up.</p></div></section>
+    {error&&<div className="card profile-message error" role="alert">{error}</div>}
+    {message&&<div className="card profile-message success" role="status">{message}</div>}
+    <section className="card profile-card rmu-profile-card">
+      <div className="profile-hero-row">
+        <div className="avatar profile-large">{user?.photoUrl?<img src={user.photoUrl} alt={user?.name||"Profil"} />:initials(form.name||user?.email||"?")}</div>
+        <div><h2>{form.name||"Nama guru"}</h2><p>Foto profil akan diaktifkan setelah mekanisme penyimpanan privat siap.</p></div>
+      </div>
+      <div className="form-grid">
+        <label>Nama guru<input value={form.name} onChange={e=>setForm({...form,name:e.target.value})} maxLength={120} placeholder="Nama lengkap" disabled={loading||saving}/></label>
+        <label>Email sekolah<input value={user?.email||""} disabled readOnly/><small>Email diambil dari akun Google yang sedang login dan tidak dapat diubah.</small></label>
+        <label>Nomor HP<input value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} maxLength={30} placeholder="Contoh: 08xxxxxxxxxx" disabled={loading||saving}/></label>
+      </div>
+      <div className="profile-form-actions"><button className="primary" onClick={save} disabled={loading||saving}>{loading?"Memuat profil...":saving?"Menyimpan...":"Simpan perubahan"}</button></div>
+    </section>
+  </div>;
+}
+
+function ActiveTeachersPage(){
+  const [teachers,setTeachers]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [error,setError]=useState("");
+  const [query,setQuery]=useState("");
+
+  useEffect(()=>{
+    let cancelled=false;
+    api.getActiveTeachers().then(data=>{if(!cancelled)setTeachers(Array.isArray(data)?data:[])})
+      .catch(e=>{if(!cancelled)setError(e.message||String(e))})
+      .finally(()=>{if(!cancelled)setLoading(false)});
+    return()=>{cancelled=true};
+  },[]);
+
+  const filtered=teachers.filter(t=>
+    [t.name,t.email,t.phone].some(value=>String(value||"").toLowerCase().includes(query.toLowerCase()))
+  );
+
+  return <div className="content">
+    <section className="page-title"><div><div className="eyebrow">Kolaborasi internal</div><h1>Daftar Guru Aktif</h1><p>Direktori guru matematika yang terdaftar aktif di Ruang Math Up.</p></div></section>
+    <section className="card active-teachers-card">
+      <div className="card-head active-teachers-head"><div><h2>Guru Matematika</h2><p>{loading?"Memuat daftar guru...":teachers.length+" guru aktif"}</p></div><label className="active-teachers-search"><Search size={16}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Cari nama, email, atau HP" aria-label="Cari guru aktif"/></label></div>
+      {error&&<p className="profile-message error" role="alert">{error}</p>}
+      {loading?<div className="loading-placeholder"><span className="loading-bar"></span><span className="loading-bar short"></span><span className="loading-bar"></span></div>:
+       filtered.length?<div className="active-teachers-table-wrap"><table className="active-teachers-table"><thead><tr><th>Nama guru</th><th>Email sekolah</th><th>Nomor HP</th></tr></thead><tbody>{filtered.map(t=><tr key={t.id||t.email}><td><div className="directory-name"><div className="avatar small">{initials(t.name||t.email)}</div><b>{t.name||"Nama belum diisi"}</b></div></td><td>{t.email}</td><td>{t.phone||"Belum diisi"}</td></tr>)}</tbody></table></div>:<div className="empty-state">{query?"Tidak ada guru yang cocok dengan pencarian.":"Belum ada guru matematika aktif yang terdaftar."}</div>}
     </section>
   </div>;
 }
