@@ -26,6 +26,8 @@ jobs:
         run: |
           cp apps-script/Code.gs /tmp/Code.js
           node --check /tmp/Code.js
+      - name: Test schema migration helpers
+        run: node tests/schema-migration.test.cjs
       - name: Check profile upload and JSONP safeguards
         run: |
           node <<'NODE'
