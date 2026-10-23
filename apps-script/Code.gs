@@ -233,9 +233,13 @@ function updateTodo(todo) {
 }
 function toggleTodo(id, done) {
   const user = requireUser_();
+  setupSheets();
   const row = findRow_(SHEET_NAMES.TODO, id);
-  if (!row || row.data.teacherEmail !== user.email) {
-    throw new Error('Tugas tidak ditemukan.');
+  if (
+    !row ||
+    String(row.data.teacherEmail || '').trim().toLowerCase() !== user.email
+  ) {
+    throw new Error('Tugas tidak ditemukan atau bukan milik akun Anda.');
   }
   return updateRow_(SHEET_NAMES.TODO, row.rowNumber, {
     ...row.data,
