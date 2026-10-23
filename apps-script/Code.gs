@@ -295,6 +295,12 @@ function saveSchedule(item) {
   setupSheets();
   item = item || {};
   if (item.teacherEmail && String(item.teacherEmail).toLowerCase() !== user.email) throw new Error('Jadwal harus dimiliki oleh akun yang sedang aktif.');
+  if (item.id) {
+    const existing = findRow_(SHEET_NAMES.SCHEDULE, item.id);
+    if (existing && String(existing.data.teacherEmail || '').trim().toLowerCase() !== user.email) {
+      throw new Error('Anda hanya dapat menyimpan jadwal milik Anda sendiri.');
+    }
+  }
   const day = String(item.day || '').trim();
   const startTime = String(item.startTime || '').trim();
   const endTime = String(item.endTime || '').trim();
@@ -354,6 +360,13 @@ function deleteSchedule(id) {
 function saveEvent(event) {
   const user = requireUser_();
   setupSheets();
+  event = event || {};
+  if (event.id) {
+    const existing = findRow_(SHEET_NAMES.EVENTS, event.id);
+    if (existing && String(existing.data.createdBy || '').trim().toLowerCase() !== user.email) {
+      throw new Error('Anda hanya dapat menyimpan agenda yang Anda buat sendiri.');
+    }
+  }
   return upsertRow_(SHEET_NAMES.EVENTS, {
     id:event.id || Utilities.getUuid(),
     title:String(event.title || '').trim(),
