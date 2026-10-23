@@ -523,7 +523,7 @@ function saveSubstitution(item) {
       'Silakan buka Ruang Math Up menggunakan akun sekolah Anda untuk menerima atau menolak permintaan ini.',
       '',
       'Email ini dikirim otomatis oleh Ruang Math Up.'
-    ].join('\\n');
+    ].join('\n');
     MailApp.sendEmail({
       to:substitute,
       subject,
