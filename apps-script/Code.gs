@@ -791,8 +791,8 @@ function getProfilePhotoFolder_() {
     properties.setProperty('PROFILE_PHOTO_FOLDER_ID', folder.getId());
   }
   const access = folder.getSharingAccess();
-  if (access === DriveApp.Access.ANYONE || access === DriveApp.Access.ANYONE_WITH_LINK) {
-    throw new Error('Folder foto profil memiliki akses publik. Ubah akses folder menjadi Terbatas sebelum mengunggah foto.');
+  if (access !== DriveApp.Access.PRIVATE) {
+    throw new Error('Folder foto profil tidak memiliki akses privat. Pastikan akses folder benar-benar Terbatas sebelum mengunggah foto.');
   }
   return folder;
 }
