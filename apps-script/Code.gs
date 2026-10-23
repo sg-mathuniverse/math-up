@@ -166,6 +166,8 @@ function getBootstrap() {
     events:readRows_(SHEET_NAMES.EVENTS),
     // Jangan kirim record guru dari domain lain ke klien RMU.
     teachers:readRows_(SHEET_NAMES.TEACHERS).filter(t =>
+      String(t.status || 'Aktif').trim().toLowerCase() === 'aktif' &&
+      String(t.subject || '').trim().toLowerCase() === 'matematika' &&
       String(t.email || '').trim().toLowerCase().endsWith(
         '@' + user.email.split('@').pop()
       )
