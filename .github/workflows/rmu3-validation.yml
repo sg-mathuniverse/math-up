@@ -59,6 +59,8 @@ jobs:
           assert.ok(api.includes("Guru pengganti harus terdaftar sebagai guru Matematika aktif di RMU."), 'Inactive or unregistered substitute recipients must be rejected.');
           assert.ok(api.includes("parsedDate.toISOString().slice(0,10) === date"), 'Substitution requests must reject impossible calendar dates.');
           assert.ok(api.includes("function isValidIsoDate_(value) {"), 'Agenda dates must use strict calendar validation.');
+          assert.ok(api.includes("if(!isValidIsoDate_(date)||!startTime||!endTime)"), 'Substitute candidate search must reject impossible calendar dates.');
+          assert.ok(api.includes("if (!isValidIsoDate_(targetDate))"), 'Effective schedule lookup must reject impossible calendar dates.');
           const helperStart = api.indexOf('function isValidIsoDate_(value) {');
           const helperEnd = api.indexOf('function dayNameId_(dateString) {', helperStart);
           assert.ok(helperStart >= 0 && helperEnd > helperStart, 'Date helper must be present and bounded.');
