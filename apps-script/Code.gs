@@ -313,6 +313,15 @@ function saveSchedule(item) {
   if (!day || !Number.isFinite(start) || !Number.isFinite(end) || start >= end) {
     throw new Error('Hari dan rentang jam jadwal tidak valid.');
   }
+  const overlapsExisting = readRows_(SHEET_NAMES.SCHEDULE).some(s =>
+    String(s.teacherEmail || '').trim().toLowerCase() === user.email &&
+    String(s.day || '').trim().toLowerCase() === day.toLowerCase() &&
+    String(s.id || '') !== String(item.id || '') &&
+    overlaps_(s.startTime, s.endTime, startTime, endTime)
+  );
+  if (overlapsExisting) {
+    throw new Error('Jadwal bertumpang tindih dengan jadwal Anda yang sudah ada.');
+  }
   return upsertRow_(SHEET_NAMES.SCHEDULE, {
     id: item.id || Utilities.getUuid(), teacherEmail: user.email, day,
     startTime, endTime, className: String(item.className || ''),
