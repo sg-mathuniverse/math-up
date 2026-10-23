@@ -208,14 +208,32 @@ function saveTodo(todo) {
       throw new Error('Tugas tidak ditemukan atau bukan milik akun Anda.');
     }
   }
+  const title = String(todo.title || '').trim();
+  const description = String(todo.description || '');
+  const dueAt = String(todo.dueAt || '').trim();
+  const priority = String(todo.priority || 'Sedang').trim();
+  if (!title) throw new Error('Nama tugas wajib diisi.');
+  if (title.length > 200) throw new Error('Nama tugas maksimal 200 karakter.');
+  if (description.length > 5000) throw new Error('Deskripsi tugas maksimal 5000 karakter.');
+  if (!['Rendah','Sedang','Tinggi'].includes(priority)) {
+    throw new Error('Prioritas tugas tidak valid.');
+  }
+  if (dueAt) {
+    const match = dueAt.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})(?::(\d{2}))?$/);
+    if (!match || !isValidIsoDate_(match[1]) ||
+        !Number.isFinite(timeToMinutes_(match[2])) ||
+        (match[3] !== undefined && (!/^\d{2}$/.test(match[3]) || Number(match[3]) > 59))) {
+      throw new Error('Deadline tugas tidak valid.');
+    }
+  }
   const now = new Date().toISOString();
   const data = {
     id:requestedId || Utilities.getUuid(),
     teacherEmail:user.email,
-    title:String(todo.title || '').trim(),
-    description:String(todo.description || ''),
-    dueAt:String(todo.dueAt || ''),
-    priority:todo.priority || 'Sedang',
+    title,
+    description,
+    dueAt,
+    priority,
     done:Boolean(todo.done),
     createdAt:existingRow?.data.createdAt || now,
     updatedAt:now
