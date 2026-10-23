@@ -1069,17 +1069,25 @@ function uploadProfilePhotoChunk(uploadId, chunkIndex, totalChunks, chunk, mimeT
   return {complete:true,user:getCurrentUser()};
 }
 function requireUser_() {
-  const email = Session.getActiveUser().getEmail();
+  const email = String(Session.getActiveUser().getEmail() || '').trim().toLowerCase();
   if (!email) {
     throw new Error(
       'Akun Google aktif tidak tersedia. Periksa pengaturan akses web app.'
     );
   }
+
+  const emailParts = email.split('@');
+  if (emailParts.length !== 2 || emailParts[1] !== 'genius.sch.id') {
+    throw new Error(
+      'Akses Ruang Math Up hanya tersedia untuk akun sekolah dengan domain @genius.sch.id.'
+    );
+  }
+
   return {
-    email:email.toLowerCase(),
-    name:email.split('@')[0],
-    photoUrl:'',
-    role:'Guru'
+    email: email,
+    name: emailParts[0],
+    photoUrl: '',
+    role: 'Guru'
   };
 }
 function upsertUser_(user) {
