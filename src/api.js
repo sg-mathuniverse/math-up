@@ -66,6 +66,8 @@ function jsonp(action, args = []) {
 
 export const api = {
   getCurrentUser: () => jsonpWithRetry("getCurrentUser"),
+  saveMyProfile: profile => jsonp("saveMyProfile", [profile]),
+  getActiveTeachers: () => jsonpWithRetry("getActiveTeachers"),
   getBootstrap: () => jsonpWithRetry("getBootstrap"),
   getEffectiveSchedule: date => jsonpWithRetry("getEffectiveSchedule", [date]),
   getSubstitutionRequests: () => jsonpWithRetry("getSubstitutionRequests"),
