@@ -37,7 +37,7 @@ jobs:
           assert.ok(api.includes('data.length > 6000'), 'Backend must enforce the same chunk size.');
           assert.ok(api.includes('total > 120'), 'Backend must accept enough chunks for a 512 KB photo.');
           assert.ok(api.includes('const callback = /^[A-Za-z_$][0-9A-Za-z_$]{0,100}$/.test(callbackInput)'), 'JSONP callback must be restricted to a JavaScript identifier.');
-          assert.ok(api.includes('folder.getSharingAccess() !== DriveApp.Access.PRIVATE'), 'Profile photo folder must reject non-private sharing.');
+          assert.ok(api.includes('access !== DriveApp.Access.PRIVATE'), 'Profile photo folder must reject non-private sharing.');
           assert.ok(api.includes("teachers:readRows_(SHEET_NAMES.TEACHERS).filter(t =>"), 'Bootstrap teacher records must be filtered server-side.');
           assert.ok(api.includes("'@' + user.email.split('@').pop()"), 'Bootstrap must restrict teacher records to the signed-in email domain.');
           assert.ok(api.includes('function authorizeEmailNotifications()'), 'MailApp authorization helper must exist.');
