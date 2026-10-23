@@ -74,6 +74,7 @@ jobs:
           assert.ok(api.includes("return buildEffectiveSchedule_(schedules,approvedSubs,targetDate).filter(s =>"), 'Effective schedules must be filtered before returning to the client.');
           assert.ok(api.includes("String(t.subject || '').trim().toLowerCase() === 'matematika'"), 'Saved substitute must be a math teacher.');
           assert.ok(api.includes('function authorizeEmailNotifications()'), 'MailApp authorization helper must exist.');
+          assert.ok(api.includes("const updated = updateRow_(SHEET_NAMES.SUBSTITUTIONS,savedRow.rowNumber,{\n    emailStatus,\n    emailSentAt,\n    emailError,"), 'Email completion must update only notification fields to avoid overwriting a concurrent accept/reject status.');
           assert.ok(api.includes("subject:String(existing?.subject || 'Matematika').trim()"), 'Teacher self-service updates must preserve the existing subject.');
           assert.ok(api.includes("status:String(existing?.status || 'Aktif').trim()"), 'Teacher self-service updates must preserve the existing active status.');
           assert.ok(api.includes("String(existingRow.data.teacherEmail || '').trim().toLowerCase() !== user.email"), 'Todo updates must reject IDs owned by another user.');
