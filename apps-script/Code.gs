@@ -1175,7 +1175,21 @@ function createRMUAcademicYear(yearStart, yearEnd) {
 // folder materi tahun ajaran 2026/2027. Tidak membuat folder duplikat
 // jika struktur dengan nama yang sama sudah ada.
 function setupRMUDriveMaterials() {
-  return createRMUAcademicYear(2026, 2027);
+  // Folder induk yang ditentukan untuk seluruh struktur materi RMU.
+  const parentFolderId = '1w6PdzpPR_nnqgb62SoCe5YleqtYt3SHe';
+  const parent = DriveApp.getFolderById(parentFolderId);
+
+  // Buat atau gunakan folder RMU di dalam folder induk tersebut.
+  const root = ensureRMUChildFolder_(parent, 'RMU — Drive Materi');
+  const properties = PropertiesService.getScriptProperties();
+  properties.setProperty('RMU_DRIVE_ROOT_ID', root.getId());
+  properties.setProperty('DRIVE_FOLDER_ID', root.getId());
+
+  // Buat struktur tahun ajaran dan kelas di dalam folder RMU yang benar.
+  const result = createRMUAcademicYear(2026, 2027);
+  result.parentFolderName = parent.getName();
+  result.parentFolderUrl = parent.getUrl();
+  return result;
 }
 
 function getDriveMaterials() {
