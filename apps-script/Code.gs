@@ -1122,6 +1122,62 @@ function setDriveFolderId(id) {
     .setProperty('DRIVE_FOLDER_ID',String(id).trim());
   return {ok:true};
 }
+// Membuat atau mengambil folder anak berdasarkan nama di dalam folder induk.
+function ensureRMUChildFolder_(parent, name) {
+  const folders = parent.getFoldersByName(name);
+  return folders.hasNext() ? folders.next() : parent.createFolder(name);
+}
+
+// Membuat struktur folder tahun ajaran dan kelas 4–12.
+// Contoh: createRMUAcademicYear(2026, 2027)
+function createRMUAcademicYear(yearStart, yearEnd) {
+  const start = Number(yearStart);
+  const end = Number(yearEnd);
+  if (!Number.isInteger(start) || !Number.isInteger(end) || end !== start + 1) {
+    throw new Error('Tahun ajaran harus berurutan, misalnya (2026, 2027).');
+  }
+
+  const properties = PropertiesService.getScriptProperties();
+  let root = null;
+  const rootId = properties.getProperty('RMU_DRIVE_ROOT_ID');
+  if (rootId) {
+    try { root = DriveApp.getFolderById(rootId); } catch (e) {}
+  }
+  if (!root) {
+    const roots = DriveApp.getFoldersByName('RMU — Drive Materi');
+    root = roots.hasNext() ? roots.next() : DriveApp.createFolder('RMU — Drive Materi');
+    properties.setProperty('RMU_DRIVE_ROOT_ID', root.getId());
+  }
+
+  // DRIVE_FOLDER_ID menunjuk ke folder utama agar tetap kompatibel
+  // dengan API materi yang sudah digunakan frontend.
+  properties.setProperty('DRIVE_FOLDER_ID', root.getId());
+
+  const yearFolder = ensureRMUChildFolder_(root, 'Tahun Ajaran ' + start + '-' + end);
+  const categories = ['Modul', 'Lembar Kerja Murid', 'Asesmen'];
+  for (let grade = 4; grade <= 12; grade++) {
+    const classFolder = ensureRMUChildFolder_(yearFolder, 'Kelas ' + grade);
+    categories.forEach(name => ensureRMUChildFolder_(classFolder, name));
+  }
+
+  return {
+    ok:true,
+    rootName:root.getName(),
+    rootUrl:root.getUrl(),
+    academicYearFolderName:yearFolder.getName(),
+    academicYearFolderUrl:yearFolder.getUrl(),
+    classesCreatedOrVerified:9,
+    categoryFoldersCreatedOrVerified:27
+  };
+}
+
+// Jalankan fungsi ini sekali dari editor Apps Script untuk menyiapkan
+// folder materi tahun ajaran 2026/2027. Tidak membuat folder duplikat
+// jika struktur dengan nama yang sama sudah ada.
+function setupRMUDriveMaterials() {
+  return createRMUAcademicYear(2026, 2027);
+}
+
 function getDriveMaterials() {
   requireUser_();
   const id = PropertiesService.getScriptProperties()
@@ -1131,19 +1187,34 @@ function getDriveMaterials() {
   }
   const folder = DriveApp.getFolderById(id);
   const files = [];
-  const it = folder.getFiles();
-  while (it.hasNext()) {
-    const f = it.next();
-    files.push({
-      id:f.getId(),
-      name:f.getName(),
-      mimeType:f.getMimeType(),
-      size:f.getSize(),
-      updatedAt:f.getLastUpdated().toISOString(),
-      url:f.getUrl()
-    });
+
+  // Telusuri seluruh subfolder agar materi di dalam folder kelas ikut terbaca.
+  function collectFiles_(currentFolder, path) {
+    const fileIterator = currentFolder.getFiles();
+    while (fileIterator.hasNext()) {
+      const f = fileIterator.next();
+      files.push({
+        id:f.getId(),
+        name:f.getName(),
+        mimeType:f.getMimeType(),
+        size:f.getSize(),
+        updatedAt:f.getLastUpdated().toISOString(),
+        url:f.getUrl(),
+        folderPath:path
+      });
+    }
+    const folderIterator = currentFolder.getFolders();
+    while (folderIterator.hasNext()) {
+      const child = folderIterator.next();
+      collectFiles_(child, path ? path + '/' + child.getName() : child.getName());
+    }
   }
-  files.sort((a,b) => String(a.name).localeCompare(String(b.name)));
+  collectFiles_(folder, '');
+
+  files.sort((a,b) =>
+    String(a.folderPath).localeCompare(String(b.folderPath)) ||
+    String(a.name).localeCompare(String(b.name))
+  );
   return {
     configured:true,
     folderName:folder.getName(),
