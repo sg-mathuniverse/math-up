@@ -47,6 +47,7 @@ function handleApi_(e) {
     getCurrentUser:'getCurrentUser',
     saveMyProfile:'saveMyProfile',
     getActiveTeachers:'getActiveTeachers',
+    uploadProfilePhotoChunk:'uploadProfilePhotoChunk',
     getSubstitutionRequests:'getSubstitutionRequests',
     getDriveMaterials:'getDriveMaterials',
     getEffectiveSchedule:'getEffectiveSchedule',
@@ -636,8 +637,9 @@ function getCurrentUser() {
     user.name = String(profile.name).trim();
   }
   user.phone = String(teacher?.phone || '');
-  user.photoUrl = String(profile?.photoUrl || '');
-  user.photoFileId = String(profile?.photoFileId || '');
+  user.photoUrl = profile?.photoFileId
+    ? getProfilePhotoDataUrl_(String(profile.photoFileId))
+    : String(profile?.photoUrl || '');
   return user;
 }
 
@@ -707,6 +709,117 @@ function getActiveTeachers() {
       status:String(t.status || 'Aktif')
     }))
     .sort((a,b) => a.name.localeCompare(b.name, 'id'));
+}
+
+function getProfilePhotoFolder_() {
+  const properties = PropertiesService.getScriptProperties();
+  const existingId = properties.getProperty('PROFILE_PHOTO_FOLDER_ID');
+  if (existingId) {
+    try { return DriveApp.getFolderById(existingId); } catch (e) {}
+  }
+  // Folder dibuat privat di Drive pemilik script; tidak ada permission publik.
+  const folder = DriveApp.createFolder('RMU Profile Photos');
+  properties.setProperty('PROFILE_PHOTO_FOLDER_ID', folder.getId());
+  return folder;
+}
+
+function getProfilePhotoDataUrl_(fileId) {
+  try {
+    const file = DriveApp.getFileById(String(fileId || ''));
+    const blob = file.getBlob();
+    const mimeType = String(blob.getContentType() || file.getMimeType());
+    if (!['image/jpeg','image/png','image/webp'].includes(mimeType)) return '';
+    return 'data:' + mimeType + ';base64,' +
+      Utilities.base64Encode(blob.getBytes());
+  } catch (e) {
+    return '';
+  }
+}
+
+function uploadProfilePhotoChunk(uploadId, chunkIndex, totalChunks, chunk, mimeType) {
+  const user = requireUser_();
+  setupSheets();
+  const id = String(uploadId || '');
+  const index = Number(chunkIndex);
+  const total = Number(totalChunks);
+  const data = String(chunk || '');
+  const type = String(mimeType || '').toLowerCase();
+  if (!/^[a-zA-Z0-9_-]{8,80}$/.test(id)) throw new Error('ID unggahan foto tidak valid.');
+  if (!Number.isInteger(index) || !Number.isInteger(total) || total < 1 || total > 45 || index < 0 || index >= total) {
+    throw new Error('Urutan unggahan foto tidak valid.');
+  }
+  if (!['image/jpeg','image/png','image/webp'].includes(type)) {
+    throw new Error('Format foto harus JPG, PNG, atau WebP.');
+  }
+  if (!data || data.length > 18000 || !/^[A-Za-z0-9+/=]+$/.test(data)) {
+    throw new Error('Bagian data foto tidak valid.');
+  }
+
+  const cache = CacheService.getScriptCache();
+  const userKey = Utilities.base64EncodeWebSafe(
+    Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, user.email)
+  ).slice(0,20);
+  const prefix = 'rmu_photo_' + userKey + '_' + id + '_';
+  cache.put(prefix + index, data, 600);
+  if (index !== total - 1) return {complete:false,received:index + 1,totalChunks:total};
+
+  let combined = '';
+  const keys = [];
+  for (let i = 0; i < total; i++) {
+    const key = prefix + i;
+    const part = cache.get(key);
+    if (!part) throw new Error('Unggahan foto terputus. Silakan coba unggah kembali.');
+    combined += part;
+    keys.push(key);
+  }
+  const bytes = Utilities.base64Decode(combined);
+  if (!bytes.length || bytes.length > 512 * 1024) {
+    keys.forEach(key => cache.remove(key));
+    throw new Error('Ukuran foto setelah diproses maksimal 512 KB.');
+  }
+  const signature = Array.from(bytes.slice(0,12), b => b & 255);
+  const isJpeg = signature[0] === 255 && signature[1] === 216 && signature[2] === 255;
+  const isPng = signature.slice(0,8).join(',') === '137,80,78,71,13,10,26,10';
+  const isWebp = signature.slice(0,4).join(',') === '82,73,70,70' &&
+    signature.slice(8,12).join(',') === '87,69,66,80';
+  if (!(type === 'image/jpeg' && isJpeg) &&
+      !(type === 'image/png' && isPng) &&
+      !(type === 'image/webp' && isWebp)) {
+    keys.forEach(key => cache.remove(key));
+    throw new Error('Isi file tidak cocok dengan format foto yang dipilih.');
+  }
+
+  const extension = type === 'image/png' ? 'png' : type === 'image/webp' ? 'webp' : 'jpg';
+  const folder = getProfilePhotoFolder_();
+  const filename = 'profile-' + userKey + '-' + Date.now() + '.' + extension;
+  const file = folder.createFile(Utilities.newBlob(bytes, type, filename));
+
+  const users = readRows_(SHEET_NAMES.USERS);
+  const existing = users.find(row =>
+    String(row.email || '').trim().toLowerCase() === user.email
+  );
+  const now = new Date().toISOString();
+  try {
+    upsertRow_(SHEET_NAMES.USERS, {
+      id:existing?.id || Utilities.getUuid(),
+      email:user.email,
+      name:String(existing?.name || user.name || ''),
+      photoUrl:'',
+      photoFileId:file.getId(),
+      role:existing?.role || 'Guru',
+      createdAt:existing?.createdAt || now,
+      updatedAt:now
+    });
+  } catch (e) {
+    file.setTrashed(true);
+    throw e;
+  }
+
+  if (existing?.photoFileId && existing.photoFileId !== file.getId()) {
+    try { DriveApp.getFileById(String(existing.photoFileId)).setTrashed(true); } catch (e) {}
+  }
+  keys.forEach(key => cache.remove(key));
+  return {complete:true,user:getCurrentUser()};
 }
 function requireUser_() {
   const email = Session.getActiveUser().getEmail();
