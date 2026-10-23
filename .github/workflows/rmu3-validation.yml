@@ -59,7 +59,7 @@ jobs:
           const helperEnd = api.indexOf('function dayNameId_(dateString) {', helperStart);
           assert.ok(helperStart >= 0 && helperEnd > helperStart, 'Date helper must be present and bounded.');
           const helperSource = api.slice(helperStart, helperEnd);
-          const isValidIsoDate = new Function('value', helperSource + '\\nreturn isValidIsoDate_(value);');
+          const isValidIsoDate = new Function('value', helperSource + '\nreturn isValidIsoDate_(value);');
           assert.equal(isValidIsoDate('2026-10-23'), true, 'A valid ISO calendar date must pass.');
           assert.equal(isValidIsoDate('2026-02-31'), false, 'An impossible calendar date must fail.');
           assert.equal(isValidIsoDate('23-10-2026'), false, 'A non-ISO date format must fail.');
