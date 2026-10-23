@@ -1141,15 +1141,33 @@ function upsertRow_(sheetName,data) {
     return updateRow_(sheetName,existing.rowNumber,data);
   }
   const sheet = getSpreadsheet_().getSheetByName(sheetName);
-  const headers = HEADERS[sheetName];
+  if (!sheet || sheet.getLastColumn() < 1) {
+    throw new Error('Sheet ' + sheetName + ' belum disiapkan.');
+  }
+  // Gunakan header aktual: migrasi menambahkan kolom baru di ujung sheet,
+  // sehingga urutannya bisa berbeda dari HEADERS pada versi kode terbaru.
+  const headers = sheet.getRange(1,1,1,sheet.getLastColumn())
+    .getDisplayValues()[0].map(value => String(value || '').trim());
   sheet.appendRow(headers.map(key => data[key] ?? ''));
   return {ok:true,data};
 }
 function updateRow_(sheetName,rowNumber,data) {
   const sheet = getSpreadsheet_().getSheetByName(sheetName);
-  const headers = HEADERS[sheetName];
-  sheet.getRange(rowNumber,1,1,headers.length)
-    .setValues([headers.map(key => data[key] ?? '')]);
+  if (!sheet || sheet.getLastColumn() < 1) {
+    throw new Error('Sheet ' + sheetName + ' belum disiapkan.');
+  }
+  // Baca urutan kolom yang nyata dan pertahankan nilai kolom yang tidak
+  // disertakan oleh pemanggil agar kolom lama/ekstensi tidak terhapus.
+  const headers = sheet.getRange(1,1,1,sheet.getLastColumn())
+    .getDisplayValues()[0].map(value => String(value || '').trim());
+  const currentValues = sheet.getRange(rowNumber,1,1,headers.length)
+    .getValues()[0];
+  const values = headers.map((key,index) =>
+    Object.prototype.hasOwnProperty.call(data,key)
+      ? (data[key] ?? '')
+      : currentValues[index]
+  );
+  sheet.getRange(rowNumber,1,1,headers.length).setValues([values]);
   return {ok:true,data};
 }
 function json_(payload) {
