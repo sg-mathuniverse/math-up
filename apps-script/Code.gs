@@ -171,8 +171,16 @@ function getBootstrap() {
       )
     ),
     academicCalendar:readRows_(SHEET_NAMES.CALENDAR),
+    // Riwayat yang dikirim ke klien hanya milik pengguna atau ditujukan kepadanya.
+    // Semua pengajuan tetap dipakai di atas untuk menghitung jadwal efektif.
     substitutions:readRows_(SHEET_NAMES.SUBSTITUTIONS)
-      .filter(r => String(r.status || 'Diajukan') !== 'Ditolak')
+      .filter(r =>
+        String(r.status || 'Diajukan') !== 'Ditolak' &&
+        (
+          String(r.absentTeacherEmail || '').trim().toLowerCase() === user.email ||
+          String(r.substituteTeacherEmail || '').trim().toLowerCase() === user.email
+        )
+      )
   };
 }
 // ============================================================
