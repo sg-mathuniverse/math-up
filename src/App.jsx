@@ -950,6 +950,7 @@ function SubstitutePage({user,onSubstitutionUpdated}){
    if(!plan||!plan.length)return;
    setLoading(true);
    setMessage("");
+   let savedCount=0;
    try{
      let emailFailures=0;
      for(const segment of plan){
@@ -959,6 +960,7 @@ function SubstitutePage({user,onSubstitutionUpdated}){
          endTime:segment.endTime,
          substituteTeacherEmail:segment.email
        });
+       savedCount++;
        if(saved?.emailStatus!=="Terkirim")emailFailures++;
      }
      const requestMessage=plan.length===1
@@ -973,7 +975,15 @@ function SubstitutePage({user,onSubstitutionUpdated}){
      await refresh();
      await onSubstitutionUpdated?.();
    }catch(e){
-     setMessage(e.message||String(e));
+     const detail=e.message||String(e);
+     setMessage(savedCount>0
+       ? "Baru "+savedCount+" dari "+plan.length+" permintaan berhasil disimpan sebelum terjadi kendala. Periksa riwayat permintaan sebelum mencoba lagi. Detail: "+detail
+       : detail
+     );
+     if(savedCount>0){
+       await refresh().catch(()=>{});
+       await onSubstitutionUpdated?.();
+     }
    }finally{
      setLoading(false);
    }
