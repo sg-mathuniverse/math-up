@@ -557,7 +557,7 @@ function ProfilePage({user,onUserUpdated}) {
         reader.readAsDataURL(blob);
       });
       const base64=dataUrl.split(",")[1]||"";
-      const chunkSize=18000;
+      const chunkSize=6000;
       const totalChunks=Math.ceil(base64.length/chunkSize);
       const uploadId=window.crypto?.randomUUID?.()||("upload_"+Date.now()+"_"+Math.random().toString(36).slice(2));
       let result=null;
