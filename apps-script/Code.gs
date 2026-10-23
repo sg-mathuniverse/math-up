@@ -45,6 +45,8 @@ function handleApi_(e) {
   const allowed = {
     getBootstrap:'getBootstrap',
     getCurrentUser:'getCurrentUser',
+    saveMyProfile:'saveMyProfile',
+    getActiveTeachers:'getActiveTeachers',
     getSubstitutionRequests:'getSubstitutionRequests',
     getDriveMaterials:'getDriveMaterials',
     getEffectiveSchedule:'getEffectiveSchedule',
@@ -589,8 +591,77 @@ function getCurrentUser() {
     user.name = String(profile.name).trim();
   }
   user.phone = String(teacher?.phone || '');
+  user.photoUrl = String(profile?.photoUrl || '');
   user.photoFileId = String(profile?.photoFileId || '');
   return user;
+}
+
+function saveMyProfile(profile) {
+  const user = requireUser_();
+  setupSheets();
+  profile = profile || {};
+  const name = String(profile.name || '').trim();
+  const phone = String(profile.phone || '').trim();
+  if (!name) throw new Error('Nama guru wajib diisi.');
+  if (name.length > 120) throw new Error('Nama guru maksimal 120 karakter.');
+  if (phone.length > 30) throw new Error('Nomor HP maksimal 30 karakter.');
+
+  const now = new Date().toISOString();
+  const teachers = readRows_(SHEET_NAMES.TEACHERS);
+  const existingTeacher = teachers.find(r =>
+    String(r.email || '').trim().toLowerCase() === user.email
+  );
+  const teacherData = {
+    id:existingTeacher?.id || Utilities.getUuid(),
+    email:user.email,
+    name,
+    subject:String(existingTeacher?.subject || 'Matematika'),
+    status:String(existingTeacher?.status || 'Aktif'),
+    phone,
+    createdAt:existingTeacher?.createdAt || now,
+    updatedAt:now
+  };
+  if (existingTeacher) {
+    const row = findRow_(SHEET_NAMES.TEACHERS, existingTeacher.id);
+    updateRow_(SHEET_NAMES.TEACHERS, row.rowNumber, teacherData);
+  } else {
+    upsertRow_(SHEET_NAMES.TEACHERS, teacherData);
+  }
+
+  const users = readRows_(SHEET_NAMES.USERS);
+  const existingUser = users.find(r =>
+    String(r.email || '').trim().toLowerCase() === user.email
+  );
+  upsertRow_(SHEET_NAMES.USERS, {
+    id:existingUser?.id || Utilities.getUuid(),
+    email:user.email,
+    name,
+    photoUrl:existingUser?.photoUrl || '',
+    photoFileId:existingUser?.photoFileId || '',
+    role:existingUser?.role || 'Guru',
+    createdAt:existingUser?.createdAt || now,
+    updatedAt:now
+  });
+  return getCurrentUser();
+}
+
+function getActiveTeachers() {
+  requireUser_();
+  setupSheets();
+  return readRows_(SHEET_NAMES.TEACHERS)
+    .filter(t =>
+      String(t.status || 'Aktif').trim().toLowerCase() === 'aktif' &&
+      String(t.subject || '').trim().toLowerCase() === 'matematika'
+    )
+    .map(t => ({
+      id:String(t.id || ''),
+      name:String(t.name || ''),
+      email:String(t.email || ''),
+      phone:String(t.phone || ''),
+      subject:String(t.subject || 'Matematika'),
+      status:String(t.status || 'Aktif')
+    }))
+    .sort((a,b) => a.name.localeCompare(b.name, 'id'));
 }
 function requireUser_() {
   const email = Session.getActiveUser().getEmail();
