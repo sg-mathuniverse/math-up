@@ -99,7 +99,7 @@ jobs:
                     const dayHelperStart = api.indexOf('function isValidSchoolDay_(value) {');
                     const dayHelperEnd = api.indexOf('function saveSchedule(item) {', dayHelperStart);
                     assert.ok(dayHelperStart >= 0 && dayHelperEnd > dayHelperStart, 'School-day validation helper must exist.');
-                    const isValidSchoolDay = new Function('value', api.slice(dayHelperStart, dayHelperEnd) + '\\nreturn isValidSchoolDay_(value);');
+                    const isValidSchoolDay = new Function('value', api.slice(dayHelperStart, dayHelperEnd) + '\nreturn isValidSchoolDay_(value);');
                     assert.equal(isValidSchoolDay('Senin'), true, 'Valid Indonesian weekday names must pass.');
                     assert.equal(isValidSchoolDay('senin'), true, 'Weekday validation must be case-insensitive.');
                     assert.equal(isValidSchoolDay('Hari libur'), false, 'Unknown day names must fail.');
