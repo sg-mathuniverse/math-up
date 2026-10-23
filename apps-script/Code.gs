@@ -934,6 +934,20 @@ function getProfilePhotoFolder_() {
   return folder;
 }
 
+// Jalankan satu kali dari editor Apps Script untuk menyiapkan folder foto profil
+// dan melihat tautan folder Drive. Folder dibuat otomatis jika belum ada.
+// Fungsi ini tidak diekspos sebagai endpoint API publik.
+function setupProfilePhotoFolder() {
+  const folder = getProfilePhotoFolder_();
+  return {
+    ok:true,
+    folderName:folder.getName(),
+    folderId:folder.getId(),
+    folderUrl:folder.getUrl(),
+    sharingAccess:String(folder.getSharingAccess())
+  };
+}
+
 function getProfilePhotoDataUrl_(fileId) {
   try {
     const id = String(fileId || '').trim();
