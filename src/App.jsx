@@ -896,18 +896,22 @@ function SubstitutePage({user,onSubstitutionUpdated}){
    setLoading(true);
    setMessage("");
    try{
+     let emailFailures=0;
      for(const segment of plan){
-       await api.saveSubstitution({
+       const saved=await api.saveSubstitution({
          ...form,
          startTime:segment.startTime,
          endTime:segment.endTime,
          substituteTeacherEmail:segment.email
        });
+       if(saved?.emailStatus!=="Terkirim")emailFailures++;
      }
-     setMessage(
-       plan.length===1
-         ? "Permintaan guru pengganti berhasil dikirim."
-         : "Rencana pengganti terbagi menjadi "+plan.length+" permintaan dan berhasil dikirim."
+     const requestMessage=plan.length===1
+       ? "Permintaan guru pengganti berhasil disimpan."
+       : "Rencana pengganti terbagi menjadi "+plan.length+" permintaan dan berhasil disimpan.";
+     setMessage(emailFailures
+       ? requestMessage+" Namun, "+emailFailures+" email pemberitahuan gagal dikirim. Status tercatat; silakan hubungi guru yang dipilih secara langsung."
+       : requestMessage+" Email pemberitahuan berhasil dikirim kepada guru yang dipilih."
      );
      setPlan(null);
      setCandidates([]);
