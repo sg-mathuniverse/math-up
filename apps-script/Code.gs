@@ -671,16 +671,31 @@ function buildEffectiveSchedule_(schedules, substitutions, targetDate) {
   return base;
 }
 function getEffectiveSchedule(date) {
-  requireUser_();
+  const user = requireUser_();
   setupSheets();
   const targetDate = String(date || '').trim();
   if (!/^\d{4}-\d{2}-\d{2}$/.test(targetDate)) {
     throw new Error('Format tanggal tidak valid.');
   }
-  const schedules = readRows_(SHEET_NAMES.SCHEDULE);
+  const teachers = readRows_(SHEET_NAMES.TEACHERS).filter(t =>
+    String(t.status || 'Aktif').trim().toLowerCase() === 'aktif' &&
+    String(t.subject || '').trim().toLowerCase() === 'matematika' &&
+    String(t.email || '').trim().toLowerCase().endsWith(
+      '@' + user.email.split('@').pop()
+    )
+  );
+  const visibleTeacherEmails = new Set(teachers.map(t =>
+    String(t.email || '').trim().toLowerCase()
+  ));
+  const schedules = readRows_(SHEET_NAMES.SCHEDULE).filter(s =>
+    visibleTeacherEmails.has(String(s.teacherEmail || '').trim().toLowerCase())
+  );
   const approvedSubs = readRows_(SHEET_NAMES.SUBSTITUTIONS)
     .filter(r => String(r.status || '') === 'Disetujui');
-  return buildEffectiveSchedule_(schedules,approvedSubs,targetDate);
+  return buildEffectiveSchedule_(schedules,approvedSubs,targetDate).filter(s =>
+    visibleTeacherEmails.has(String(s.teacherEmail || '').trim().toLowerCase()) ||
+    visibleTeacherEmails.has(String(s.originalTeacherEmail || '').trim().toLowerCase())
+  );
 }
 // ============================================================
 // PERMINTAAN YANG MENUNGGU RESPONS
