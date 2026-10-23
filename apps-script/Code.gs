@@ -421,69 +421,132 @@ function isTeacherAvailableForInterval_(teacherEmail,date,startTime,endTime,excl
 // MENYIMPAN PERMINTAAN PENGGANTI
 // ============================================================
 function saveSubstitution(item) {
-  const user=requireUser_();setupSheets();if(!item||typeof item!=='object')throw new Error('Data pengajuan tidak valid.');
-  const absent=String(item.absentTeacherEmail||user.email).trim().toLowerCase(), substitute=String(item.substituteTeacherEmail||'').trim().toLowerCase();
-  const date=String(item.date||'').trim(), startTime=String(item.startTime||'').trim(), endTime=String(item.endTime||'').trim();
-  if(absent!==user.email)throw new Error('Pengajuan hanya dapat dibuat oleh guru yang izin.');
-  if(!substitute||substitute===absent)throw new Error('Guru pengganti tidak valid.');
-  if(substitute.split('@').pop()!==user.email.split('@').pop())throw new Error('Guru pengganti harus menggunakan email dari domain sekolah yang sama.');
-  const start=timeToMinutes_(startTime),end=timeToMinutes_(endTime);
-  if(!date||!Number.isFinite(start)||!Number.isFinite(end)||start>=end)throw new Error('Tanggal dan rentang jam pengganti tidak valid.');
-  const lock=LockService.getScriptLock();if(!lock.tryLock(10000))throw new Error('Sistem sedang memproses pengajuan lain. Silakan coba lagi.');
-  try{
-    const teacher=readRows_(SHEET_NAMES.TEACHERS).find(t=>String(t.email||'').trim().toLowerCase()===substitute&&String(t.status||'Aktif').trim().toLowerCase()!=='nonaktif');
-    if(!teacher)throw new Error('Guru pengganti tidak ditemukan atau tidak aktif.');
-    if(!isTeacherAvailableForInterval_(substitute,date,startTime,endTime,null))throw new Error('Guru pengganti memiliki jadwal, agenda, atau penugasan lain yang bertabrakan.');
-    const existing=readRows_(SHEET_NAMES.SUBSTITUTIONS).some(s=>String(s.date||'').trim()===date&&String(s.absentTeacherEmail||'').trim().toLowerCase()===absent&&String(s.status||'Diajukan').trim().toLowerCase()!=='ditolak'&&overlaps_(s.startTime,s.endTime,startTime,endTime));
-    if(existing)throw new Error('Anda sudah memiliki permintaan pengganti yang bertumpang tindih pada waktu tersebut.');
-    const now=new Date().toISOString();
-    const id=Utilities.getUuid();
-    const absentTeacher=readRows_(SHEET_NAMES.TEACHERS).find(t=>String(t.email||'').trim().toLowerCase()===absent);
-    const className=String(item.className||'').trim();
-    const topic=String(item.topic||'').trim();
-    const room=String(item.room||'').trim();
-    const reason=String(item.reason||'').trim();
-    const saved=upsertRow_(SHEET_NAMES.SUBSTITUTIONS,{
-      id,date,startTime,endTime,className,topic,room,
-      absentTeacherEmail:absent,substituteTeacherEmail:substitute,reason,
-      status:'Diajukan',createdBy:user.email,createdAt:now,updatedAt:now,
-      emailStatus:'Menunggu',emailSentAt:'',emailError:''
-    });
+  const user = requireUser_();
+  setupSheets();
+  if (!item || typeof item !== 'object') throw new Error('Data pengajuan tidak valid.');
 
-    // Email dikirim satu kali saat pengajuan baru dibuat. Kegagalan email
-    // dicatat tanpa membatalkan pengajuan yang sudah tersimpan.
-    let emailStatus='Terkirim', emailSentAt=new Date().toISOString(), emailError='';
-    try {
-      const requesterName=String(absentTeacher?.name||user.name||absent);
-      const subject='Permintaan Guru Pengganti — '+className+' ('+date+')';
-      const body=[
-        'Halo '+String(teacher.name||'Guru')+',',
-        '',
-        requesterName+' mengajukan Anda sebagai guru pengganti.',
-        'Tanggal: '+date,
-        'Waktu: '+startTime+'–'+endTime,
-        'Kelas: '+(className||'-'),
-        'Topik: '+(topic||'-'),
-        'Ruangan: '+(room||'-'),
-        'Alasan: '+(reason||'-'),
-        '',
-        'Silakan buka Ruang Math Up menggunakan akun sekolah Anda untuk menerima atau menolak permintaan ini.',
-        '',
-        'Email ini dikirim otomatis oleh Ruang Math Up.'
-      ].join('\\n');
-      MailApp.sendEmail({to:substitute,subject,body,name:'Ruang Math Up'});
-    } catch (emailException) {
-      emailStatus='Gagal';
-      emailSentAt='';
-      emailError=String(emailException && emailException.message ? emailException.message : emailException).slice(0,500);
+  const absent = String(item.absentTeacherEmail || user.email).trim().toLowerCase();
+  const substitute = String(item.substituteTeacherEmail || '').trim().toLowerCase();
+  const date = String(item.date || '').trim();
+  const startTime = String(item.startTime || '').trim();
+  const endTime = String(item.endTime || '').trim();
+  if (absent !== user.email) throw new Error('Pengajuan hanya dapat dibuat oleh guru yang izin.');
+  if (!substitute || substitute === absent) throw new Error('Guru pengganti tidak valid.');
+  if (substitute.split('@').pop() !== user.email.split('@').pop()) {
+    throw new Error('Guru pengganti harus menggunakan email dari domain sekolah yang sama.');
+  }
+  const start = timeToMinutes_(startTime);
+  const end = timeToMinutes_(endTime);
+  if (!date || !Number.isFinite(start) || !Number.isFinite(end) || start >= end) {
+    throw new Error('Tanggal dan rentang jam pengganti tidak valid.');
+  }
+
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) {
+    throw new Error('Sistem sedang memproses pengajuan lain. Silakan coba lagi.');
+  }
+
+  let id = '';
+  let teacher = null;
+  let absentTeacher = null;
+  let className = '';
+  let topic = '';
+  let room = '';
+  let reason = '';
+  let savedData = null;
+
+  try {
+    const teachers = readRows_(SHEET_NAMES.TEACHERS);
+    teacher = teachers.find(t =>
+      String(t.email || '').trim().toLowerCase() === substitute &&
+      String(t.status || 'Aktif').trim().toLowerCase() !== 'nonaktif'
+    );
+    if (!teacher) throw new Error('Guru pengganti tidak ditemukan atau tidak aktif.');
+    if (!isTeacherAvailableForInterval_(substitute,date,startTime,endTime,null)) {
+      throw new Error('Guru pengganti memiliki jadwal, agenda, atau penugasan lain yang bertabrakan.');
+    }
+    const existing = readRows_(SHEET_NAMES.SUBSTITUTIONS).some(s =>
+      String(s.date || '').trim() === date &&
+      String(s.absentTeacherEmail || '').trim().toLowerCase() === absent &&
+      String(s.status || 'Diajukan').trim().toLowerCase() !== 'ditolak' &&
+      overlaps_(s.startTime,s.endTime,startTime,endTime)
+    );
+    if (existing) {
+      throw new Error('Anda sudah memiliki permintaan pengganti yang bertumpang tindih pada waktu tersebut.');
     }
 
-    const savedRow=findRow_(SHEET_NAMES.SUBSTITUTIONS,id);
-    const updated=updateRow_(SHEET_NAMES.SUBSTITUTIONS,savedRow.rowNumber,{
-      ...saved.data,emailStatus,emailSentAt,emailError,updatedAt:new Date().toISOString()
+    const now = new Date().toISOString();
+    id = Utilities.getUuid();
+    absentTeacher = teachers.find(t =>
+      String(t.email || '').trim().toLowerCase() === absent
+    );
+    className = String(item.className || '').trim();
+    topic = String(item.topic || '').trim();
+    room = String(item.room || '').trim();
+    reason = String(item.reason || '').trim();
+    const saved = upsertRow_(SHEET_NAMES.SUBSTITUTIONS,{
+      id,date,startTime,endTime,className,topic,room,
+      absentTeacherEmail:absent,
+      substituteTeacherEmail:substitute,
+      reason,
+      status:'Diajukan',
+      createdBy:user.email,
+      createdAt:now,
+      updatedAt:now,
+      emailStatus:'Menunggu',
+      emailSentAt:'',
+      emailError:''
     });
-    return { ...updated, emailStatus, emailError };
-  }finally{lock.releaseLock();}
+    savedData = saved.data;
+  } finally {
+    // Jangan tahan lock saat menghubungi layanan email.
+    lock.releaseLock();
+  }
+
+  let emailStatus = 'Terkirim';
+  let emailSentAt = new Date().toISOString();
+  let emailError = '';
+  try {
+    const requesterName = String(absentTeacher?.name || user.name || absent);
+    const subject = 'Permintaan Guru Pengganti — ' + className + ' (' + date + ')';
+    const body = [
+      'Halo ' + String(teacher.name || 'Guru') + ',',
+      '',
+      requesterName + ' mengajukan Anda sebagai guru pengganti.',
+      'Tanggal: ' + date,
+      'Waktu: ' + startTime + '–' + endTime,
+      'Kelas: ' + (className || '-'),
+      'Topik: ' + (topic || '-'),
+      'Ruangan: ' + (room || '-'),
+      'Alasan: ' + (reason || '-'),
+      '',
+      'Silakan buka Ruang Math Up menggunakan akun sekolah Anda untuk menerima atau menolak permintaan ini.',
+      '',
+      'Email ini dikirim otomatis oleh Ruang Math Up.'
+    ].join('\\n');
+    MailApp.sendEmail({
+      to:substitute,
+      subject,
+      body,
+      name:'Ruang Math Up'
+    });
+  } catch (emailException) {
+    emailStatus = 'Gagal';
+    emailSentAt = '';
+    emailError = String(
+      emailException && emailException.message ? emailException.message : emailException
+    ).slice(0,500);
+  }
+
+  const savedRow = findRow_(SHEET_NAMES.SUBSTITUTIONS,id);
+  const updated = updateRow_(SHEET_NAMES.SUBSTITUTIONS,savedRow.rowNumber,{
+    ...savedData,
+    emailStatus,
+    emailSentAt,
+    emailError,
+    updatedAt:new Date().toISOString()
+  });
+  return {...updated,emailStatus,emailError};
 }
 // ============================================================
 // JADWAL EFEKTIF
