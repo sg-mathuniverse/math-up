@@ -112,5 +112,15 @@ jobs:
           assert.ok(api.includes("getDisplayValues()[0].map(value => String(value || '').trim())"), 'Writes must read actual sheet header order.');
           assert.ok(api.includes("Object.prototype.hasOwnProperty.call(data,key)"), 'Updates must distinguish omitted fields from intentionally empty fields.');
           assert.ok(api.includes(": currentValues[index]"), 'Updates must preserve values for omitted/extra columns.');
+          const client = fs.readFileSync('src/api.js', 'utf8');
+          const clientApiBlock = client.match(/export const api = \{([\s\S]*?)\n\};/);
+          const serverApiBlock = api.match(/const allowed = \{([\s\S]*?)\n  \};/);
+          assert.ok(clientApiBlock && serverApiBlock, 'Client and server API registries must be present.');
+          const clientActions = [...clientApiBlock[1].matchAll(/^\s*([A-Za-z_$][\w$]*)\s*:/gm)].map(m => m[1]);
+          const serverActions = [...serverApiBlock[1].matchAll(/^\s*([A-Za-z_$][\w$]*)\s*:/gm)].map(m => m[1]);
+          assert.deepEqual([...clientActions].sort(), [...serverActions].sort(), 'Frontend API actions and Apps Script allowlist must stay in sync.');
+          for (const action of clientActions) {
+            assert.ok(api.includes(`function ${action}(`), `Apps Script must implement the client action ${action}.`);
+          }
           console.log('Profile upload, JSONP, private-folder, directory-scope, legacy-photo privacy, email authorization, and schema migration checks passed.');
           NODE
