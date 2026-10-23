@@ -515,6 +515,14 @@ function saveSubstitution(item) {
   if (substitute.split('@').pop() !== user.email.split('@').pop()) {
     throw new Error('Guru pengganti harus menggunakan email dari domain sekolah yang sama.');
   }
+  const activeSubstitute = readRows_(SHEET_NAMES.TEACHERS).some(t =>
+    String(t.email || '').trim().toLowerCase() === substitute &&
+    String(t.status || 'Aktif').trim().toLowerCase() === 'aktif' &&
+    String(t.subject || '').trim().toLowerCase() === 'matematika'
+  );
+  if (!activeSubstitute) {
+    throw new Error('Guru pengganti harus terdaftar sebagai guru Matematika aktif di RMU.');
+  }
   const start = timeToMinutes_(startTime);
   const end = timeToMinutes_(endTime);
   if (!date || !Number.isFinite(start) || !Number.isFinite(end) || start >= end) {
