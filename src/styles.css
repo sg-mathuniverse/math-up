@@ -418,7 +418,7 @@
 .profile-dropdown-user>div:last-child{display:flex;flex-direction:column;gap:4px;min-width:0}
 .profile-dropdown-user b{font-size:13px;color:#172033;overflow-wrap:anywhere}
 .profile-dropdown-user span{font-size:11px;color:#667085;overflow-wrap:anywhere}
-.profile-dropdown>button{display:flex;align-items:center;gap:10px;width:100%;padding:11px 10px;border:0;border-radius:9px;background:transparent;color:#344054;font:600 12px inherit;text-align:left;cursor:pointer}
+.profile-dropdown>button{display:flex;align-items:center;gap:10px;width:100%;padding:11px 10px;border:0;border-radius:9px;background:transparent;color:#344054;font-family:inherit;font-size:12px;font-weight:600;text-align:left;cursor:pointer}
 .profile-dropdown>button:hover,.profile-dropdown>button:focus-visible{background:#f2f4f7;outline:none}
 .rmu-profile-card{max-width:850px;padding:24px}
 .profile-hero-row{display:flex;align-items:center;gap:16px;padding-bottom:22px;margin-bottom:22px;border-bottom:1px solid #eef0f4}
