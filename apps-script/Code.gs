@@ -142,7 +142,20 @@ function getBootstrap() {
   const user = requireUser_();
   setupSheets();
   upsertUser_(user);
-  const allSchedule = readRows_(SHEET_NAMES.SCHEDULE);
+  const teachers = readRows_(SHEET_NAMES.TEACHERS).filter(t =>
+    String(t.status || 'Aktif').trim().toLowerCase() === 'aktif' &&
+    String(t.subject || '').trim().toLowerCase() === 'matematika' &&
+    String(t.email || '').trim().toLowerCase().endsWith(
+      '@' + user.email.split('@').pop()
+    )
+  );
+  const visibleTeacherEmails = new Set(teachers.map(t =>
+    String(t.email || '').trim().toLowerCase()
+  ));
+  // Jadwal lintas guru hanya dibagikan untuk guru Matematika aktif di domain sekolah.
+  const allSchedule = readRows_(SHEET_NAMES.SCHEDULE).filter(s =>
+    visibleTeacherEmails.has(String(s.teacherEmail || '').trim().toLowerCase())
+  );
   const approvedSubs = readRows_(SHEET_NAMES.SUBSTITUTIONS)
     .filter(r => String(r.status || '') === 'Disetujui');
   const today = Utilities.formatDate(
@@ -165,13 +178,7 @@ function getBootstrap() {
     allSchedule,
     events:readRows_(SHEET_NAMES.EVENTS),
     // Jangan kirim record guru dari domain lain ke klien RMU.
-    teachers:readRows_(SHEET_NAMES.TEACHERS).filter(t =>
-      String(t.status || 'Aktif').trim().toLowerCase() === 'aktif' &&
-      String(t.subject || '').trim().toLowerCase() === 'matematika' &&
-      String(t.email || '').trim().toLowerCase().endsWith(
-        '@' + user.email.split('@').pop()
-      )
-    ),
+    teachers,
     academicCalendar:readRows_(SHEET_NAMES.CALENDAR),
     // Riwayat yang dikirim ke klien hanya milik pengguna atau ditujukan kepadanya.
     // Semua pengajuan tetap dipakai di atas untuk menghitung jadwal efektif.
