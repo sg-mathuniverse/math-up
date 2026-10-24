@@ -1368,16 +1368,40 @@ function getDriveMaterials() {
   const id = PropertiesService.getScriptProperties()
     .getProperty('DRIVE_FOLDER_ID');
   if (!id) {
-    return {configured:false,folderName:'',folderUrl:'',files:[]};
+    return {configured:false,folderName:'',folderUrl:'',files:[],truncated:false};
   }
-  const folder = DriveApp.getFolderById(id);
-  const files = [];
 
-  // Telusuri seluruh subfolder agar materi di dalam folder kelas ikut terbaca.
-  function collectFiles_(currentFolder, path) {
+  let folder;
+  try {
+    folder = DriveApp.getFolderById(id);
+    // Force a read so inaccessible or invalid folder IDs fail with a useful message.
+    folder.getName();
+  } catch (e) {
+    throw new Error('Folder Drive Materi tidak dapat diakses. Periksa DRIVE_FOLDER_ID dan pastikan akun pemilik Apps Script masih memiliki akses ke folder tersebut.');
+  }
+
+  const files = [];
+  const maxFiles = 500;
+  const maxDepth = 8;
+  let truncated = false;
+  let visitedFolders = 0;
+
+  // Batasi kedalaman dan jumlah file agar folder Drive yang besar tidak
+  // membuat endpoint lambat atau melebihi batas waktu Apps Script.
+  function collectFiles_(currentFolder, path, depth) {
+    if (files.length >= maxFiles) {
+      truncated = true;
+      return;
+    }
+    visitedFolders++;
     const fileIterator = currentFolder.getFiles();
     while (fileIterator.hasNext()) {
+      if (files.length >= maxFiles) {
+        truncated = true;
+        return;
+      }
       const f = fileIterator.next();
+      if (f.isTrashed()) continue;
       files.push({
         id:f.getId(),
         name:f.getName(),
@@ -1388,13 +1412,25 @@ function getDriveMaterials() {
         folderPath:path
       });
     }
+
+    if (depth >= maxDepth) {
+      const childCheck = currentFolder.getFolders();
+      if (childCheck.hasNext()) truncated = true;
+      return;
+    }
     const folderIterator = currentFolder.getFolders();
     while (folderIterator.hasNext()) {
+      if (files.length >= maxFiles) {
+        truncated = true;
+        return;
+      }
       const child = folderIterator.next();
-      collectFiles_(child, path ? path + '/' + child.getName() : child.getName());
+      if (child.isTrashed()) continue;
+      collectFiles_(child, path ? path + '/' + child.getName() : child.getName(), depth + 1);
+      if (truncated && files.length >= maxFiles) return;
     }
   }
-  collectFiles_(folder, '');
+  collectFiles_(folder, '', 0);
 
   files.sort((a,b) =>
     String(a.folderPath).localeCompare(String(b.folderPath)) ||
@@ -1404,7 +1440,11 @@ function getDriveMaterials() {
     configured:true,
     folderName:folder.getName(),
     folderUrl:folder.getUrl(),
-    files
+    files,
+    truncated,
+    fileLimit:maxFiles,
+    depthLimit:maxDepth,
+    visitedFolders
   };
 }
 // ============================================================
