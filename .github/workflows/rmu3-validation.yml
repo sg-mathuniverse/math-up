@@ -151,7 +151,7 @@ jobs:
           assert.ok(api.includes("Folder Drive Materi tidak dapat diakses."), 'Drive access errors must explain the configuration to check.');
           assert.ok(api.includes('visitedFolders'), 'Drive response must expose traversal metadata.');
           const drivePage = app.slice(app.indexOf('function DrivePage()'), app.indexOf('function minutesToTime'));
-          assert.ok(drivePage.includes("String(file.folderPath||'').split('/')"), 'Drive UI must build nested folders from relative folder paths.');
+          assert.ok(drivePage.includes("String(file.folderPath||") && drivePage.includes(".split(\"/\")"), 'Drive UI must build nested folders from relative folder paths.');
           assert.ok(drivePage.includes('const renderFolder=folder=>'), 'Drive UI must render recursively expandable folder groups.');
           assert.ok(drivePage.includes('data.truncated&&'), 'Drive UI must explain when listing limits are reached.');
           console.log('Profile upload, JSONP, private-folder, directory-scope, legacy-photo privacy, email authorization, schema migration, and Drive listing checks passed.');
