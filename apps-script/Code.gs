@@ -144,7 +144,24 @@ function getBootstrap() {
   const user = requireUser_();
   setupSheets();
   upsertUser_(user);
-  const teachers = readRows_(SHEET_NAMES.TEACHERS).filter(t =>
+
+  // Bootstrap dan halaman Profil Saya harus memakai sumber nama yang sama.
+  // Utamakan nama guru yang tersimpan, lalu nama profil pengguna, baru fallback email.
+  const currentTeachers = readRows_(SHEET_NAMES.TEACHERS);
+  const currentProfiles = readRows_(SHEET_NAMES.USERS);
+  const currentTeacher = currentTeachers.find(r =>
+    String(r.email || '').trim().toLowerCase() === user.email
+  );
+  const currentProfile = currentProfiles.find(r =>
+    String(r.email || '').trim().toLowerCase() === user.email
+  );
+  if (String(currentTeacher?.name || '').trim()) {
+    user.name = String(currentTeacher.name).trim();
+  } else if (String(currentProfile?.name || '').trim()) {
+    user.name = String(currentProfile.name).trim();
+  }
+
+  const teachers = currentTeachers.filter(t =>
     String(t.status || 'Aktif').trim().toLowerCase() === 'aktif' &&
     String(t.subject || '').trim().toLowerCase() === 'matematika' &&
     String(t.email || '').trim().toLowerCase().endsWith(
