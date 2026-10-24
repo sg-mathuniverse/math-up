@@ -145,14 +145,21 @@ jobs:
           for (const action of clientActions) {
             assert.ok(api.includes(`function ${action}(`), `Apps Script must implement the client action ${action}.`);
           }
-          assert.ok(api.includes("const maxFiles = 500"), 'Drive materials listing must have a maximum file count.');
-          assert.ok(api.includes("const maxDepth = 8"), 'Drive materials listing must have a maximum folder depth.');
-          assert.ok(api.includes("if (f.isTrashed()) continue;"), 'Trashed Drive files must not be listed.');
+          assert.ok(api.includes("const maxFiles = 200"), 'Drive folder listing must cap files at 200 per folder.');
+          assert.ok(api.includes("const maxFolders = 200"), 'Drive folder listing must cap subfolders at 200 per folder.');
+          assert.ok(api.includes("const maxDepth = 12"), 'Drive folder access validation must have a maximum parent depth.');
+          assert.ok(api.includes("const maxFolders = 100"), 'Drive folder access validation must cap checked parent folders.');
+          assert.ok(api.includes("if (file.isTrashed()) continue;"), 'Trashed Drive files must not be listed.');
+          assert.ok(api.includes("if (child.isTrashed()) continue;"), 'Trashed Drive folders must not be listed.');
           assert.ok(api.includes("Folder Drive Materi tidak dapat diakses."), 'Drive access errors must explain the configuration to check.');
-          assert.ok(api.includes('visitedFolders'), 'Drive response must expose traversal metadata.');
+          assert.ok(api.includes("function getDriveFolderContents(folderId)"), 'Drive subfolder contents must be available through a dedicated endpoint.');
+          assert.ok(api.includes("function isDriveFolderWithinRoot_(targetFolder, rootId)"), 'Requested folders must be checked against the configured Drive root.');
+          assert.ok(api.includes("Folder yang diminta bukan bagian dari Drive Materi."), 'Requests for folders outside the configured Drive root must be rejected.');
+          assert.ok(api.includes("return {folders,files,truncated,itemLimit:maxFiles};"), 'Drive folder listing must return folder and file data with truncation metadata.');
           const drivePage = app.slice(app.indexOf('function DrivePage()'), app.indexOf('function minutesToTime'));
-          assert.ok(drivePage.includes("String(file.folderPath||") && drivePage.includes(".split(\"/\")"), 'Drive UI must build nested folders from relative folder paths.');
+          assert.ok(drivePage.includes('api.getDriveFolderContents(folder.id)'), 'Drive subfolder contents must load on demand.');
           assert.ok(drivePage.includes('const renderFolder=folder=>'), 'Drive UI must render recursively expandable folder groups.');
-          assert.ok(drivePage.includes('data.truncated&&'), 'Drive UI must explain when listing limits are reached.');
+          assert.ok(drivePage.includes('contents?.truncated&&'), 'Drive UI must explain when folder listing limits are reached.');
+          assert.ok(drivePage.includes('Buka untuk memuat'), 'Drive UI must indicate folders are loaded when opened.');
           console.log('Profile upload, JSONP, private-folder, directory-scope, legacy-photo privacy, email authorization, schema migration, and Drive listing checks passed.');
           NODE

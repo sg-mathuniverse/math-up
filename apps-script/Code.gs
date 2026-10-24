@@ -54,6 +54,7 @@ function handleApi_(e) {
     uploadProfilePhotoChunk:'uploadProfilePhotoChunk',
     getSubstitutionRequests:'getSubstitutionRequests',
     getDriveMaterials:'getDriveMaterials',
+    getDriveFolderContents:'getDriveFolderContents',
     getEffectiveSchedule:'getEffectiveSchedule',
     saveTodo:'saveTodo',
     updateTodo:'updateTodo',
@@ -1368,84 +1369,128 @@ function getDriveMaterials() {
   const id = PropertiesService.getScriptProperties()
     .getProperty('DRIVE_FOLDER_ID');
   if (!id) {
-    return {configured:false,folderName:'',folderUrl:'',files:[],truncated:false};
+    return {
+      configured:false,folderName:'',folderUrl:'',
+      folders:[],files:[],truncated:false
+    };
   }
 
   let folder;
   try {
     folder = DriveApp.getFolderById(id);
-    // Force a read so inaccessible or invalid folder IDs fail with a useful message.
     folder.getName();
   } catch (e) {
     throw new Error('Folder Drive Materi tidak dapat diakses. Periksa DRIVE_FOLDER_ID dan pastikan akun pemilik Apps Script masih memiliki akses ke folder tersebut.');
   }
 
-  const files = [];
-  const maxFiles = 500;
-  const maxDepth = 8;
-  let truncated = false;
-  let visitedFolders = 0;
-
-  // Batasi kedalaman dan jumlah file agar folder Drive yang besar tidak
-  // membuat endpoint lambat atau melebihi batas waktu Apps Script.
-  function collectFiles_(currentFolder, path, depth) {
-    if (files.length >= maxFiles) {
-      truncated = true;
-      return;
-    }
-    visitedFolders++;
-    const fileIterator = currentFolder.getFiles();
-    while (fileIterator.hasNext()) {
-      if (files.length >= maxFiles) {
-        truncated = true;
-        return;
-      }
-      const f = fileIterator.next();
-      if (f.isTrashed()) continue;
-      files.push({
-        id:f.getId(),
-        name:f.getName(),
-        mimeType:f.getMimeType(),
-        size:f.getSize(),
-        updatedAt:f.getLastUpdated().toISOString(),
-        url:f.getUrl(),
-        folderPath:path
-      });
-    }
-
-    if (depth >= maxDepth) {
-      const childCheck = currentFolder.getFolders();
-      if (childCheck.hasNext()) truncated = true;
-      return;
-    }
-    const folderIterator = currentFolder.getFolders();
-    while (folderIterator.hasNext()) {
-      if (files.length >= maxFiles) {
-        truncated = true;
-        return;
-      }
-      const child = folderIterator.next();
-      if (child.isTrashed()) continue;
-      collectFiles_(child, path ? path + '/' + child.getName() : child.getName(), depth + 1);
-      if (truncated && files.length >= maxFiles) return;
-    }
-  }
-  collectFiles_(folder, '', 0);
-
-  files.sort((a,b) =>
-    String(a.folderPath).localeCompare(String(b.folderPath)) ||
-    String(a.name).localeCompare(String(b.name))
-  );
+  const contents = listDriveFolderContents_(folder);
   return {
     configured:true,
     folderName:folder.getName(),
     folderUrl:folder.getUrl(),
-    files,
-    truncated,
-    fileLimit:maxFiles,
-    depthLimit:maxDepth,
-    visitedFolders
+    folders:contents.folders,
+    files:contents.files,
+    truncated:contents.truncated,
+    itemLimit:contents.itemLimit
   };
+}
+
+// Mengambil isi satu folder saja. Folder anak dimuat saat pengguna membukanya.
+function getDriveFolderContents(folderId) {
+  requireUser_();
+  const rootId = PropertiesService.getScriptProperties()
+    .getProperty('DRIVE_FOLDER_ID');
+  if (!rootId) throw new Error('Folder Drive Materi belum dikonfigurasi.');
+
+  const requestedId = String(folderId || '').trim();
+  if (!requestedId) throw new Error('ID folder wajib diisi.');
+
+  let rootFolder, targetFolder;
+  try {
+    rootFolder = DriveApp.getFolderById(rootId);
+    targetFolder = DriveApp.getFolderById(requestedId);
+    rootFolder.getName();
+    targetFolder.getName();
+  } catch (e) {
+    throw new Error('Folder tidak dapat diakses.');
+  }
+
+  // Pastikan ID yang diminta benar-benar berada di dalam folder materi.
+  if (!isDriveFolderWithinRoot_(targetFolder, rootId)) {
+    throw new Error('Folder yang diminta bukan bagian dari Drive Materi.');
+  }
+
+  return listDriveFolderContents_(targetFolder);
+}
+
+function isDriveFolderWithinRoot_(targetFolder, rootId) {
+  const queue = [{folder:targetFolder,depth:0}];
+  const visited = {};
+  const maxDepth = 12;
+  const maxFolders = 100;
+  let checked = 0;
+
+  while (queue.length && checked < maxFolders) {
+    const current = queue.shift();
+    const id = current.folder.getId();
+    if (id === rootId) return true;
+    if (visited[id] || current.depth >= maxDepth) continue;
+    visited[id] = true;
+    checked++;
+
+    const parents = current.folder.getParents();
+    while (parents.hasNext()) {
+      queue.push({folder:parents.next(),depth:current.depth + 1});
+    }
+  }
+  return false;
+}
+
+function listDriveFolderContents_(folder) {
+  const files = [];
+  const folders = [];
+  // Keep explicit per-folder limits so a single large folder cannot stall the request.
+  const maxFiles = 200;
+  const maxFolders = 200;
+  let truncated = false;
+
+  const fileIterator = folder.getFiles();
+  while (fileIterator.hasNext()) {
+    const file = fileIterator.next();
+    if (file.isTrashed()) continue;
+    if (files.length >= maxFiles) {
+      truncated = true;
+      break;
+    }
+    files.push({
+      id:file.getId(),
+      name:file.getName(),
+      mimeType:file.getMimeType(),
+      size:file.getSize(),
+      updatedAt:file.getLastUpdated().toISOString(),
+      url:file.getUrl()
+    });
+  }
+
+  const folderIterator = folder.getFolders();
+  while (folderIterator.hasNext()) {
+    const child = folderIterator.next();
+    if (child.isTrashed()) continue;
+    if (folders.length >= maxFolders) {
+      truncated = true;
+      break;
+    }
+    folders.push({id:child.getId(),name:child.getName()});
+  }
+
+  files.sort((a,b) =>
+    String(a.name).localeCompare(String(b.name),undefined,{numeric:true,sensitivity:'base'})
+  );
+  folders.sort((a,b) =>
+    String(a.name).localeCompare(String(b.name),undefined,{numeric:true,sensitivity:'base'})
+  );
+
+  return {folders,files,truncated,itemLimit:maxFiles};
 }
 // ============================================================
 // SPREADSHEET
