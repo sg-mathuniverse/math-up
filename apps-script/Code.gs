@@ -1449,14 +1449,16 @@ function isDriveFolderWithinRoot_(targetFolder, rootId) {
 function listDriveFolderContents_(folder) {
   const files = [];
   const folders = [];
-  const itemLimit = 200;
+  // Keep explicit per-folder limits so a single large folder cannot stall the request.
+  const maxFiles = 200;
+  const maxFolders = 200;
   let truncated = false;
 
   const fileIterator = folder.getFiles();
   while (fileIterator.hasNext()) {
     const file = fileIterator.next();
     if (file.isTrashed()) continue;
-    if (files.length >= itemLimit) {
+    if (files.length >= maxFiles) {
       truncated = true;
       break;
     }
@@ -1474,7 +1476,7 @@ function listDriveFolderContents_(folder) {
   while (folderIterator.hasNext()) {
     const child = folderIterator.next();
     if (child.isTrashed()) continue;
-    if (folders.length >= itemLimit) {
+    if (folders.length >= maxFolders) {
       truncated = true;
       break;
     }
@@ -1488,7 +1490,7 @@ function listDriveFolderContents_(folder) {
     String(a.name).localeCompare(String(b.name),undefined,{numeric:true,sensitivity:'base'})
   );
 
-  return {folders,files,truncated,itemLimit};
+  return {folders,files,truncated,itemLimit:maxFiles};
 }
 // ============================================================
 // SPREADSHEET
