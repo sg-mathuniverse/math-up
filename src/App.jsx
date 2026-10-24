@@ -828,7 +828,70 @@ function CalendarPage(){
   </div>
 }
 
-function DrivePage(){const [data,setData]=useState({configured:false,files:[],truncated:false});const [loading,setLoading]=useState(true);const [error,setError]=useState("");useEffect(()=>{api.getDriveMaterials().then(setData).catch(e=>setError(e.message||String(e))).finally(()=>setLoading(false))},[]);return <div className="content"><section className="page-title"><div><div className="eyebrow">Google Drive</div><h1>Drive Materi</h1><p>Materi mengajar yang tersimpan di folder Google Drive sekolah.</p></div>{data.folderUrl&&<a className="primary" href={data.folderUrl} target="_blank" rel="noreferrer">Buka folder Drive</a>}</section>{error&&<div className="card" style={{marginBottom:16}}>{error}</div>}{loading?<InlineLoading text="Memuat data Drive materi..."/>:<section className="card">{!data.configured?<p>Folder Drive belum dikonfigurasi.</p>:<>{data.truncated&&<div className="notice" role="status" style={{marginBottom:12}}>Daftar dibatasi agar pemuatan tetap cepat. Sebagian materi mungkin belum ditampilkan; buka folder Google Drive untuk melihat semua berkas.</div>}{data.files.length?data.files.map(x=><div className="event" key={x.id}><div className="date-box"><FileText size={22}/></div><div><b>{x.name}</b><span>{x.folderPath?x.folderPath+" · ":""}{x.mimeType} · {Math.round((x.size||0)/1024)} KB</span></div><a className="text-btn" href={x.url} target="_blank" rel="noreferrer">Buka</a></div>):<p>Folder Drive masih kosong.</p>}</>}</section>}</div>}
+function DrivePage(){
+  const [data,setData]=useState({configured:false,files:[],truncated:false});
+  const [loading,setLoading]=useState(true);
+  const [error,setError]=useState("");
+  const [openFolders,setOpenFolders]=useState({});
+  useEffect(()=>{
+    api.getDriveMaterials()
+      .then(setData)
+      .catch(e=>setError(e.message||String(e)))
+      .finally(()=>setLoading(false));
+  },[]);
+  const groups=useMemo(()=>{
+    const byFolder=new Map();
+    (data.files||[]).forEach(file=>{
+      const path=String(file.folderPath||"").trim();
+      if(!byFolder.has(path)) byFolder.set(path,[]);
+      byFolder.get(path).push(file);
+    });
+    return [...byFolder.entries()]
+      .sort(([a],[b])=>a.localeCompare(b,undefined,{numeric:true,sensitivity:"base"}))
+      .map(([path,files])=>({
+        path,
+        title:path ? path.split("/").filter(Boolean).slice(-1)[0] : "Folder utama",
+        files:files.slice().sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),undefined,{numeric:true,sensitivity:"base"}))
+      }));
+  },[data.files]);
+  return <div className="content">
+    <section className="page-title">
+      <div><div className="eyebrow">Google Drive</div><h1>Drive Materi</h1><p>Materi mengajar dikelompokkan sesuai folder penyimpanannya.</p></div>
+      {data.folderUrl&&<a className="primary" href={data.folderUrl} target="_blank" rel="noreferrer">Buka folder Drive</a>}
+    </section>
+    {error&&<div className="card" style={{marginBottom:16}}>{error}</div>}
+    {loading?<InlineLoading text="Memuat data Drive materi..."/>:
+      !data.configured?<section className="card"><p>Folder Drive belum dikonfigurasi.</p></section>:
+      <div>
+        {data.truncated&&<div className="notice" role="status" style={{marginBottom:12}}>Daftar dibatasi agar pemuatan tetap cepat. Sebagian materi mungkin belum ditampilkan; buka folder Google Drive untuk melihat semua berkas.</div>}
+        {groups.length ? groups.map(group=>{
+          const isOpen=openFolders[group.path]!==false;
+          return <section className="card" key={group.path||"__root__"} style={{marginBottom:14}}>
+            <button type="button" onClick={()=>setOpenFolders(current=>({...current,[group.path]:!isOpen}))} aria-expanded={isOpen} style={{display:"flex",alignItems:"center",gap:12,width:"100%",padding:0,border:0,background:"transparent",color:"inherit",textAlign:"left",cursor:"pointer"}}>
+              <div className="date-box"><HardDrive size={21}/></div>
+              <div style={{flex:1,minWidth:0}}>
+                <b>{group.title}</b>
+                {group.path&&<div style={{fontSize:12,opacity:.72,marginTop:3,overflowWrap:"anywhere"}}>{group.path}</div>}
+                <span style={{display:"block",fontSize:12,opacity:.72,marginTop:3}}>{group.files.length} berkas</span>
+              </div>
+              <ChevronDown size={18} style={{flexShrink:0,transform:isOpen?"rotate(0deg)":"rotate(-90deg)",transition:"transform .15s"}}/>
+            </button>
+            {isOpen&&<div style={{marginTop:12,borderTop:"1px solid var(--border, #e5e7eb)",paddingTop:4}}>
+              {group.files.map(file=><div className="event" key={file.id}>
+                <div className="date-box"><FileText size={22}/></div>
+                <div style={{minWidth:0,flex:1,overflowWrap:"anywhere"}}>
+                  <b>{file.name}</b>
+                  <span>{file.mimeType} · {Math.round((file.size||0)/1024)} KB</span>
+                </div>
+                <a className="text-btn" href={file.url} target="_blank" rel="noreferrer">Buka</a>
+              </div>)}
+            </div>}
+          </section>;
+        }):<section className="card"><p>Folder Drive masih kosong.</p></section>}
+      </div>
+    }
+  </div>;
+}
 function minutesToTime(value){
   const total = Number(value);
   if(!Number.isFinite(total)) return "";
