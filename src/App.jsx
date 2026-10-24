@@ -839,56 +839,68 @@ function DrivePage(){
       .catch(e=>setError(e.message||String(e)))
       .finally(()=>setLoading(false));
   },[]);
-  const groups=useMemo(()=>{
-    const byFolder=new Map();
+  const tree=useMemo(()=>{
+    const root={name:"",path:"",folders:new Map(),files:[]};
     (data.files||[]).forEach(file=>{
-      const path=String(file.folderPath||"").trim();
-      if(!byFolder.has(path)) byFolder.set(path,[]);
-      byFolder.get(path).push(file);
+      const parts=String(file.folderPath||"").split("/").map(part=>part.trim()).filter(Boolean);
+      let node=root;
+      const pathParts=[];
+      parts.forEach(name=>{
+        pathParts.push(name);
+        const path=pathParts.join("/");
+        if(!node.folders.has(name)) node.folders.set(name,{name,path,folders:new Map(),files:[]});
+        node=node.folders.get(name);
+      });
+      node.files.push(file);
     });
-    return [...byFolder.entries()]
-      .sort(([a],[b])=>a.localeCompare(b,undefined,{numeric:true,sensitivity:"base"}))
-      .map(([path,files])=>({
-        path,
-        title:path ? path.split("/").filter(Boolean).slice(-1)[0] : "Folder utama",
-        files:files.slice().sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),undefined,{numeric:true,sensitivity:"base"}))
-      }));
+    const sortNode=node=>{
+      node.files.sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),undefined,{numeric:true,sensitivity:"base"}));
+      node.folders=new Map([...node.folders.entries()].sort(([a],[b])=>a.localeCompare(b,undefined,{numeric:true,sensitivity:"base"})));
+      node.folders.forEach(sortNode);
+    };
+    sortNode(root);
+    return root;
   },[data.files]);
+  const toggleFolder=path=>setOpenFolders(current=>({...current,[path]:!current[path]}));
+  const renderFiles=files=>files.map(file=><div className="event" key={file.id}>
+    <div className="date-box"><FileText size={21}/></div>
+    <div style={{minWidth:0,flex:1,overflowWrap:"anywhere"}}>
+      <b>{file.name}</b>
+      <span>{file.mimeType} · {Math.round((file.size||0)/1024)} KB</span>
+    </div>
+    <a className="text-btn" href={file.url} target="_blank" rel="noreferrer">Buka</a>
+  </div>);
+  const renderFolder=folder=>{
+    const hasChildren=folder.folders.size>0||folder.files.length>0;
+    const isOpen=!!openFolders[folder.path];
+    return <div key={folder.path} style={{marginTop:4}}>
+      <button type="button" onClick={()=>toggleFolder(folder.path)} aria-expanded={isOpen} style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"10px 8px",border:0,borderRadius:8,background:"transparent",color:"inherit",textAlign:"left",cursor:"pointer"}}>
+        <ChevronDown size={17} style={{flexShrink:0,transform:isOpen?"rotate(0deg)":"rotate(-90deg)",transition:"transform .15s"}}/>
+        {isOpen?<HardDrive size={19}/>:<HardDrive size={19}/>}
+        <span style={{flex:1,minWidth:0,fontWeight:600,overflowWrap:"anywhere"}}>{folder.name}</span>
+        <span style={{fontSize:12,opacity:.7,flexShrink:0}}>{countFiles(folder)} berkas</span>
+      </button>
+      {isOpen&&<div style={{marginLeft:18,paddingLeft:12,borderLeft:"1px solid var(--border, #e5e7eb)"}}>
+        {[...folder.folders.values()].map(renderFolder)}
+        {folder.files.length>0&&<div style={{marginLeft:4}}>{renderFiles(folder.files)}</div>}
+      </div>}
+    </div>;
+  };
+  const countFiles=node=>node.files.length+[...node.folders.values()].reduce((total,child)=>total+countFiles(child),0);
   return <div className="content">
     <section className="page-title">
-      <div><div className="eyebrow">Google Drive</div><h1>Drive Materi</h1><p>Materi mengajar dikelompokkan sesuai folder penyimpanannya.</p></div>
+      <div><div className="eyebrow">Google Drive</div><h1>Drive Materi</h1><p>Jelajahi materi berdasarkan susunan folder Google Drive sekolah.</p></div>
       {data.folderUrl&&<a className="primary" href={data.folderUrl} target="_blank" rel="noreferrer">Buka folder Drive</a>}
     </section>
     {error&&<div className="card" style={{marginBottom:16}}>{error}</div>}
     {loading?<InlineLoading text="Memuat data Drive materi..."/>:
       !data.configured?<section className="card"><p>Folder Drive belum dikonfigurasi.</p></section>:
-      <div>
+      <section className="card">
         {data.truncated&&<div className="notice" role="status" style={{marginBottom:12}}>Daftar dibatasi agar pemuatan tetap cepat. Sebagian materi mungkin belum ditampilkan; buka folder Google Drive untuk melihat semua berkas.</div>}
-        {groups.length ? groups.map(group=>{
-          const isOpen=openFolders[group.path]!==false;
-          return <section className="card" key={group.path||"__root__"} style={{marginBottom:14}}>
-            <button type="button" onClick={()=>setOpenFolders(current=>({...current,[group.path]:!isOpen}))} aria-expanded={isOpen} style={{display:"flex",alignItems:"center",gap:12,width:"100%",padding:0,border:0,background:"transparent",color:"inherit",textAlign:"left",cursor:"pointer"}}>
-              <div className="date-box"><HardDrive size={21}/></div>
-              <div style={{flex:1,minWidth:0}}>
-                <b>{group.title}</b>
-                {group.path&&<div style={{fontSize:12,opacity:.72,marginTop:3,overflowWrap:"anywhere"}}>{group.path}</div>}
-                <span style={{display:"block",fontSize:12,opacity:.72,marginTop:3}}>{group.files.length} berkas</span>
-              </div>
-              <ChevronDown size={18} style={{flexShrink:0,transform:isOpen?"rotate(0deg)":"rotate(-90deg)",transition:"transform .15s"}}/>
-            </button>
-            {isOpen&&<div style={{marginTop:12,borderTop:"1px solid var(--border, #e5e7eb)",paddingTop:4}}>
-              {group.files.map(file=><div className="event" key={file.id}>
-                <div className="date-box"><FileText size={22}/></div>
-                <div style={{minWidth:0,flex:1,overflowWrap:"anywhere"}}>
-                  <b>{file.name}</b>
-                  <span>{file.mimeType} · {Math.round((file.size||0)/1024)} KB</span>
-                </div>
-                <a className="text-btn" href={file.url} target="_blank" rel="noreferrer">Buka</a>
-              </div>)}
-            </div>}
-          </section>;
-        }):<section className="card"><p>Folder Drive masih kosong.</p></section>}
-      </div>
+        {[...tree.folders.values()].map(renderFolder)}
+        {tree.files.length>0&&<div>{renderFiles(tree.files)}</div>}
+        {data.files.length===0&&<p>Folder Drive masih kosong.</p>}
+      </section>
     }
   </div>;
 }
