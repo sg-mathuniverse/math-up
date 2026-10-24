@@ -12,7 +12,7 @@ function wait(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function jsonpWithRetry(action, args = [], attempts = 3) {
+async function jsonpWithRetry(action, args = [], attempts = 2) {
   let lastError;
   for (let attempt = 0; attempt < attempts; attempt++) {
     try {
@@ -34,7 +34,7 @@ function jsonp(action, args = []) {
     const timer = setTimeout(() => {
       cleanup();
       reject(new Error("Koneksi ke Apps Script timeout."));
-    }, 15000);
+    }, 12000);
 
     function cleanup() {
       clearTimeout(timer);

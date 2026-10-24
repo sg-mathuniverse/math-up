@@ -74,16 +74,14 @@ function App(){
     let cancelled=false;
     const loadWorkspace=async()=>{
       try{
-        const u=await api.getCurrentUser();
-        if(cancelled)return;
-        setAuthUser(u||null);
-        if(!u?.email)return;
-        setUser(u);
-
-        // Load the core workspace first; avoid hitting Apps Script with
-        // multiple spreadsheet reads at the same instant during sign-in.
+        // Bootstrap already includes the authenticated user, so avoid a
+        // separate serial getCurrentUser request during the initial load.
         const d=await api.getBootstrap();
         if(cancelled)return;
+        const u=d?.user||null;
+        setAuthUser(u);
+        if(!u?.email)return;
+        setUser(u);
         setTodos(d?.todos||[]);
         setDashboard({
           schedule:d?.schedule||[],
@@ -92,16 +90,16 @@ function App(){
           academicCalendar:d?.academicCalendar||[]
         });
 
-        // Notifications are supplementary: their failure must not block
-        // access to the dashboard or make sign-in appear unsuccessful.
-        try{
-          const requests=await api.getSubstitutionRequests();
+        // Show the workspace before loading supplementary notifications.
+        setAuthChecked(true);
+        setLoading(false);
+        api.getSubstitutionRequests().then(requests=>{
           if(!cancelled)setSubstitutionNotifications(
             Array.isArray(requests?.requests)?requests.requests:(Array.isArray(requests)?requests:[])
           );
-        }catch(notificationError){
+        }).catch(()=>{
           if(!cancelled)setSubstitutionNotifications([]);
-        }
+        });
       }catch(e){
         if(!cancelled)setApiError(e.message||String(e));
       }finally{
