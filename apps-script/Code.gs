@@ -652,6 +652,7 @@ function saveSubstitution(item) {
   try {
     const requesterName = String(absentTeacher?.name || user.name || absent);
     const subject = 'Permintaan Guru Pengganti — ' + className + ' (' + date + ')';
+    const appUrl = ScriptApp.getService().getUrl() || '';
     const body = [
       'Halo ' + String(teacher.name || 'Guru') + ',',
       '',
@@ -664,6 +665,7 @@ function saveSubstitution(item) {
       'Alasan: ' + (reason || '-'),
       '',
       'Silakan buka Ruang Math Up menggunakan akun sekolah Anda untuk menerima atau menolak permintaan ini.',
+      appUrl ? 'Buka Ruang Math Up: ' + appUrl : 'Buka Ruang Math Up melalui tautan aplikasi yang biasa digunakan sekolah.',
       '',
       'Email ini dikirim otomatis oleh Ruang Math Up.'
     ].join('\n');
@@ -755,6 +757,7 @@ function retrySubstitutionEmail(id) {
   try {
     const subject = 'Permintaan Guru Pengganti — ' +
       String(data.className || '-') + ' (' + String(data.date || '-') + ')';
+    const appUrl = ScriptApp.getService().getUrl() || '';
     const body = [
       'Halo ' + String(teacher.name || 'Guru') + ',',
       '',
@@ -767,9 +770,10 @@ function retrySubstitutionEmail(id) {
       'Alasan: ' + String(data.reason || '-'),
       '',
       'Silakan buka Ruang Math Up menggunakan akun sekolah Anda untuk menerima atau menolak permintaan ini.',
+      appUrl ? 'Buka Ruang Math Up: ' + appUrl : 'Buka Ruang Math Up melalui tautan aplikasi yang biasa digunakan sekolah.',
       '',
       'Email ini dikirim otomatis oleh Ruang Math Up.'
-    ].join('\\n');
+    ].join('\n');
     MailApp.sendEmail({to:substitute,subject,body,name:'Ruang Math Up'});
   } catch (emailException) {
     nextStatus = 'Gagal';
