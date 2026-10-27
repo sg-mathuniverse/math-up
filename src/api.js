@@ -34,7 +34,7 @@ function jsonp(action, args = []) {
     const timer = setTimeout(() => {
       cleanup();
       reject(new Error("Koneksi ke Apps Script timeout."));
-    }, 12000);
+    }, 30000);
 
     function cleanup() {
       clearTimeout(timer);
