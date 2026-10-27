@@ -1495,6 +1495,11 @@ function listDriveFolderContents_(folder) {
 // ============================================================
 // SPREADSHEET
 // ============================================================
+// Cache objek Spreadsheet hanya selama satu eksekusi Apps Script.
+// Beberapa fungsi bootstrap membaca banyak sheet; membuka spreadsheet berulang
+// kali dalam permintaan yang sama menambah latensi tanpa memberi manfaat.
+let _spreadsheetCacheId = '';
+let _spreadsheetCache = null;
 function getSpreadsheet_() {
   const id = PropertiesService.getScriptProperties()
     .getProperty('SPREADSHEET_ID');
@@ -1503,7 +1508,12 @@ function getSpreadsheet_() {
       'SPREADSHEET_ID belum diatur. Jalankan setSpreadsheetId("ID_SHEET").'
     );
   }
-  return SpreadsheetApp.openById(id);
+  if (_spreadsheetCache && _spreadsheetCacheId === id) {
+    return _spreadsheetCache;
+  }
+  _spreadsheetCache = SpreadsheetApp.openById(id);
+  _spreadsheetCacheId = id;
+  return _spreadsheetCache;
 }
 function setSpreadsheetId(id) {
   if (!id) throw new Error('Spreadsheet ID wajib diisi.');
