@@ -158,7 +158,10 @@ function getBootstrap() {
   const allSchedule = readRows_(SHEET_NAMES.SCHEDULE).filter(s =>
     visibleTeacherEmails.has(String(s.teacherEmail || '').trim().toLowerCase())
   );
-  const approvedSubs = readRows_(SHEET_NAMES.SUBSTITUTIONS)
+  // Baca sheet substitusi sekali lalu gunakan ulang untuk jadwal efektif
+  // dan riwayat yang dikirim ke klien.
+  const allSubstitutions = readRows_(SHEET_NAMES.SUBSTITUTIONS);
+  const approvedSubs = allSubstitutions
     .filter(r => String(r.status || '') === 'Disetujui');
   const today = Utilities.formatDate(
     new Date(),
@@ -184,7 +187,7 @@ function getBootstrap() {
     academicCalendar:readRows_(SHEET_NAMES.CALENDAR),
     // Riwayat yang dikirim ke klien hanya milik pengguna atau ditujukan kepadanya.
     // Semua pengajuan tetap dipakai di atas untuk menghitung jadwal efektif.
-    substitutions:readRows_(SHEET_NAMES.SUBSTITUTIONS)
+    substitutions:allSubstitutions
       .filter(r =>
         String(r.status || 'Diajukan') !== 'Ditolak' &&
         (
