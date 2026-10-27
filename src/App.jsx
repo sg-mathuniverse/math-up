@@ -1302,8 +1302,22 @@ function SchedulePage({user}){
 
 function PatchNotesPage(){
   const patches=[{
+    version:"RMU 3.0",
+    status:"Rilis 29/11/2026",
+    releaseDate:"29/11/2026",
+    title:"Pembaruan profil, materi, dan alur kerja guru",
+    summary:"Pembaruan Ruang Math Up untuk memperjelas identitas pengguna, memudahkan akses materi, serta meningkatkan pengalaman penggunaan sistem.",
+    groups:[
+      {title:"Profil Saya",items:["Nama dan alamat email pengguna ditampilkan berdasarkan identitas akun Google.","Foto profil Google ditampilkan apabila tersedia; inisial nama digunakan sebagai pengganti jika foto tidak tersedia."]},
+      {title:"Drive Materi",items:["Drive Materi sudah dapat diakses untuk membuka materi pembelajaran yang tersedia."]},
+      {title:"Login dan Stabilitas",items:["Batas waktu koneksi frontend ke Google Apps Script disesuaikan untuk mengurangi kegagalan login saat respons membutuhkan waktu lebih lama.","Login telah berhasil diuji kembali; waktu pemuatan masih menjadi perhatian untuk optimalisasi lanjutan."]},
+      {title:"Guru Pengganti dan Notifikasi Email",items:["Alur pengajuan dan respons guru pengganti tersedia melalui aplikasi.","PENTING: Email notifikasi guru pengganti masih dapat masuk ke folder SPAM/Junk. Periksa folder tersebut jika email tidak ada di kotak masuk, lalu tandai sebagai Bukan Spam bila diperlukan. Masalah ini belum sepenuhnya terselesaikan."]},
+      {title:"Dashboard dan Navigasi",items:["Penyelarasan tampilan nama guru pada dashboard.","Pembaruan direktori guru dan ikon navigasi jadwal/kalender."]}
+    ],
+    note:"Email notifikasi guru pengganti masih berpotensi masuk SPAM/Junk. Perbaikan keandalan pengiriman email masih menjadi pekerjaan lanjutan."
+  },{
     version:"RMU 2.0",
-    status:"Rilis saat ini",
+    status:"Rilis sebelumnya",
     title:"Workspace guru terintegrasi",
     summary:"Ruang kerja digital untuk membantu guru mengelola jadwal, tugas, agenda, dan koordinasi guru pengganti.",
     groups:[
@@ -1324,7 +1338,7 @@ function PatchNotesPage(){
       {patches.map((patch,index)=><article className="card patch-card" key={patch.version}>
         <div className="patch-card-head">
           <div className="patch-version-icon"><History size={21}/></div>
-          <div className="patch-version-copy"><div className="patch-version-line"><h2>{patch.version}</h2><span className="patch-current">{patch.status}</span></div><p>{patch.title}</p></div>
+          <div className="patch-version-copy"><div className="patch-version-line"><h2>{patch.version}</h2><span className="patch-current">{patch.status}</span></div><p>{patch.title}</p>{patch.releaseDate&&<p className="patch-release-date">Tanggal rilis: {patch.releaseDate}</p>}</div>
         </div>
         <p className="patch-summary">{patch.summary}</p>
         <div className="patch-groups">
@@ -1335,7 +1349,6 @@ function PatchNotesPage(){
     </div>
   </div>;
 }
-
 function Placeholder({title}){return <div className="content"><section className="empty card"><div className="empty-icon"><CalendarDays size={28}/></div><h1>{title}</h1><p>Modul ini sudah disiapkan di Math Up dan akan kita sambungkan ke data Google Sheets/Drive pada tahap berikutnya.</p><button className="primary">Siapkan modul</button></section></div>}
 function TodoModal({onClose,onSave,initial,saving}){const [title,setTitle]=useState(initial?.title||"");const [desc,setDesc]=useState(initial?.description||initial?.desc||"");const initialDue=String(initial?.dueAt||initial?.due||"");const [dueDate,setDueDate]=useState(initialDue.match(/^(\\d{4}-\\d{2}-\\d{2})/)?.[1]||"");const [dueTime,setDueTime]=useState(initialDue.match(/T(\\d{2}:\\d{2})/)?.[1]||"");const [priority,setPriority]=useState(initial?.priority||"Sedang");const save=()=>{const due=dueDate&&dueTime?dueDate+"T"+dueTime:"";onSave({title,desc,due,priority});};return <div className="modal-backdrop"><div className="modal"><div className="modal-head"><div><h2>{initial?"Edit tugas":"Tugas baru"}</h2><p>Tambahkan pekerjaan yang perlu diselesaikan.</p></div><button className="icon-btn" onClick={onClose}><X/></button></div><label>Nama tugas<input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Contoh: Siapkan soal..." /></label><label>Deskripsi<textarea value={desc} onChange={e=>setDesc(e.target.value)} placeholder="Detail tugas..." /></label><div className="two"><label>Tanggal deadline<input type="date" value={dueDate} onChange={e=>setDueDate(e.target.value)}/></label><label>Jam berakhir<input type="time" value={dueTime} onChange={e=>setDueTime(e.target.value)}/></label></div><label>Prioritas<select value={priority} onChange={e=>setPriority(e.target.value)}><option>Rendah</option><option>Sedang</option><option>Tinggi</option></select></label><div className="modal-actions"><button className="secondary" onClick={onClose}>Batal</button><button className="primary" disabled={!title.trim()||!dueDate||!dueTime||saving} onClick={save}>{saving?<><span className="button-spinner"></span>Menyimpan...</>:initial?"Simpan perubahan":"Simpan tugas"}</button></div></div></div>}
 
