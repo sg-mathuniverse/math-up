@@ -3,7 +3,7 @@ import { api } from "./api";
 import {
   Bell, CalendarDays, CalendarClock, CheckCircle2, ChevronDown, CirclePlus, Clock3,
   FileText, LayoutDashboard, ListTodo, Menu, Search,
-  Settings, Users, UserRoundCheck, UserRound, X, BookOpen, Sparkles, Mail, HardDrive, History
+  Settings, Users, UserRoundCheck, UserRound, X, BookOpen, Sparkles, Mail, HardDrive, History, BriefcaseBusiness, GraduationCap, School
 } from "lucide-react";
 
 const schedule = [
@@ -178,17 +178,18 @@ function App(){
       <div className="brand" role="button" tabIndex={0} aria-label={menuOpen?"Tutup menu":"Buka menu"} onClick={()=>setMenuOpen(v=>!v)} onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();setMenuOpen(v=>!v)}}}><div className="brand-mark sidebar-math-logo" aria-label="pi integral a sampai b f kuadrat x dx"><span className="pi">π</span><span className="integral-wrap"><span className="integral">∫</span><span className="limits"><sup>b</sup><sub>a</sub></span></span><span className="formula">f²(x) dx</span></div><div className="brand-name"><strong>Ruang</strong><strong>Math Up</strong></div></div>
       <nav className="sidebar-nav">
         <Nav icon={<LayoutDashboard size={19}/>} label="Dashboard" active={active==="Dashboard"} onClick={()=>navigateTo("Dashboard")}/>
-        <div className={activeCategory==="Program Kami"?"nav-group has-active":"nav-group"}><button className={expandedCategory==="Program Kami"?"nav nav-category expanded":"nav nav-category"} aria-expanded={expandedCategory==="Program Kami"} onClick={()=>toggleCategory("Program Kami")}><BookOpen size={19}/><span>Program Kami</span><ChevronDown className="nav-chevron" size={15}/></button>
+        <div className={activeCategory==="Program Kami"?"nav-group has-active":"nav-group"}><button className={expandedCategory==="Program Kami"?"nav nav-category expanded":"nav nav-category"} aria-expanded={expandedCategory==="Program Kami"} onClick={()=>toggleCategory("Program Kami")}><BriefcaseBusiness size={19}/><span>Program Kami</span><ChevronDown className="nav-chevron" size={15}/></button>
           <div className={expandedCategory==="Program Kami"?"nav-submenu expanded":"nav-submenu"}>
             <Nav icon={<ListTodo size={17}/>} label="To-Do" active={active==="To-Do"} onClick={()=>navigateTo("To-Do")} todoCount={todos.filter(t=>!t.done).length}/>
             <Nav icon={<CalendarClock size={17}/>} label="Jadwal Mengajar" active={active==="Jadwal Mengajar"} onClick={()=>navigateTo("Jadwal Mengajar")}/>
             <Nav icon={<HardDrive size={17}/>} label="Drive Materi" active={active==="Drive Materi"} onClick={()=>navigateTo("Drive Materi")}/>
             <Nav icon={<UserRoundCheck size={17}/>} label="Guru Pengganti" active={active==="Guru Pengganti"} onClick={()=>navigateTo("Guru Pengganti")}/>
           </div></div>
-        <div className={activeCategory==="Kurikulum"?"nav-group has-active":"nav-group"}><button className={expandedCategory==="Kurikulum"?"nav nav-category expanded":"nav nav-category"} aria-expanded={expandedCategory==="Kurikulum"} onClick={()=>toggleCategory("Kurikulum")}><BookOpen size={19}/><span>Kurikulum</span><ChevronDown className="nav-chevron" size={15}/></button>
+        <div className={activeCategory==="Kurikulum"?"nav-group has-active":"nav-group"}><button className={expandedCategory==="Kurikulum"?"nav nav-category expanded":"nav nav-category"} aria-expanded={expandedCategory==="Kurikulum"} onClick={()=>toggleCategory("Kurikulum")}><GraduationCap size={19}/><span>Kurikulum</span><ChevronDown className="nav-chevron" size={15}/></button>
           <div className={expandedCategory==="Kurikulum"?"nav-submenu expanded":"nav-submenu"}>
             <Nav icon={<CalendarDays size={17}/>} label="Kalender Akademik" active={active==="Kalender Akademik"} onClick={()=>navigateTo("Kalender Akademik")}/>
-            <a className="nav nav-external" href="https://geniusedu.id/login" target="_blank" rel="noopener noreferrer"><BookOpen size={17}/><span>LMS Sekolah GenIUS</span></a>
+            <a className="nav nav-external" href="https://script.google.com/a/macros/genius.sch.id/s/AKfycbyf4qdh-_Pq3s79PNy09CHePRgXWvCbfZqwYIj4raB0NpSLxsahOpllF_oAKA3_POf7/exec" target="_blank" rel="noopener noreferrer"><CheckCircle2 size={17}/><span>Rumble Assessment</span></a>
+            <a className="nav nav-external" href="https://geniusedu.id/login" target="_blank" rel="noopener noreferrer"><School size={17}/><span>LMS Sekolah GenIUS</span></a>
           </div></div>
         <div className="nav-group"><button className={expandedCategory==="Kesiswaan"?"nav nav-category expanded":"nav nav-category"} aria-expanded={expandedCategory==="Kesiswaan"} onClick={()=>toggleCategory("Kesiswaan")}><Users size={19}/><span>Kesiswaan</span><ChevronDown className="nav-chevron" size={15}/></button>
           <div className={expandedCategory==="Kesiswaan"?"nav-submenu expanded":"nav-submenu"}><a className="nav nav-external" href="https://script.google.com/a/macros/genius.sch.id/s/AKfycbxQQvikqC-mQCwGip0ubjPWR5r_zN8Qq6FBg1MO9f_pRknDwat_ZnoOnkW_Ae-PWqP1/exec" target="_blank" rel="noopener noreferrer"><FileText size={17}/><span>Catatan Perilaku Murid</span></a></div></div>
