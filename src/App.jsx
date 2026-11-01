@@ -58,6 +58,7 @@ function App(){
   const [authUser,setAuthUser]=useState(null);
   const [todos,setTodos]=useState([]);
   const [menuOpen,setMenuOpen]=useState(false);
+  const [expandedCategory,setExpandedCategory]=useState(null);
   const [profileMenuOpen,setProfileMenuOpen]=useState(false);
   const [showTodo,setShowTodo]=useState(false);
   const [editingTodo,setEditingTodo]=useState(null);
@@ -146,6 +147,10 @@ function App(){
   },[authUser?.email]);
 
   const filteredTodos=useMemo(()=>todos.filter(t=>String(t?.title||"").toLowerCase().includes(query.toLowerCase())),[todos,query]);
+  const activeCategory=active==="To-Do"||active==="Jadwal Mengajar"||active==="Drive Materi"||active==="Guru Pengganti"?"Program Kami":active==="Kalender Akademik"?"Kurikulum":null;
+  useEffect(()=>{if(activeCategory)setExpandedCategory(activeCategory);},[activeCategory]);
+  const navigateTo=name=>{setActive(name);if(window.matchMedia("(max-width: 900px)").matches)setMenuOpen(false);};
+  const toggleCategory=name=>setExpandedCategory(current=>current===name?null:name);
 
   if(!authChecked || loading) return <LoadingScreen/>;
 
@@ -168,24 +173,30 @@ function App(){
   };
 
   return <div className="app">
-    <aside
-      className={menuOpen?"sidebar open":"sidebar"}
-      onMouseEnter={()=>{if(window.matchMedia("(min-width: 901px)").matches)setMenuOpen(true)}}
-      onMouseLeave={()=>{if(window.matchMedia("(min-width: 901px)").matches)setMenuOpen(false)}}
-    >
+    {menuOpen&&<button className="sidebar-scrim" aria-label="Tutup menu" onClick={()=>setMenuOpen(false)} />}
+    <aside className={menuOpen?"sidebar open":"sidebar"} onMouseEnter={()=>{if(window.matchMedia("(min-width: 901px)").matches)setMenuOpen(true)}} onMouseLeave={()=>{if(window.matchMedia("(min-width: 901px)").matches)setMenuOpen(false)}}>
       <div className="brand" role="button" tabIndex={0} aria-label={menuOpen?"Tutup menu":"Buka menu"} onClick={()=>setMenuOpen(v=>!v)} onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();setMenuOpen(v=>!v)}}}><div className="brand-mark sidebar-math-logo" aria-label="pi integral a sampai b f kuadrat x dx"><span className="pi">π</span><span className="integral-wrap"><span className="integral">∫</span><span className="limits"><sup>b</sup><sub>a</sub></span></span><span className="formula">f²(x) dx</span></div><div className="brand-name"><strong>Ruang</strong><strong>Math Up</strong></div></div>
-      <nav>
-        <Nav icon={<LayoutDashboard size={19}/>} label="Dashboard" active={active==="Dashboard"} onClick={()=>setActive("Dashboard")}/>
-        <Nav icon={<CalendarClock size={19}/>} label="Jadwal Mengajar" active={active==="Jadwal Mengajar"} onClick={()=>setActive("Jadwal Mengajar")}/>
-        <Nav icon={<UserRoundCheck size={19}/>} label="Guru Pengganti" active={active==="Guru Pengganti"} onClick={()=>setActive("Guru Pengganti")}/>
-        <Nav icon={<ListTodo size={19}/>} label="To-Do" active={active==="To-Do"} onClick={()=>setActive("To-Do")} todoCount={todos.filter(t=>!t.done).length}/>
-        <Nav icon={<CalendarDays size={19}/>} label="Kalender Akademik" active={active==="Kalender Akademik"} onClick={()=>setActive("Kalender Akademik")}/>
-        <Nav icon={<FileText size={19}/>} label="Drive Materi" active={active==="Drive Materi"} onClick={()=>setActive("Drive Materi")}/>
-        <Nav icon={<History size={19}/>} label="Patch Note" active={active==="Patch Note"} onClick={()=>setActive("Patch Note")}/>
+      <nav className="sidebar-nav">
+        <Nav icon={<LayoutDashboard size={19}/>} label="Dashboard" active={active==="Dashboard"} onClick={()=>navigateTo("Dashboard")}/>
+        <div className={activeCategory==="Program Kami"?"nav-group has-active":"nav-group"}><button className={expandedCategory==="Program Kami"?"nav nav-category expanded":"nav nav-category"} aria-expanded={expandedCategory==="Program Kami"} onClick={()=>toggleCategory("Program Kami")}><BookOpen size={19}/><span>Program Kami</span><ChevronDown className="nav-chevron" size={15}/></button>
+          <div className={expandedCategory==="Program Kami"?"nav-submenu expanded":"nav-submenu"}>
+            <Nav icon={<ListTodo size={17}/>} label="To-Do" active={active==="To-Do"} onClick={()=>navigateTo("To-Do")} todoCount={todos.filter(t=>!t.done).length}/>
+            <Nav icon={<CalendarClock size={17}/>} label="Jadwal Mengajar" active={active==="Jadwal Mengajar"} onClick={()=>navigateTo("Jadwal Mengajar")}/>
+            <Nav icon={<HardDrive size={17}/>} label="Drive Materi" active={active==="Drive Materi"} onClick={()=>navigateTo("Drive Materi")}/>
+            <Nav icon={<UserRoundCheck size={17}/>} label="Guru Pengganti" active={active==="Guru Pengganti"} onClick={()=>navigateTo("Guru Pengganti")}/>
+          </div></div>
+        <div className={activeCategory==="Kurikulum"?"nav-group has-active":"nav-group"}><button className={expandedCategory==="Kurikulum"?"nav nav-category expanded":"nav nav-category"} aria-expanded={expandedCategory==="Kurikulum"} onClick={()=>toggleCategory("Kurikulum")}><BookOpen size={19}/><span>Kurikulum</span><ChevronDown className="nav-chevron" size={15}/></button>
+          <div className={expandedCategory==="Kurikulum"?"nav-submenu expanded":"nav-submenu"}>
+            <Nav icon={<CalendarDays size={17}/>} label="Kalender Akademik" active={active==="Kalender Akademik"} onClick={()=>navigateTo("Kalender Akademik")}/>
+            <a className="nav nav-external" href="https://geniusedu.id/login" target="_blank" rel="noopener noreferrer"><BookOpen size={17}/><span>LMS Sekolah GenIUS</span></a>
+          </div></div>
+        <div className="nav-group"><button className={expandedCategory==="Kesiswaan"?"nav nav-category expanded":"nav nav-category"} aria-expanded={expandedCategory==="Kesiswaan"} onClick={()=>toggleCategory("Kesiswaan")}><Users size={19}/><span>Kesiswaan</span><ChevronDown className="nav-chevron" size={15}/></button>
+          <div className={expandedCategory==="Kesiswaan"?"nav-submenu expanded":"nav-submenu"}><a className="nav nav-external" href="https://script.google.com/a/macros/genius.sch.id/s/AKfycbxQQvikqC-mQCwGip0ubjPWR5r_zN8Qq6FBg1MO9f_pRknDwat_ZnoOnkW_Ae-PWqP1/exec" target="_blank" rel="noopener noreferrer"><FileText size={17}/><span>Catatan Perilaku Murid</span></a></div></div>
+        <div className="nav-group"><button className={expandedCategory==="MISC"?"nav nav-category expanded":"nav nav-category"} aria-expanded={expandedCategory==="MISC"} onClick={()=>toggleCategory("MISC")}><HardDrive size={19}/><span>MISC</span><ChevronDown className="nav-chevron" size={15}/></button>
+          <div className={expandedCategory==="MISC"?"nav-submenu expanded":"nav-submenu"}><a className="nav nav-external" href="https://sigenius.web.id/index.html" target="_blank" rel="noopener noreferrer"><HardDrive size={17}/><span>Purchasing</span></a></div></div>
+        <Nav icon={<History size={19}/>} label="Patch Note" active={active==="Patch Note"} onClick={()=>navigateTo("Patch Note")}/>
       </nav>
-      <div className="sidebar-bottom">
-        <Nav icon={<Settings size={19}/>} label="Pengaturan" active={active==="Pengaturan"} onClick={()=>setActive("Pengaturan")}/>
-      </div>
+      <div className="sidebar-bottom"><Nav icon={<Settings size={19}/>} label="Pengaturan" active={active==="Pengaturan"} onClick={()=>navigateTo("Pengaturan")}/></div>
     </aside>
 
     <main className="main" onClick={()=>{if(menuOpen)setMenuOpen(false);if(profileMenuOpen)setProfileMenuOpen(false)}}>
