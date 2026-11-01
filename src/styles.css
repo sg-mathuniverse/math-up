@@ -505,3 +505,9 @@
 @media(prefers-reduced-motion:reduce){
  .sidebar,.nav-submenu,.nav-chevron,.sidebar-scrim{transition:none!important;animation:none!important}
 }
+
+/* RMU 4.0 submenu motion refinement */
+.nav-submenu{display:flex;flex-direction:column;max-height:0;overflow:hidden;opacity:0;visibility:hidden;transition:max-height .24s ease,opacity .18s ease,visibility .18s}
+.nav-submenu.expanded{max-height:260px;opacity:1;visibility:visible}
+.nav-submenu>*{overflow:visible}
+@media(max-width:900px){.sidebar:not(.open) .nav-submenu:not(.expanded){display:none}}
