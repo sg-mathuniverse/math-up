@@ -197,7 +197,7 @@ function App(){
         <Nav icon={<History size={19}/>} label="Patch Note" active={active==="Patch Note"} onClick={()=>navigateTo("Patch Note")}/>
       </nav>
       <div className="sidebar-bottom"><Nav icon={<Settings size={19}/>} label="Pengaturan" active={active==="Pengaturan"} onClick={()=>navigateTo("Pengaturan")}/></div>
-    </aside>>
+    </aside>
 
     <main className="main" onClick={()=>{if(menuOpen)setMenuOpen(false);if(profileMenuOpen)setProfileMenuOpen(false)}}>
       <header className="topbar">
