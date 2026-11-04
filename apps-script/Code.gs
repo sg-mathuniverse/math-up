@@ -187,11 +187,8 @@ function getBootstrap() {
     // Semua pengajuan tetap dipakai di atas untuk menghitung jadwal efektif.
     substitutions:readRows_(SHEET_NAMES.SUBSTITUTIONS)
       .filter(r =>
-        String(r.status || 'Diajukan') !== 'Ditolak' &&
-        (
-          String(r.absentTeacherEmail || '').trim().toLowerCase() === user.email ||
-          String(r.substituteTeacherEmail || '').trim().toLowerCase() === user.email
-        )
+        String(r.absentTeacherEmail || '').trim().toLowerCase() === user.email ||
+        String(r.substituteTeacherEmail || '').trim().toLowerCase() === user.email
       )
   };
 }
