@@ -194,7 +194,7 @@ function App(){
         <div className="nav-group"><button className={expandedCategory==="Kesiswaan"?"nav nav-category expanded":"nav nav-category"} aria-expanded={expandedCategory==="Kesiswaan"} onClick={()=>toggleCategory("Kesiswaan")}><Users size={19}/><span>Kesiswaan</span><ChevronDown className="nav-chevron" size={15}/></button>
           <div className={expandedCategory==="Kesiswaan"?"nav-submenu expanded":"nav-submenu"}><a className="nav nav-external" href="https://script.google.com/a/macros/genius.sch.id/s/AKfycbxQQvikqC-mQCwGip0ubjPWR5r_zN8Qq6FBg1MO9f_pRknDwat_ZnoOnkW_Ae-PWqP1/exec" target="_blank" rel="noopener noreferrer"><FileText size={17}/><span>Catatan Perilaku Murid</span></a></div></div>
         <div className="nav-group"><button className={expandedCategory==="MISC"?"nav nav-category expanded":"nav nav-category"} aria-expanded={expandedCategory==="MISC"} onClick={()=>toggleCategory("MISC")}><HardDrive size={19}/><span>MISC</span><ChevronDown className="nav-chevron" size={15}/></button>
-          <div className={expandedCategory==="MISC"?"nav-submenu expanded":"nav-submenu"}><a className="nav nav-external" href="https://sigenius.web.id/index.html" target="_blank" rel="noopener noreferrer"><HardDrive size={17}/><span>Purchasing</span></a></div></div>
+          <div className={expandedCategory==="MISC"?"nav-submenu expanded":"nav-submenu"}><a className="nav nav-external" href="https://sigenius.web.id/index.html" target="_blank" rel="noopener noreferrer"><HardDrive size={17}/><span>SiGenIUS</span></a></div></div>
         <Nav icon={<History size={19}/>} label="Patch Note" active={active==="Patch Note"} onClick={()=>navigateTo("Patch Note")}/>
       </nav>
       <div className="sidebar-bottom"><Nav icon={<Settings size={19}/>} label="Pengaturan" active={active==="Pengaturan"} onClick={()=>navigateTo("Pengaturan")}/></div>
@@ -1025,7 +1025,7 @@ function SubstitutePage({user,onSubstitutionUpdated}){
 
  const refresh=async()=>{
    const [incoming,all]=await Promise.all([api.getSubstitutionRequests(),api.getBootstrap()]);
-   setRequests(incoming?.requests||incoming||[]);
+   setRequests((incoming?.requests||incoming||[]).filter(x=>String(x.status||"").toLowerCase()==="diajukan"));
    setHistory((all?.substitutions||[]).filter(x=>String(x.absentTeacherEmail||"").toLowerCase()===String(user?.email||"").toLowerCase()));
  };
 
@@ -1103,6 +1103,7 @@ function SubstitutePage({user,onSubstitutionUpdated}){
    setMessage("");
    try{
      await api.respondSubstitution(id,response);
+     setRequests(current=>current.filter(x=>x.id!==id));
      setMessage(response==="terima"?"Permintaan diterima. Jadwal pengganti akan masuk ke jadwal efektif.":"Permintaan ditolak.");
      await refresh();
      await onSubstitutionUpdated?.();
