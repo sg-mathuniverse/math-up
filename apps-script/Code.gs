@@ -143,6 +143,7 @@ function setupSheets() {
 function getBootstrap() {
   const user = requireUser_();
   setupSheets();
+  expirePastSubstitutionRequests_();
   upsertUser_(user);
   const teachers = readRows_(SHEET_NAMES.TEACHERS).filter(t =>
     String(t.status || 'Aktif').trim().toLowerCase() === 'aktif' &&
@@ -159,7 +160,7 @@ function getBootstrap() {
     visibleTeacherEmails.has(String(s.teacherEmail || '').trim().toLowerCase())
   );
   const approvedSubs = readRows_(SHEET_NAMES.SUBSTITUTIONS)
-    .filter(r => String(r.status || '') === 'Disetujui');
+    .filter(r => ['Diterima','Disetujui'].includes(String(r.status || '').trim()));
   const today = Utilities.formatDate(
     new Date(),
     Session.getScriptTimeZone() || 'Asia/Jakarta',
@@ -796,7 +797,7 @@ function buildEffectiveSchedule_(schedules, substitutions, targetDate) {
   const day = dayNameId_(date);
   let base = schedules.map(s => ({...s, scheduleType: 'Reguler', originalTeacherEmail: s.teacherEmail}));
   const activeSubs = substitutions.filter(sub =>
-    String(sub.date || '') === date && String(sub.status || '') === 'Disetujui'
+    String(sub.date || '') === date && ['Diterima','Disetujui'].includes(String(sub.status || '').trim())
   ).sort((a,b) => timeToMinutes_(a.startTime) - timeToMinutes_(b.startTime));
   activeSubs.forEach(sub => {
     const absent = String(sub.absentTeacherEmail || '').toLowerCase();
@@ -868,11 +869,46 @@ function getEffectiveSchedule(date) {
     visibleTeacherEmails.has(String(s.teacherEmail || '').trim().toLowerCase())
   );
   const approvedSubs = readRows_(SHEET_NAMES.SUBSTITUTIONS)
-    .filter(r => String(r.status || '') === 'Disetujui');
+    .filter(r => ['Diterima','Disetujui'].includes(String(r.status || '').trim()));
   return buildEffectiveSchedule_(schedules,approvedSubs,targetDate).filter(s =>
     visibleTeacherEmails.has(String(s.teacherEmail || '').trim().toLowerCase()) ||
     visibleTeacherEmails.has(String(s.originalTeacherEmail || '').trim().toLowerCase())
   );
+}
+// Tandai otomatis pengajuan yang tanggal penggantiannya sudah lewat.
+// Tanggal hari ini tetap dapat direspons sampai hari tersebut berakhir.
+function expirePastSubstitutionRequests_() {
+  const today = Utilities.formatDate(
+    new Date(),
+    Session.getScriptTimeZone() || 'Asia/Jakarta',
+    'yyyy-MM-dd'
+  );
+  const rows = readRows_(SHEET_NAMES.SUBSTITUTIONS);
+  const expired = rows.filter(r =>
+    String(r.status || 'Diajukan').trim().toLowerCase() === 'diajukan' &&
+    /^\\d{4}-\\d{2}-\\d{2}$/.test(String(r.date || '').trim()) &&
+    String(r.date).trim() < today
+  );
+  if (!expired.length) return 0;
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) throw new Error('Sistem sedang memperbarui status pengajuan. Silakan muat ulang.');
+  try {
+    let count = 0;
+    expired.forEach(item => {
+      const current = findRow_(SHEET_NAMES.SUBSTITUTIONS, item.id);
+      if (!current || String(current.data.status || 'Diajukan').trim().toLowerCase() !== 'diajukan') return;
+      if (String(current.data.date || '').trim() >= today) return;
+      updateRow_(SHEET_NAMES.SUBSTITUTIONS, current.rowNumber, {
+        ...current.data,
+        status:'Ditolak',
+        updatedAt:new Date().toISOString()
+      });
+      count++;
+    });
+    return count;
+  } finally {
+    lock.releaseLock();
+  }
 }
 // ============================================================
 // PERMINTAAN YANG MENUNGGU RESPONS
@@ -880,6 +916,7 @@ function getEffectiveSchedule(date) {
 function getSubstitutionRequests() {
   const user = requireUser_();
   setupSheets();
+  expirePastSubstitutionRequests_();
   return readRows_(SHEET_NAMES.SUBSTITUTIONS).filter(r =>
     String(r.substituteTeacherEmail || '').toLowerCase() === user.email &&
     String(r.status || 'Diajukan') === 'Diajukan'
@@ -891,6 +928,7 @@ function getSubstitutionRequests() {
 function respondSubstitution(id, response) {
   const user = requireUser_();
   setupSheets();
+  expirePastSubstitutionRequests_();
   const action = String(response || '').trim().toLowerCase();
   if (action !== 'terima' && action !== 'tolak') {
     throw new Error('Respons tidak valid.');
@@ -934,7 +972,7 @@ function respondSubstitution(id, response) {
     }
     return updateRow_(SHEET_NAMES.SUBSTITUTIONS,row.rowNumber,{
       ...data,
-      status:action === 'terima' ? 'Disetujui' : 'Ditolak',
+      status:action === 'terima' ? 'Diterima' : 'Ditolak',
       updatedAt:new Date().toISOString()
     });
   } finally {
