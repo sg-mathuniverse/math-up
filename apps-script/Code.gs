@@ -883,7 +883,7 @@ function expirePastSubstitutionRequests_() {
   const rows = readRows_(SHEET_NAMES.SUBSTITUTIONS);
   const expired = rows.filter(r =>
     String(r.status || 'Diajukan').trim().toLowerCase() === 'diajukan' &&
-    /^\\d{4}-\\d{2}-\\d{2}$/.test(String(r.date || '').trim()) &&
+    /^\d{4}-\d{2}-\d{2}$/.test(String(r.date || '').trim()) &&
     String(r.date).trim() < today
   );
   if (!expired.length) return 0;
